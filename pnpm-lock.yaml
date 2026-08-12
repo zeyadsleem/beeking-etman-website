@@ -219,6 +219,10 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@libsql/client':
         specifier: ^0.17.3
