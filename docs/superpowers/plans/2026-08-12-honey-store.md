@@ -1130,9 +1130,9 @@ export async function listProducts(
   const where = conds.length ? and(...conds) : undefined;
   const orderBy =
     filters.sort === "price-asc"
-      ? desc(schema.product.price)
+      ? asc(schema.product.price)
       : filters.sort === "price-desc"
-        ? asc(schema.product.price)
+        ? desc(schema.product.price)
         : desc(schema.product.createdAt);
   const rows = await db
     .select()
