@@ -22,6 +22,7 @@
     "auth:schema": "auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
   },
   "dependencies": {
+    "cookie": "^1.1.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
