@@ -5,7 +5,7 @@
   let { form }: { form: ActionData } = $props();
 </script>
 
-<svelte:head><title>إنشاء حساب — بيت العسل</title></svelte:head>
+<svelte:head><title>إنشاء حساب — مملكة النحل</title></svelte:head>
 
 <div class="mx-auto mt-14 max-w-md motion-safe:animate-fade-up">
   <div class="mb-6 flex flex-col items-center text-center">
@@ -14,7 +14,7 @@
       <path d="M8.2 12.5h9.6M13 7.5v10" stroke="#a35110" stroke-width="1.6" stroke-linecap="round" />
     </svg>
     <h1 class="headline mt-2 text-3xl text-cocoa-900">إنشاء حساب</h1>
-    <p class="mt-1 text-sm text-cocoa-500">انضم إلى بيت العسل وتابع طلباتك بسهولة.</p>
+    <p class="mt-1 text-sm text-cocoa-500">انضم إلى مملكة النحل وتابع طلباتك بسهولة.</p>
   </div>
   <form method="post" action="?/register" use:enhance class="honeycomb-bg space-y-4 rounded-[1.8rem] border border-cocoa-100 bg-parchment p-7 shadow-warm">
     {#if form?.message}

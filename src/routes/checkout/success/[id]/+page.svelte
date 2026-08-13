@@ -7,7 +7,7 @@
   const localized = new Intl.DateTimeFormat("ar-EG", { dateStyle: "long", timeStyle: "short" });
 </script>
 
-<svelte:head><title>تأكيد الطلب — بيت العسل</title></svelte:head>
+<svelte:head><title>تأكيد الطلب — مملكة النحل</title></svelte:head>
 
 <div class="mx-auto max-w-2xl pt-10 text-center motion-safe:animate-fade-up">
   <div class="relative mx-auto grid h-24 w-24 place-items-center">

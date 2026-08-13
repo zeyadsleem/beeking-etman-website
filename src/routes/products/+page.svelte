@@ -33,13 +33,13 @@
   }
 </script>
 
-<svelte:head><title>المتجر — بيت العسل</title></svelte:head>
+<svelte:head><title>المتجر — مملكة النحل</title></svelte:head>
 
 <section class="relative mt-6 overflow-hidden rounded-[1.8rem] border border-honey-200 bg-gradient-to-l from-honey-600 via-honey-500 to-honey-400 px-6 py-10 text-white shadow-warm">
   <div class="honeycomb-bg absolute inset-0 opacity-40"></div>
   <div class="dot-bg absolute inset-0 opacity-30"></div>
   <div class="relative max-w-xl">
-    <p class="text-sm font-semibold text-honey-100">بيت العسل</p>
+    <p class="text-sm font-semibold text-honey-100">مملكة النحل</p>
     <h1 class="headline mt-1 text-4xl leading-tight">متجر العسل الطبيعي</h1>
     <p class="mt-3 text-honey-50">نبت العسل ببطء، ونشاركه معك — تصفّح الأصناف، وصنّف حسب ذوقك.</p>
   </div>

@@ -20,7 +20,7 @@
   });
 </script>
 
-<svelte:head><title>سلة التسوق — بيت العسل</title></svelte:head>
+<svelte:head><title>سلة التسوق — مملكة النحل</title></svelte:head>
 
 <div class="mt-6">
   <h1 class="rule-flourish headline text-4xl text-cocoa-900">

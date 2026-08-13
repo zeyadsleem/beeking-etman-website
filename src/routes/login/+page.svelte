@@ -5,7 +5,7 @@
   let { form }: { form: ActionData } = $props();
 </script>
 
-<svelte:head><title>تسجيل الدخول — بيت العسل</title></svelte:head>
+<svelte:head><title>تسجيل الدخول — مملكة النحل</title></svelte:head>
 
 <div class="mx-auto mt-14 max-w-md motion-safe:animate-fade-up">
   <div class="mb-6 flex flex-col items-center text-center">

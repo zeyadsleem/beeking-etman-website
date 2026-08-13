@@ -4,6 +4,7 @@
   import "@fontsource/amiri/arabic-700.css";
   import "@fontsource/aref-ruqaa/arabic-400.css";
   import "@fontsource/aref-ruqaa/arabic-700.css";
+  import { onNavigate } from "$app/navigation";
   import "./layout.css";
   import favicon from "$lib/assets/favicon.svg";
   import Header from "$lib/components/Header.svelte";
@@ -12,11 +13,21 @@
   import type { LayoutData } from "./$types";
 
   let { children, data }: { children: import("svelte").Snippet; data: LayoutData } = $props();
+
+  onNavigate((navigation) => {
+    if (!document.startViewTransition) return;
+    return new Promise((resolve) => {
+      document.startViewTransition(async () => {
+        resolve();
+        await navigation.complete;
+      });
+    });
+  });
 </script>
 
 <svelte:head>
   <link rel="icon" href={favicon} />
-  <title>بيت العسل</title>
+  <title>مملكة النحل | عتمان الأصلي</title>
 </svelte:head>
 
 <div class="flex min-h-screen flex-col">

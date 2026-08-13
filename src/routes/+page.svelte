@@ -6,7 +6,7 @@
   let { data }: { data: PageData } = $props();
 </script>
 
-<svelte:head><title>بيت العسل — متجر العسل الطبيعي</title></svelte:head>
+<svelte:head><title>مملكة النحل — متجر العسل الطبيعي</title></svelte:head>
 
 <section class="relative mt-6 overflow-hidden rounded-[2rem] bg-cocoa-900 text-parchment shadow-warm-lg">
   <div
@@ -50,7 +50,7 @@
       <figure class="arch-frame-lg relative overflow-hidden border-4 border-honey-500/70 bg-honey-100 shadow-warm-lg">
         <img
           src={data.featured[0]?.image}
-          alt="عسل طبيعي من بيت العسل"
+          alt="عسل طبيعي من مملكة النحل"
           class="aspect-[4/5] h-full w-full object-cover"
         />
         <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cocoa-950/80 to-transparent p-5 pt-16 text-center">
@@ -107,7 +107,7 @@
 <section class="mt-16 rounded-[2rem] border border-honey-200 bg-gradient-to-b from-parchment to-honey-50 px-6 py-10 text-center shadow-warm-sm">
   <h2 class="rule-flourish headline mx-auto text-3xl text-cocoa-900">
     <i aria-hidden="true"></i>
-    لماذا بيت العسل؟
+    لماذا مملكة النحل؟
   </h2>
   <div class="mx-auto mt-8 grid max-w-4xl gap-8 sm:grid-cols-3">
     <div>

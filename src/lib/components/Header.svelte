@@ -27,13 +27,16 @@
 <header class="sticky top-0 z-30 border-b border-honey-200/70 bg-paper/90 backdrop-blur">
   <div class="honeycomb-bg absolute inset-x-0 top-0 h-1.5 opacity-70"></div>
   <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
-    <a href="/" class="wordmark flex items-center gap-2 text-3xl text-honey-800 transition hover:text-honey-600">
-      <svg width="26" height="30" viewBox="0 0 26 30" fill="none" aria-hidden="true">
-        <path d="M13 1l11 6.5v13L13 27 2 20.5v-13L13 1Z" fill="#e5a82e" stroke="#a35110" stroke-width="1.4" />
-        <path d="M13 6.5l7.5 4.4v8.7L13 24l-7.5-4.4v-8.7L13 6.5Z" fill="#fff7e6" />
-        <path d="M8.2 13.6h9.6M13 9.6v8" stroke="#a35110" stroke-width="1.5" stroke-linecap="round" />
+    <a href="/" class="flex items-center gap-2 transition hover:opacity-90">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 1.5 30 9v14L16 30.5 2 23V9L16 1.5Z" fill="#1a1a13"/>
+        <path d="M16 5.5 27.4 12v8L16 26.5 4.6 20v-8L16 5.5Z" fill="#e5a82e"/>
+        <path d="M12 13h8M16 9.5v9" stroke="#1a1a13" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
-      بيت العسل
+      <span class="leading-tight">
+        <span class="wordmark block text-2xl text-gold-600">مملكة النحل</span>
+        <span class="block text-[0.7rem] font-semibold tracking-widest text-cocoa-500">عتمان الأصلي</span>
+      </span>
     </a>
 
     <nav class="hidden items-center gap-6 text-sm font-semibold text-cocoa-700 lg:flex" aria-label="القائمة الرئيسية">

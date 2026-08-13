@@ -16,7 +16,7 @@
   }
 </script>
 
-<svelte:head><title>إتمام الشراء — بيت العسل</title></svelte:head>
+<svelte:head><title>إتمام الشراء — مملكة النحل</title></svelte:head>
 
 <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_380px]">
   <form
