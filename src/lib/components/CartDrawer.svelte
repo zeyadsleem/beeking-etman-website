@@ -13,10 +13,29 @@
   import Price from "./Price.svelte";
 
   let closeButton = $state<HTMLButtonElement>();
+  let drawer = $state<HTMLElement>();
   let lastFocused: HTMLElement | null = null;
 
   function onKey(event: KeyboardEvent) {
-    if (event.key === "Escape" && cartState.drawerOpen) closeDrawer();
+    if (!cartState.drawerOpen) return;
+    if (event.key === "Escape") {
+      closeDrawer();
+      return;
+    }
+    if (event.key !== "Tab" || !drawer) return;
+    const focusable = drawer.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   onMount(() => {
@@ -38,7 +57,8 @@
 
 {#if cartState.drawerOpen}
   <div class="fixed inset-0 z-40 bg-stone-900/50" role="presentation" onclick={closeDrawer}></div>
-  <aside
+  <div
+    bind:this={drawer}
     class="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[85vw] flex-col bg-white shadow-xl"
     role="dialog"
     aria-modal="true"
@@ -85,5 +105,5 @@
         <a href="/checkout" class="mt-2 block rounded-full bg-honey-600 py-2.5 text-center font-semibold text-white hover:bg-honey-700" onclick={closeDrawer}>إتمام الشراء</a>
       </footer>
     {/if}
-  </aside>
+  </div>
 {/if}
