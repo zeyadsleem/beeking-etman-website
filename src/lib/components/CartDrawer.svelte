@@ -92,15 +92,16 @@
       </div>
     {:else}
       <ul class="flex-1 space-y-4 overflow-y-auto p-4">
-        {#each cartState.items as item (item.productId)}
+        {#each cartState.items as item (item.variantId)}
           <li class="flex gap-3 rounded-xl border border-cocoa-100 bg-parchment p-2.5 shadow-warm-sm">
             <a href={`/products/${item.slug}`} class="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-honey-200 bg-honey-100">
               <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
             </a>
             <div class="flex flex-1 flex-col gap-1.5">
               <a href={`/products/${item.slug}`} class="line-clamp-1 text-sm font-semibold text-cocoa-800 hover:text-honey-700">{item.name}</a>
-              <QuantityPicker value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.productId, q)} />
-              <button type="button" class="w-fit text-xs text-cocoa-400 transition hover:text-clay-600" onclick={() => removeFromCart(item.productId)}>إزالة</button>
+              <span class="text-[11px] font-medium text-cocoa-500">{item.variantName}</span>
+              <QuantityPicker value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
+              <button type="button" class="w-fit text-xs text-cocoa-400 transition hover:text-clay-600" onclick={() => removeFromCart(item.variantId)}>إزالة</button>
             </div>
             <Price amount={item.price * item.quantity} className="ms-auto self-start text-sm font-bold text-honey-800" />
           </li>

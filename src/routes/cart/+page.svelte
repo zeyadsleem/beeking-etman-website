@@ -39,16 +39,16 @@
   {:else}
     <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_340px]">
       <ul class="space-y-4">
-        {#each cartState.items as item (item.productId)}
+        {#each cartState.items as item (item.variantId)}
           <li class="flex flex-col gap-3 rounded-2xl border border-cocoa-100 bg-parchment p-4 shadow-warm-sm sm:flex-row sm:items-center">
             <a href={`/products/${item.slug}`} class="arch-frame h-20 w-20 shrink-0 overflow-hidden border-2 border-honey-200 bg-honey-100">
               <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
             </a>
             <div class="flex flex-1 flex-col gap-1.5">
               <a href={`/products/${item.slug}`} class="headline text-base text-cocoa-900 hover:text-honey-700">{item.name}</a>
-              <span class="text-sm text-cocoa-500">{formatEGP(item.price)}</span>
-              <QuantityPicker value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.productId, q)} />
-              <button type="button" class="w-fit text-xs text-cocoa-400 transition hover:text-clay-600" onclick={() => removeFromCart(item.productId)}>إزالة</button>
+              <span class="text-sm font-medium text-cocoa-500">{item.variantName} — {formatEGP(item.price)}</span>
+              <QuantityPicker value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
+              <button type="button" class="w-fit text-xs text-cocoa-400 transition hover:text-clay-600" onclick={() => removeFromCart(item.variantId)}>إزالة</button>
             </div>
             <Price amount={item.price * item.quantity} className="font-extrabold text-honey-800 sm:ms-auto" />
           </li>

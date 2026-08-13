@@ -27,7 +27,7 @@
     <ul class="mt-3 space-y-2 text-sm text-cocoa-700">
       {#each data.items as item (item.id)}
         <li class="flex justify-between gap-2">
-          <span>{item.productName} × {item.quantity}</span>
+          <span>{item.productName}{item.variantName ? ` (${item.variantName})` : ""} × {item.quantity}</span>
           <span class="font-semibold">{formatEGP(item.unitPrice * item.quantity)}</span>
         </li>
       {/each}

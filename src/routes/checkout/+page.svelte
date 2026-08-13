@@ -102,9 +102,9 @@
   <aside class="h-fit rounded-2xl border border-honey-200 bg-gradient-to-b from-parchment to-honey-50 p-5 shadow-warm">
     <h2 class="headline text-xl text-cocoa-900">ملخص الطلب</h2>
     <ul class="mt-4 space-y-3">
-      {#each data.items as item (item.productId)}
+      {#each data.items as item (item.variantId)}
         <li class="flex justify-between gap-2 text-sm text-cocoa-700">
-          <span class="line-clamp-1">{item.name} × {item.quantity}</span>
+          <span class="line-clamp-1">{item.name} ({item.variantName}) × {item.quantity}</span>
           <span class="font-semibold">{formatEGP(item.price * item.quantity)}</span>
         </li>
       {/each}
