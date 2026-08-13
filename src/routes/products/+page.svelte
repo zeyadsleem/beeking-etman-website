@@ -1,5 +1,6 @@
 <script lang="ts">
   import ProductCard from "$lib/components/ProductCard.svelte";
+  import { reveal } from "$lib/actions/reveal.svelte";
   import { goto } from "$app/navigation";
   import type { PageData } from "./$types";
 
@@ -35,13 +36,13 @@
 
 <svelte:head><title>المتجر — مملكة النحل</title></svelte:head>
 
-<section class="relative mt-6 overflow-hidden rounded-[1.8rem] border border-honey-200 bg-gradient-to-l from-honey-600 via-honey-500 to-honey-400 px-6 py-10 text-white shadow-warm">
-  <div class="honeycomb-bg absolute inset-0 opacity-40"></div>
-  <div class="dot-bg absolute inset-0 opacity-30"></div>
+<section class="relative mt-6 overflow-hidden rounded-[1.8rem] border border-gold-500/30 bg-ink-950 px-6 py-10 text-parchment shadow-warm">
+  <div class="honeycomb-bg absolute inset-0 opacity-25"></div>
+  <div class="dot-bg absolute inset-0 opacity-20"></div>
   <div class="relative max-w-xl">
-    <p class="text-sm font-semibold text-honey-100">مملكة النحل</p>
+    <p class="wordmark text-lg text-gold-400">مملكة النحل</p>
     <h1 class="headline mt-1 text-4xl leading-tight">متجر العسل الطبيعي</h1>
-    <p class="mt-3 text-honey-50">نبت العسل ببطء، ونشاركه معك — تصفّح الأصناف، وصنّف حسب ذوقك.</p>
+    <p class="mt-3 text-parchment/70">من مناحلنا إلى بيتك — تصفّح الأصناف، وصنّف حسب ذوقك.</p>
   </div>
 </section>
 
@@ -103,8 +104,10 @@
   </div>
 {:else}
   <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-    {#each data.products as product (product.id)}
-      <ProductCard {product} />
+    {#each data.products as product, i (product.id)}
+      <div use:reveal={{ delay: i * 40 }}>
+        <ProductCard {product} />
+      </div>
     {/each}
   </div>
 {/if}
