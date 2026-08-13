@@ -25,7 +25,7 @@
           </div>
           <div class="text-start">
             <span class="text-sm text-stone-500">الحالة</span>
-            <span class="ms-2 rounded-full bg-green-100 px-3 py-0.5 text-xs font-semibold text-green-700">مؤكد</span>
+            <span class="ms-2 rounded-full bg-green-100 px-3 py-0.5 text-xs font-semibold text-green-700">{#if order.status === "paid"}مؤكد{:else}غير محدد{/if}</span>
           </div>
           <span class="font-extrabold">{formatEGP(order.total)}</span>
         </li>

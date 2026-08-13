@@ -1,7 +1,10 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { APIError } from "better-auth/api";
 import { auth } from "$lib/server/auth";
+import { clientAddressKey, createRateLimiter } from "$lib/server/rate-limit";
 import type { Actions, PageServerLoad } from "./$types";
+
+const registerLimiter = createRateLimiter({ windowMs: 3_600_000, max: 5 });
 
 export const load: PageServerLoad = (event) => {
   if (event.locals.user) redirect(302, "/account/orders");
@@ -9,10 +12,14 @@ export const load: PageServerLoad = (event) => {
 
 export const actions: Actions = {
   register: async (event) => {
+    if (!registerLimiter.allow(clientAddressKey(event))) {
+      return fail(429, { message: "محاولات كثيرة، حاول لاحقًا" });
+    }
     const form = Object.fromEntries(await event.request.formData());
     const name = String(form.name ?? "");
     const email = String(form.email ?? "");
     const password = String(form.password ?? "");
+    if (!name.trim()) return fail(400, { message: "أدخل الاسم" });
     try {
       await auth.api.signUpEmail({ body: { name, email, password } });
     } catch (error) {

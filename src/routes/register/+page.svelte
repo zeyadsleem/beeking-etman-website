@@ -15,15 +15,15 @@
     {/if}
     <label class="block text-sm font-medium">
       الاسم
-      <input name="name" required class="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 focus:border-honey-500 focus:ring-honey-500" />
+      <input name="name" autocomplete="name" required class="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 focus:border-honey-500 focus:ring-honey-500" />
     </label>
     <label class="block text-sm font-medium">
       البريد الإلكتروني
-      <input name="email" type="email" required class="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 focus:border-honey-500 focus:ring-honey-500" />
+      <input name="email" type="email" autocomplete="email" required class="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 focus:border-honey-500 focus:ring-honey-500" />
     </label>
     <label class="block text-sm font-medium">
       كلمة المرور
-      <input name="password" type="password" required minlength="8" class="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 focus:border-honey-500 focus:ring-honey-500" />
+      <input name="password" type="password" autocomplete="new-password" required minlength="8" class="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 focus:border-honey-500 focus:ring-honey-500" />
     </label>
     <button type="submit" class="w-full rounded-full bg-honey-600 py-3 font-bold text-white hover:bg-honey-700">إنشاء الحساب</button>
     <p class="text-center text-sm text-stone-500">لديك حساب بالفعل؟ <a href="/login" class="font-semibold text-honey-700 hover:underline">سجّل الدخول</a></p>
