@@ -214,6 +214,11 @@ async function upsertProduct(p: (typeof PRODUCTS)[number], categoryId: string): 
 }
 
 async function seed(): Promise<void> {
+  // Wipe prior orders (children first) so repeated e2e/seed runs start clean and
+  // deterministic — the suite accumulates an order on every checkout.
+  await db.delete(schema.orderItem);
+  await db.delete(schema.order);
+
   const categoryIds = new Map<string, string>();
   for (const c of CATEGORIES) categoryIds.set(c.slug, await upsertCategory(c.slug, c.name));
   for (const p of PRODUCTS) await upsertProduct(p, categoryIds.get(p.category)!);

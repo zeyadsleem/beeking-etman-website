@@ -61,7 +61,8 @@ design spec: `docs/superpowers/plans/2026-08-12-honey-store.md` and
   at order time. `POST /api/cart` sanitizes unsigned input before signing.
 - Checkout runs in a Drizzle transaction: re-reads stock, decrements with a
   stock guard, inserts order + items, mocks payment (`status = "paid"`). A
-  failed payment leaves the cart intact; at most one order per cart.
+  failed payment leaves the cart intact; sequential submits cannot duplicate an
+  order.
 - Checkout failure never echoes card data; success page is `private, no-store`.
 - Auth rate limiting is in-memory (per-process); login/register and account
   order details are ownership-gated.

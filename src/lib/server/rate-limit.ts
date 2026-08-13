@@ -15,6 +15,11 @@ export function createRateLimiter(options: { windowMs: number; max: number }): R
         hits.set(key, recent);
         return false;
       }
+      if (recent.length === 0) {
+        // All prior hits have expired — evict the stale entry before recording
+        // the new one so fully-pruned keys never linger in the map.
+        hits.delete(key);
+      }
       recent.push(now);
       hits.set(key, recent);
       return true;

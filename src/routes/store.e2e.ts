@@ -30,6 +30,7 @@ test("guest browses, adds to cart, and completes checkout", async ({ page }) => 
   await page.getByRole("button", { name: "تأكيد الطلب" }).click();
 
   await expect(page).toHaveURL(/\/checkout\/success\//);
+  await expect(page.getByTestId("cart-count")).toBeHidden();
   await expect(page.getByTestId("order-number")).toBeVisible();
   const number = await page.getByTestId("order-number").textContent();
   expect(number).toMatch(/^HNY-\d{6}$/);

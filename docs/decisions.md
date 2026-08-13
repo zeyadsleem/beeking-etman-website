@@ -33,7 +33,9 @@ headers, order-by determinism, a dead import, and a type cast.
 
 **Consequences:** Card data never reaches the DOM on failure. Client-side
 double-submit is prevented; a server-side second submit after the cart cookie
-is cleared fails on the empty-cart guard, so at most one order per cart.
+is cleared fails on the empty-cart guard, so sequential submits cannot create
+duplicate orders (concurrent two-tab submits still can — tracked in
+`docs/todo.md`).
 Verified by smoke tests: one order on rapid double-click, no card values in
 the 400 response, 303 redirect + cookie clear + no-store header on success.
 
@@ -58,7 +60,7 @@ order is actually persisted. Enables the checkout hardening ADR above.
 functions and API endpoints without a server-side cart table.
 
 **Decision:** The cart is a signed, HttpOnly, SameSite=Lax cookie
-(`honey_cart_v1`) built by `src/lib/server/cart-cookie.ts` using HMAC
+(`honey_cart`) built by `src/lib/server/cart-cookie.ts` using HMAC
 signatures derived from a server secret (`BETTER_AUTH_SECRET`). The client
 mirrors it in a Svelte 5 rune store (`src/lib/cart-store.svelte.ts`) and syncs
 via `POST /api/cart`.

@@ -36,8 +36,9 @@ preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
       in-memory per-process store; needs a shared store (DB/Redis) before
       multi-instance deployment.
 - [ ] Idempotency nonce for order creation: double-submit is guarded client-
-      side and by the empty-cart check, but there is no request nonce;
-      consider one for retry-safe checkout.
+      side and by the empty-cart check, but there is no request nonce; two-tab
+      concurrent submits can still create duplicate orders. Consider a nonce
+      for retry-safe checkout.
 - [ ] Card expiry past-date check: checkout schema only validates the `MM/YY`
       format, not that the date is in the future.
 - [ ] E2E/unit gap noted in review: e2e covers the guest happy path and

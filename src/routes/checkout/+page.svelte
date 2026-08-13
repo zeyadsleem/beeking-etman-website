@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import { clearCart } from "$lib/cart-store.svelte";
   import { formatEGP } from "$lib/currency";
   import type { ActionData, PageData } from "./$types";
 
@@ -23,7 +24,8 @@
     action="?/submit"
     use:enhance={() => {
       submitting = true;
-      return async ({ update }) => {
+      return async ({ result, update }) => {
+        if (result.type === "redirect") clearCart();
         submitting = false;
         update();
       };
