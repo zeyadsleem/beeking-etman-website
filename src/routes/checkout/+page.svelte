@@ -1,24 +1,35 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import Price from "$lib/components/Price.svelte";
   import { formatEGP } from "$lib/currency";
   import type { ActionData, PageData } from "./$types";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
+  let submitting = $state(false);
+
   function value(name: string) {
     return form?.values ? String(form.values[name] ?? "") : "";
   }
   function error(name: string) {
-    const errors = form?.errors as Record<string, string> | undefined;
-    return errors?.[name] ?? "";
+    return form?.errors?.[name] ?? "";
   }
 </script>
 
 <svelte:head><title>إتمام الشراء — بيت العسل</title></svelte:head>
 
 <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_360px]">
-  <form method="post" action="?/submit" use:enhance class="space-y-5 rounded-2xl border border-stone-200 bg-white p-6">
+  <form
+    method="post"
+    action="?/submit"
+    use:enhance={() => {
+      submitting = true;
+      return async ({ update }) => {
+        submitting = false;
+        update();
+      };
+    }}
+    class="space-y-5 rounded-2xl border border-stone-200 bg-white p-6"
+  >
     <h1 class="text-2xl font-extrabold">معلومات التوصيل</h1>
 
     {#if error("cart")}
@@ -75,7 +86,12 @@
       </div>
     </fieldset>
 
-    <button type="submit" class="w-full rounded-full bg-honey-600 py-3 font-bold text-white transition hover:bg-honey-700">تأكيد الطلب</button>
+    <button
+      type="submit"
+      disabled={submitting}
+      aria-busy={submitting}
+      class="w-full rounded-full bg-honey-600 py-3 font-bold text-white transition hover:bg-honey-700 disabled:cursor-not-allowed disabled:opacity-60"
+    >{submitting ? "جاري التأكيد…" : "تأكيد الطلب"}</button>
   </form>
 
   <aside class="h-fit rounded-2xl border border-stone-200 bg-white p-5">

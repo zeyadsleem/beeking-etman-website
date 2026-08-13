@@ -68,3 +68,7 @@ export function setCartCookie(cookies: Cookies, secret: string, lines: CartLine[
 export function clearCartCookie(cookies: Cookies): void {
   cookies.delete(CART_COOKIE_NAME, { path: "/" });
 }
+
+export function getCartSecret(env: typeof import("$env/dynamic/private").env): string {
+  return env.BETTER_AUTH_SECRET || env.ORIGIN || "dev-secret";
+}
