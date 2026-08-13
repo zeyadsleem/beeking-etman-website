@@ -57,9 +57,20 @@
   --color-clay-800: #6c2d20;
   --color-clay-900: #58271d;
 
-  --shadow-warm-sm: 0 1px 2px 0 rgb(87 58 37 / 0.08), 0 1px 3px 0 rgb(87 58 37 / 0.06);
-  --shadow-warm: 0 4px 10px -2px rgb(87 58 37 / 0.12), 0 2px 6px -2px rgb(87 58 37 / 0.06);
-  --shadow-warm-lg: 0 18px 40px -12px rgb(87 58 37 / 0.25), 0 8px 20px -8px rgb(87 58 37 / 0.12);
+  --color-ink-950: #14140e;
+  --color-ink-900: #1c1b12;
+  --color-ink-800: #2a2820;
+
+  --color-gold-200: #f3d68c;
+  --color-gold-300: #ecc153;
+  --color-gold-400: #e5a82e;
+  --color-gold-500: #d18f1f;
+  --color-gold-600: #b87717;
+  --color-gold-700: #96600f;
+
+  --shadow-warm-sm: 0 8px 22px -12px rgb(60 42 16 / 0.35);
+  --shadow-warm: 0 18px 40px -18px rgb(60 42 16 / 0.35);
+  --shadow-warm-lg: 0 18px 40px -12px rgb(60 42 16 / 0.25), 0 8px 20px -8px rgb(60 42 16 / 0.12);
 }
 
 html {
@@ -175,11 +186,15 @@ body {
 }
 
 .btn-outline {
-  @apply inline-flex items-center justify-center gap-2 rounded-full border border-cocoa-200 bg-white/60 px-5 py-2.5 font-semibold text-cocoa-700 transition-colors duration-300;
+  @apply inline-flex items-center justify-center gap-2 rounded-full border-2 border-gold-500 px-6 py-2.5 text-sm font-semibold text-gold-700 transition-all duration-300 hover:border-gold-600 hover:bg-gold-400/10 disabled:cursor-not-allowed disabled:opacity-40;
 }
 
-.btn-outline:hover {
-  @apply border-honey-400 text-honey-800;
+.btn-gold {
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-gold-400 to-gold-600 px-6 py-3 text-sm font-bold text-ink-950 shadow-warm-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-warm hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+.btn-ink {
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-ink-950 px-6 py-3 text-sm font-bold text-gold-300 transition-all duration-300 hover:-translate-y-0.5 hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-40;
 }
 
 /* ---------- form fields ---------- */
@@ -247,12 +262,81 @@ body {
   }
 }
 
+@keyframes drip {
+  0% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(40vh);
+    opacity: 0;
+  }
+}
+
+@keyframes shine {
+  0% {
+    background-position: -160% 0;
+  }
+  100% {
+    background-position: 260% 0;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @utility animate-fade-up {
   animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @utility animate-float {
   animation: float-y 5s ease-in-out infinite;
+}
+
+@utility animate-drip {
+  animation: drip 4s ease-in infinite;
+}
+
+@utility animate-shine {
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgb(255 255 255 / 0.55) 50%,
+    transparent 80%
+  );
+  background-repeat: no-repeat;
+  background-size: 40% 100%;
+  animation: shine 3.2s ease-in-out infinite;
+}
+
+@utility animate-marquee {
+  animation: marquee 22s linear infinite;
+}
+
+::view-transition-old(root) {
+  animation: fade-out 0.18s ease;
+}
+
+::view-transition-new(root) {
+  animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
