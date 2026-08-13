@@ -1,3 +1,30 @@
 @import "tailwindcss";
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+@theme inline {
+  --font-sans: "Cairo Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+
+  --color-honey-50: #fdf8ee;
+  --color-honey-100: #f9eecd;
+  --color-honey-200: #f3da99;
+  --color-honey-300: #ecc05c;
+  --color-honey-400: #e5a82e;
+  --color-honey-500: #dc8f17;
+  --color-honey-600: #c46f0f;
+  --color-honey-700: #a35110;
+  --color-honey-800: #854015;
+  --color-honey-900: #6d3615;
+  --color-honey-950: #401a08;
+
+  --color-cream: #faf6ec;
+  --color-clay: #9a5b2b;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-cream font-sans text-stone-900;
+}
