@@ -26,6 +26,7 @@
 
 <svelte:head><title>{data.product.name} — بيت العسل</title></svelte:head>
 
+{#key data.product.id}
 <nav class="my-6 flex items-center gap-2 text-sm text-stone-500">
   <a href="/" class="hover:text-honey-700">الرئيسية</a>
   <span>/</span>
@@ -76,3 +77,4 @@
     </div>
   </section>
 {/if}
+{/key}
