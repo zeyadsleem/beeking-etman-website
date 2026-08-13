@@ -1,42 +1,39 @@
-# sv
+# بيت العسل — Honey Storefront
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Arabic RTL storefront for natural honey: catalog, cart, guest checkout with mock
+payment, and optional accounts.
 
-## Creating a project
+## Stack
 
-If you're seeing this, you've probably already done this step. Congrats!
+- SvelteKit (Svelte 5, runes), TypeScript strict
+- Tailwind CSS v4 (Cairo variable font, RTL)
+- Drizzle ORM + SQLite (libsql, `local.db`)
+- Better Auth (password provider) for optional accounts
+- Vitest (unit) + Playwright (e2e)
+- Toolchain: Vite+ (`vp`); package manager: pnpm
 
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-npx sv@0.17.0 create --template minimal --types ts --add vitest="usages:unit,component" playwright tailwindcss="plugins:typography,forms" sveltekit-adapter="adapter:node" drizzle="database:sqlite+sqlite:libsql" better-auth="demo:password" --no-install svelte-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Setup
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+pnpm install
+pnpm db:reset   # run Drizzle migrations, then seed the catalog
+pnpm dev        # start the dev server
 ```
 
-## Building
-
-To create a production version of your app:
+## Testing
 
 ```sh
-npm run build
+pnpm test:unit -- --run   # Vitest unit tests
+pnpm test:e2e             # seed + build + Playwright against the preview server
+pnpm test                 # both suites
 ```
 
-You can preview the production build with `npm run preview`.
+## Notes
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- `pnpm dev` serves the app, but in this environment the Vite+ dev server does
+  not serve client hydration scripts, so client-side JS (cart, checkout) does
+  not work under `dev`. Use the production preview
+  (`pnpm run build && pnpm run preview`) for anything that needs a hydrated app
+  — the e2e suite already does this.
+- Scripts must be run with pnpm: `package.json` pins
+  `devEngines.packageManager` to pnpm and npm refuses to run them.

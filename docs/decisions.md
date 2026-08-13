@@ -66,3 +66,68 @@ via `POST /api/cart`.
 **Consequences:** Stateless, no cart table needed; tampering is detectable via
 signature mismatch (cookie rejected). Secret access is centralized in
 `getCartSecret`.
+
+## 2026-08-13: Arabic RTL storefront
+
+**Context:** The storefront targets Egyptian honey buyers; all product copy and
+UI text are Arabic and checkout validates Egyptian phone numbers.
+
+**Decision:** The app is a full Arabic RTL storefront: `dir="rtl"` on `<html>`,
+Arabic strings embedded verbatim (no i18n layer), Cairo variable font
+(`@fontsource-variable/cairo`), `ar-EG` locale for dates and currency, and a
+honey-toned Tailwind palette (honey/cream/stone) defined in
+`src/routes/layout.css`.
+
+**Consequences:** Layout uses RTL-native (logical) properties; e2e tests select
+by Arabic text. Adding a second language later requires introducing an i18n
+layer.
+
+## 2026-08-13: EGP prices stored as integer qirsh
+
+**Context:** Prices are in Egyptian pounds; floats invite rounding and
+comparison bugs.
+
+**Decision:** All money is stored as integer qirsh (1/100 EGP) in
+`store_product.price`, `store_order.total`, and `store_order_item.unit_price`.
+`formatEGP` (`src/lib/currency.ts`) divides by 100 and formats with
+`Intl.NumberFormat("ar-EG", { style: "currency", currency: "EGP" })`. Seed data
+uses qirsh literals (e.g. `380_00` = EGP 380).
+
+**Consequences:** Exact integer arithmetic; callers must keep amounts in qirsh
+and divide only at format time.
+
+## 2026-08-13: Guest-first checkout with optional accounts
+
+**Context:** First-time buyers should not need an account to place an order.
+
+**Decision:** Checkout is guest-first: `store_order.user_id` is nullable and the
+checkout action attaches `locals.user?.id` when a session exists. Better Auth
+(password provider, drizzle adapter, `sveltekitCookies` plugin) powers optional
+accounts: `/login`, `/register`, and `/account/orders` (order history gated by
+ownership).
+
+**Consequences:** Guests always complete checkout; accounts add order history on
+top without blocking purchase.
+
+## 2026-08-13: Flat shipping fee with free-shipping threshold
+
+**Context:** Small store; shipping needs to be simple and predictable.
+
+**Decision:** Flat shipping fee of EGP 60 (`SHIPPING_COST = 60_00`), free when
+the subtotal is ≥ EGP 600 (`FREE_SHIPPING_THRESHOLD = 600_00`,
+`src/lib/cart.ts`); an empty cart pays nothing.
+
+**Consequences:** Totals are easy to reason about; no zone/weight logic.
+
+## 2026-08-13: Server-side cart sanitization at the API boundary
+
+**Context:** `POST /api/cart` accepts unsigned JSON from the client — only the
+stored cookie is HMAC-signed.
+
+**Decision:** Every external cart input is validated by `sanitizeCartLines`
+(`src/lib/server/cart-cookie.ts`): entries must have a string `productId` and a
+finite positive quantity, which is floored to an integer; invalid entries are
+dropped. The signed-cookie path re-verifies the HMAC and re-sanitizes on read.
+
+**Consequences:** Malformed client payloads cannot corrupt the cart; tampered
+cookies are rejected by signature mismatch.
