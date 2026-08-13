@@ -35,6 +35,20 @@ export const product = sqliteTable("store_product", {
     .$defaultFn(() => Date.now()),
 });
 
+export const productVariant = sqliteTable("store_product_variant", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  productId: text("product_id")
+    .notNull()
+    .references(() => product.id),
+  name: text("name").notNull(),
+  price: integer("price").notNull(),
+  stock: integer("stock").notNull().default(0),
+  image: text("image").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
 export const order = sqliteTable("store_order", {
   id: text("id")
     .primaryKey()
@@ -64,6 +78,7 @@ export const orderItem = sqliteTable("store_order_item", {
     .notNull()
     .references(() => product.id),
   productName: text("product_name").notNull(),
+  variantName: text("variant_name").notNull().default(""),
   quantity: integer("quantity").notNull(),
   unitPrice: integer("unit_price").notNull(),
 });
