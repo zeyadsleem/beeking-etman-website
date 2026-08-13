@@ -16,8 +16,8 @@ export const actions: Actions = {
       return fail(429, { message: "محاولات كثيرة، حاول لاحقًا" });
     }
     const form = Object.fromEntries(await event.request.formData());
-    const email = String(form.email ?? "");
-    const password = String(form.password ?? "");
+    const email = typeof form.email === "string" ? form.email : "";
+    const password = typeof form.password === "string" ? form.password : "";
     try {
       await auth.api.signInEmail({ body: { email, password } });
     } catch (error) {

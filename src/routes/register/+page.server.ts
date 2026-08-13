@@ -16,9 +16,9 @@ export const actions: Actions = {
       return fail(429, { message: "محاولات كثيرة، حاول لاحقًا" });
     }
     const form = Object.fromEntries(await event.request.formData());
-    const name = String(form.name ?? "");
-    const email = String(form.email ?? "");
-    const password = String(form.password ?? "");
+    const name = typeof form.name === "string" ? form.name : "";
+    const email = typeof form.email === "string" ? form.email : "";
+    const password = typeof form.password === "string" ? form.password : "";
     if (!name.trim()) return fail(400, { message: "أدخل الاسم" });
     try {
       await auth.api.signUpEmail({ body: { name, email, password } });
