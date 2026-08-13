@@ -19,10 +19,10 @@ export function sanitizeCartLines(input: unknown): CartLine[] {
   if (!Array.isArray(input)) return [];
   return input.flatMap((entry) => {
     if (typeof entry !== "object" || entry === null) return [];
-    const { productId, quantity } = entry as Record<string, unknown>;
-    if (typeof productId !== "string" || productId.length === 0) return [];
+    const { variantId, quantity } = entry as Record<string, unknown>;
+    if (typeof variantId !== "string" || variantId.length === 0) return [];
     if (typeof quantity !== "number" || !Number.isFinite(quantity) || quantity <= 0) return [];
-    return [{ productId, quantity: Math.floor(quantity) }];
+    return [{ variantId, quantity: Math.floor(quantity) }];
   });
 }
 

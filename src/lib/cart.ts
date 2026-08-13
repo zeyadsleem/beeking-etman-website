@@ -1,10 +1,12 @@
 export interface CartLine {
-  productId: string;
+  variantId: string;
   quantity: number;
 }
 
 export interface CartItem extends CartLine {
+  productId: string;
   name: string;
+  variantName: string;
   slug: string;
   image: string;
   price: number;
@@ -34,27 +36,27 @@ export function addItem(
   quantity: number,
 ): CartItem[] {
   if (quantity <= 0 || product.stock <= 0) return items;
-  const existing = items.find((i) => i.productId === product.productId);
+  const existing = items.find((i) => i.variantId === product.variantId);
   const merged = existing ? existing.quantity + quantity : quantity;
   const next = Math.min(merged, product.stock);
   if (!existing) return [...items, { ...product, quantity: next }];
-  return items.map((i) => (i.productId === product.productId ? { ...i, quantity: next } : i));
+  return items.map((i) => (i.variantId === product.variantId ? { ...i, quantity: next } : i));
 }
 
-export function adjustQuantity(items: CartItem[], productId: string, delta: number): CartItem[] {
+export function adjustQuantity(items: CartItem[], variantId: string, delta: number): CartItem[] {
   return items
-    .map((i) => (i.productId === productId ? { ...i, quantity: i.quantity + delta } : i))
+    .map((i) => (i.variantId === variantId ? { ...i, quantity: i.quantity + delta } : i))
     .filter((i) => i.quantity > 0)
     .map((i) => ({ ...i, quantity: Math.min(i.quantity, i.stock) }));
 }
 
-export function removeItem(items: CartItem[], productId: string): CartItem[] {
-  return items.filter((i) => i.productId !== productId);
+export function removeItem(items: CartItem[], variantId: string): CartItem[] {
+  return items.filter((i) => i.variantId !== variantId);
 }
 
 export function linesToItems(lines: CartLine[], catalog: Omit<CartItem, "quantity">[]): CartItem[] {
   return lines.flatMap((line) => {
-    const product = catalog.find((p) => p.productId === line.productId);
+    const product = catalog.find((p) => p.variantId === line.variantId);
     if (!product) return [];
     return [{ ...product, quantity: Math.min(line.quantity, product.stock) }];
   });

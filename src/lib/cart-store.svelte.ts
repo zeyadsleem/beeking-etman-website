@@ -3,11 +3,13 @@ import { z } from "zod";
 import { addItem, adjustQuantity, computeTotals, removeItem } from "./cart";
 import type { CartItem, CartTotals } from "./cart";
 
-const STORAGE_KEY = "honey_cart_v1";
+const STORAGE_KEY = "honey_cart_v2";
 
 const CartItemSchema = z.object({
+  variantId: z.string(),
   productId: z.string(),
   name: z.string(),
+  variantName: z.string(),
   slug: z.string(),
   image: z.string(),
   quantity: z.number(),
@@ -33,7 +35,7 @@ function persist(items: CartItem[]): void {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
     }),
   }).catch(() => undefined);
 }
@@ -56,15 +58,15 @@ export function addToCart(product: Omit<CartItem, "quantity">, quantity = 1): vo
   persist(state.items);
 }
 
-export function setQuantity(productId: string, quantity: number): void {
-  const current = state.items.find((i) => i.productId === productId);
+export function setQuantity(variantId: string, quantity: number): void {
+  const current = state.items.find((i) => i.variantId === variantId);
   if (!current) return;
-  state.items = adjustQuantity(state.items, productId, quantity - current.quantity);
+  state.items = adjustQuantity(state.items, variantId, quantity - current.quantity);
   persist(state.items);
 }
 
-export function removeFromCart(productId: string): void {
-  state.items = removeItem(state.items, productId);
+export function removeFromCart(variantId: string): void {
+  state.items = removeItem(state.items, variantId);
   persist(state.items);
 }
 
