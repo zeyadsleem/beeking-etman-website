@@ -1,12 +1,11 @@
 import { fail, redirect } from "@sveltejs/kit";
-import { inArray } from "drizzle-orm";
 import { env } from "$env/dynamic/private";
 import { db } from "$lib/server/db";
-import * as schema from "$lib/server/db/schema";
 import { clearCartCookie, getCartSecret, readCartCookie } from "$lib/server/cart-cookie";
 import { checkoutSchema, formatZodErrors } from "$lib/server/checkout-schema";
 import { createOrder } from "$lib/server/orders";
-import { linesToItems, computeTotals } from "$lib/cart";
+import { resolveCartItems } from "$lib/server/store";
+import { computeTotals } from "$lib/cart";
 import type { Actions, PageServerLoad } from "./$types";
 
 const CARD_FIELDS = new Set(["cardNumber", "cardExpiry", "cardCvc"]);
@@ -25,17 +24,7 @@ function shippingValues(
 export const load: PageServerLoad = async ({ cookies }) => {
   const lines = readCartCookie(cookies, getCartSecret(env));
   if (lines.length === 0) redirect(302, "/cart");
-  const ids = [...new Set(lines.map((l) => l.productId))];
-  const products = await db.select().from(schema.product).where(inArray(schema.product.id, ids));
-  const catalog = products.map((p) => ({
-    productId: p.id,
-    name: p.name,
-    slug: p.slug,
-    image: p.image,
-    price: p.price,
-    stock: p.stock,
-  }));
-  const items = linesToItems(lines, catalog);
+  const items = await resolveCartItems(db, lines);
   if (items.length === 0) redirect(302, "/cart");
   return { items, totals: computeTotals(items) };
 };

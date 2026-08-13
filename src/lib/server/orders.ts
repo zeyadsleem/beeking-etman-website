@@ -1,7 +1,8 @@
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { computeTotals, linesToItems } from "$lib/cart";
+import { computeTotals } from "$lib/cart";
 import type { CartLine } from "$lib/cart";
+import { resolveCartItems } from "$lib/server/store";
 import * as schema from "$lib/server/db/schema";
 
 export interface Customer {
@@ -28,26 +29,20 @@ export async function createOrder(
 ): Promise<CreateOrderResult> {
   if (lines.length === 0) return { ok: false, message: "السلة فارغة", outOfStock: [] };
 
-  const ids = [...new Set(lines.map((l) => l.productId))];
-  const products = await db.select().from(schema.product).where(inArray(schema.product.id, ids));
-  const catalog = products.map((p) => ({
-    productId: p.id,
-    name: p.name,
-    slug: p.slug,
-    image: p.image,
-    price: p.price,
-    stock: p.stock,
-  }));
-  const requested = new Map(lines.map((l) => [l.productId, l.quantity]));
-  const outOfStock = products
-    .filter((p) => (requested.get(p.id) ?? 0) > p.stock)
-    .map((p) => p.name);
-  if (outOfStock.length > 0) {
-    return { ok: false, message: "نفدت الكمية لبعض المنتجات", outOfStock };
-  }
-
-  const items = linesToItems(lines, catalog);
+  const items = await resolveCartItems(db, lines);
   if (items.length === 0) return { ok: false, message: "لا توجد منتجات متاحة", outOfStock: [] };
+
+  const requested = new Map(lines.map((l) => [l.variantId, l.quantity]));
+  const outOfStock = [
+    ...new Set(items.filter((i) => (requested.get(i.variantId) ?? 0) > i.stock).map((i) => i.name)),
+  ];
+  if (outOfStock.length > 0) {
+    return {
+      ok: false,
+      message: "نفدت الكمية لبعض المنتجات",
+      outOfStock,
+    };
+  }
 
   const totals = computeTotals(items);
   const orderNumber = generateOrderNumber();
@@ -56,13 +51,17 @@ export async function createOrder(
   try {
     await db.transaction(async (tx) => {
       for (const item of items) {
+        const requestedQty = requested.get(item.variantId) ?? item.quantity;
         const updated = await tx
-          .update(schema.product)
-          .set({ stock: sql`${schema.product.stock} - ${item.quantity}` })
+          .update(schema.productVariant)
+          .set({ stock: sql`${schema.productVariant.stock} - ${item.quantity}` })
           .where(
-            and(eq(schema.product.id, item.productId), gte(schema.product.stock, item.quantity)),
+            and(
+              eq(schema.productVariant.id, item.variantId),
+              gte(schema.productVariant.stock, requestedQty),
+            ),
           )
-          .returning({ id: schema.product.id });
+          .returning({ id: schema.productVariant.id });
         if (updated.length === 0) throw new Error(`OUT_OF_STOCK:${item.name}`);
       }
       await tx.insert(schema.order).values({
@@ -83,6 +82,7 @@ export async function createOrder(
           orderId,
           productId: i.productId,
           productName: i.name,
+          variantName: i.variantName,
           quantity: i.quantity,
           unitPrice: i.price,
         })),
