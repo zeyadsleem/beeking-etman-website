@@ -7,39 +7,56 @@
     loadCart,
     removeFromCart,
     setQuantity,
-    state,
+    state as cartState,
   } from "$lib/cart-store.svelte";
   import QuantityPicker from "./QuantityPicker.svelte";
   import Price from "./Price.svelte";
 
+  let closeButton = $state<HTMLButtonElement>();
+  let lastFocused: HTMLElement | null = null;
+
+  function onKey(event: KeyboardEvent) {
+    if (event.key === "Escape" && cartState.drawerOpen) closeDrawer();
+  }
+
   onMount(() => {
     loadCart();
-    document.addEventListener("keydown", (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeDrawer();
-    });
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  });
+
+  $effect(() => {
+    if (cartState.drawerOpen) {
+      lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      closeButton?.focus();
+    } else if (lastFocused) {
+      lastFocused.focus();
+      lastFocused = null;
+    }
   });
 </script>
 
-{#if state.drawerOpen}
+{#if cartState.drawerOpen}
   <div class="fixed inset-0 z-40 bg-stone-900/50" role="presentation" onclick={closeDrawer}></div>
   <aside
     class="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[85vw] flex-col bg-white shadow-xl"
     role="dialog"
+    aria-modal="true"
     aria-label="سلة التسوق"
     data-testid="cart-drawer"
   >
     <header class="flex items-center justify-between border-b border-stone-200 px-4 py-3">
       <h2 class="text-lg font-bold">سلة التسوق</h2>
-      <button type="button" class="text-stone-500 hover:text-stone-800" onclick={closeDrawer} aria-label="إغلاق">✕</button>
+      <button type="button" bind:this={closeButton} class="text-stone-500 hover:text-stone-800" onclick={closeDrawer} aria-label="إغلاق">✕</button>
     </header>
 
-    {#if state.items.length === 0}
+    {#if cartState.items.length === 0}
       <div class="flex flex-1 items-center justify-center p-8 text-center text-stone-500">
         سلتك فارغة — أضف بعض العسل!
       </div>
     {:else}
       <ul class="flex-1 space-y-4 overflow-y-auto p-4">
-        {#each state.items as item (item.productId)}
+        {#each cartState.items as item (item.productId)}
           <li class="flex gap-3">
             <a href={`/products/${item.slug}`} class="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-honey-100">
               <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
@@ -55,7 +72,7 @@
       </ul>
     {/if}
 
-    {#if state.items.length > 0}
+    {#if cartState.items.length > 0}
       <footer class="border-t border-stone-200 p-4">
         <div class="mb-1 flex justify-between text-sm text-stone-600">
           <span>المجموع الفرعي</span>

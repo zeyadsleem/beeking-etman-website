@@ -1,8 +1,19 @@
 import { browser } from "$app/environment";
+import { z } from "zod";
 import { addItem, adjustQuantity, computeTotals, removeItem } from "./cart";
 import type { CartItem, CartTotals } from "./cart";
 
 const STORAGE_KEY = "honey_cart_v1";
+
+const CartItemSchema = z.object({
+  productId: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  image: z.string(),
+  quantity: z.number(),
+  price: z.number(),
+  stock: z.number(),
+});
 
 interface CartUiState {
   items: CartItem[];
@@ -13,7 +24,11 @@ const state = $state<CartUiState>({ items: [], drawerOpen: false });
 
 function persist(items: CartItem[]): void {
   if (!browser) return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  } catch {
+    // Storage unavailable (private mode / quota); the in-memory cart keeps the update.
+  }
   void fetch("/api/cart", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -27,7 +42,10 @@ export function loadCart(): void {
   if (!browser) return;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) state.items = JSON.parse(raw) as CartItem[];
+    if (raw) {
+      const parsed = CartItemSchema.array().safeParse(JSON.parse(raw));
+      state.items = parsed.success ? parsed.data : [];
+    }
   } catch {
     state.items = [];
   }

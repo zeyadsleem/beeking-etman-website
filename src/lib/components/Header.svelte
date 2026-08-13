@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { cartCount, openDrawer } from "$lib/cart-store.svelte";
 
   let {
@@ -10,12 +9,8 @@
     user?: { name?: string | null } | null;
   } = $props();
 
-  let query = $state("");
   let count = $state(0);
 
-  onMount(() => {
-    count = cartCount();
-  });
   $effect(() => {
     count = cartCount();
   });
@@ -45,7 +40,6 @@
       <input
         type="search"
         name="q"
-        bind:value={query}
         placeholder="ابحث عن عسل…"
         class="w-full rounded-full border border-stone-300 bg-white px-4 py-2 text-sm focus:border-honey-500 focus:ring-honey-500"
       />
