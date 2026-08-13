@@ -1,5 +1,9 @@
 <script lang="ts">
   import "@fontsource-variable/cairo";
+  import "@fontsource/amiri/arabic-400.css";
+  import "@fontsource/amiri/arabic-700.css";
+  import "@fontsource/aref-ruqaa/arabic-400.css";
+  import "@fontsource/aref-ruqaa/arabic-700.css";
   import "./layout.css";
   import favicon from "$lib/assets/favicon.svg";
   import Header from "$lib/components/Header.svelte";

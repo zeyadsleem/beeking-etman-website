@@ -230,6 +230,12 @@ importers:
       '@fontsource-variable/cairo':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/amiri':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/aref-ruqaa':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@libsql/client':
         specifier: ^0.17.3
         version: 0.17.4
@@ -1030,6 +1036,12 @@ packages:
 
   '@fontsource-variable/cairo@5.3.0':
     resolution: {integrity: sha512-zkxIsVQ406AJXD1qaldeOj+CIsMzRMXRT2x6fkYjNJE2DFsqGMzNGFhdrZdZagq3qX9JwaMaZetMc7/oUlpfpg==}
+
+  '@fontsource/amiri@5.3.0':
+    resolution: {integrity: sha512-i4SWJnVIphj8556EdVzNrEG/Qu82k6JXjXTtSUIohx3tHmo2GHw1Kv60TWo+xjk7Yf1Etb2Gskh0lUFclTKyUw==}
+
+  '@fontsource/aref-ruqaa@5.3.0':
+    resolution: {integrity: sha512-GC+ckm4v2zndUWuR2JiMdO333mNZqrzxHN/9rpBJhLwDwcwYXzr+GzCRzgK6afGMhYnV0pwrqeGeLm4ZNmWhWQ==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3682,6 +3694,10 @@ snapshots:
     optional: true
 
   '@fontsource-variable/cairo@5.3.0': {}
+
+  '@fontsource/amiri@5.3.0': {}
+
+  '@fontsource/aref-ruqaa@5.3.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

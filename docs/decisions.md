@@ -133,3 +133,42 @@ dropped. The signed-cookie path re-verifies the HMAC and re-sanitizes on read.
 
 **Consequences:** Malformed client payloads cannot corrupt the cart; tampered
 cookies are rejected by signature mismatch.
+
+## 2026-08-14: Artisanal bohemian UI redesign
+
+**Context:** The storefront UI (plain Tailwind, stock photos) did not match the
+"بيت العسل" artisanal brand.
+
+**Decision:** Redesigned the whole UI as a handcrafted "House of Honey" system
+in `src/routes/layout.css` and all components/pages: Aref Ruqaa for the
+wordmark and Amiri for headlines (both `@fontsource` Arabic subsets, dev
+dependencies) on the existing Cairo body font; a paper/parchment/cocoa/honey/
+olive/clay palette; custom classes `.btn-honey`, `.btn-dark`, `.btn-outline`,
+`.field`, `.chip`, `.arch-frame(-lg)`, `.rule-flourish`, `.honeycomb-bg`,
+`.dot-bg`, `.grain-bg`; `--texture-*` custom properties in `:root`; and
+`@keyframes fade-up`/`float-y` exposed as Tailwind v4 `@utility` classes so
+`motion-safe:` variants work (radius tokens were hardcoded because `@theme
+inline` does not emit custom properties to `:root`).
+
+**Consequences:** A cohesive artisanal aesthetic; product imagery is now
+first-party. All e2e selectors, `data-testid`s, and unit-test expectations were
+preserved so the suite still passes unchanged.
+
+## 2026-08-14: Authentic Egyptian honey catalog with bespoke SVG art
+
+**Context:** The seeded catalog mixed non-Egyptian products (مانوكا، صنوبر) and
+rotated only three generic stock photos, so the store did not look like an
+Egyptian honey shop.
+
+**Decision:** Replaced the catalog with 14 authentic Egyptian honeys across 4
+categories (سدر، برسيم، موالح، أعشاب جبلية وخلطات) — e.g. عسل سدر سيناء، برسيم
+مصري، زهر البرتقال، غذاء ملكي، قطن صعيدي، قرص شمع، بوكس هدايا — at realistic EGP
+qirsh prices. Product art is a set of hand-drawn SVG illustrations
+(`static/images/honey/*.svg`): a jar per variety in its true honey tone, a
+honeycomb slab for قرص الشمع, and a gift box. The seed now prunes products and
+categories whose slugs are absent from the seed (it previously only upserted,
+so removed items lingered).
+
+**Consequences:** Every image clearly reads as honey and loads from first-party
+static assets (no remote 404 risk). Seed runs are idempotent. The `sidr-natural`
+product (عسل سدر طبيعي) is preserved, so the e2e suite is unchanged.

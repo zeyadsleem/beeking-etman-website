@@ -9,25 +9,31 @@
 <svelte:head><title>طلباتي — بيت العسل</title></svelte:head>
 
 <div class="mt-6">
-  <h1 class="text-3xl font-extrabold">طلباتي</h1>
+  <h1 class="rule-flourish headline text-4xl text-cocoa-900">
+    <i aria-hidden="true"></i>
+    طلباتي
+  </h1>
   {#if data.orders.length === 0}
-    <div class="mt-8 rounded-3xl border border-dashed border-stone-300 bg-white p-12 text-center text-stone-500">
-      <p>لم تقم بأي طلبات بعد.</p>
-      <a href="/products" class="mt-4 inline-block rounded-full bg-honey-600 px-6 py-3 font-semibold text-white hover:bg-honey-700">تصفح المتجر</a>
+    <div class="dot-bg mt-8 flex flex-col items-center rounded-[1.8rem] border border-dashed border-cocoa-200 bg-parchment p-14 text-center">
+      <svg width="56" height="62" viewBox="0 0 26 30" fill="none" aria-hidden="true">
+        <path d="M13 1l11 6.5v13L13 27 2 20.5v-13L13 1Z" fill="none" stroke="#ddc5a8" stroke-width="1.6" />
+      </svg>
+      <p class="mt-4 text-lg font-semibold text-cocoa-600">لم تقم بأي طلبات بعد.</p>
+      <a href="/products" class="btn-honey mt-5">تصفح المتجر</a>
     </div>
   {:else}
     <ul class="mt-6 space-y-4">
       {#each data.orders as order (order.id)}
-        <li class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white p-5">
+        <li class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cocoa-100 bg-parchment p-5 shadow-warm-sm transition hover:shadow-warm">
           <div>
-            <a href={`/checkout/success/${order.id}`} class="font-bold text-honey-800 hover:underline" data-testid="order-link">{order.number}</a>
-            <p class="text-sm text-stone-500">{localized.format(order.createdAt)}</p>
+            <a href={`/checkout/success/${order.id}`} class="headline text-lg text-honey-800 hover:underline" data-testid="order-link">{order.number}</a>
+            <p class="mt-0.5 text-sm text-cocoa-500">{localized.format(order.createdAt)}</p>
           </div>
           <div class="text-start">
-            <span class="text-sm text-stone-500">الحالة</span>
-            <span class="ms-2 rounded-full bg-green-100 px-3 py-0.5 text-xs font-semibold text-green-700">{#if order.status === "paid"}مؤكد{:else}غير محدد{/if}</span>
+            <span class="text-sm text-cocoa-500">الحالة</span>
+            <span class="ms-2 rounded-full border border-honey-300 bg-honey-50 px-3 py-0.5 text-xs font-bold text-honey-800">{#if order.status === "paid"}مؤكد ✓{:else}غير محدد{/if}</span>
           </div>
-          <span class="font-extrabold">{formatEGP(order.total)}</span>
+          <span class="font-extrabold text-cocoa-900">{formatEGP(order.total)}</span>
         </li>
       {/each}
     </ul>
