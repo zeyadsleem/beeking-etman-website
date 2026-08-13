@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="بوكس هدايا عسل مصري">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="36%" r="80%">
+      <stop offset="0%" stop-color="#fffaf0"/>
+      <stop offset="100%" stop-color="#f0e3c6"/>
+    </radialGradient>
+    <linearGradient id="honey" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e0a72e"/>
+      <stop offset="100%" stop-color="#a9640f"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg)"/>
+  <g fill="none" stroke="#a9640f" stroke-opacity="0.16" stroke-width="2">
+    <path d="M58 54l20 11.5v23L58 100l-20-11.5v-23L58 54Z"/>
+    <path d="M312 56l20 11.5v23l-20 11.5-20-11.5v-23l20-11.5Z"/>
+    <path d="M40 240l16 9v18l-16 9-16-9v-18l16-9Z"/>
+  </g>
+  <g fill="#a9640f" fill-opacity="0.5">
+    <circle cx="92" cy="150" r="5"/>
+    <circle cx="318" cy="140" r="4"/>
+    <circle cx="340" cy="330" r="5"/>
+  </g>
+  <ellipse cx="200" cy="356" rx="92" ry="12" fill="#2b1c10" opacity="0.12"/>
+  <g>
+    <path d="M118 190 q0 -24 24 -24 h116 q24 0 24 24 v122 q0 14 -14 14 h-136 q-14 0 -14 -14 z" fill="#b5804a"/>
+    <path d="M118 190 q0 -24 24 -24 h116 q24 0 24 24 v6 q0 10 -10 10 h-144 q-10 0 -10 -10 z" fill="#c68f58"/>
+    <rect x="188" y="166" width="24" height="160" fill="#a44525"/>
+    <rect x="118" y="196" width="164" height="22" fill="#a44525"/>
+    <path d="M188 166 a20 20 0 0 1 20 -20 a20 20 0 0 1 4 26 q-4 5 -12 5 q-8 0 -12 -5 q-4 -5 0 -6 z" fill="#a44525"/>
+    <path d="M212 166 a20 20 0 0 0 -20 -20 a20 20 0 0 0 -4 26 q4 5 12 5 q8 0 12 -5 q4 -5 0 -6 z" fill="#c0552f"/>
+    <g>
+      <rect x="164" y="252" width="72" height="60" rx="10" fill="#fffaf0" stroke="#a9640f" stroke-opacity="0.35"/>
+      <path d="M200 270 l15 9 v19 l-15 9 l-15 -9 v-19 l15 -9Z" fill="url(#honey)" stroke="#a9640f" stroke-opacity="0.4"/>
+      <rect x="180" y="308" width="40" height="4" rx="2" fill="#a9640f" opacity="0.4"/>
+    </g>
+  </g>
+</svg>

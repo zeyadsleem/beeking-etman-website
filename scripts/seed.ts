@@ -6,17 +6,11 @@ import * as schema from "../src/lib/server/db/schema";
 
 const db = drizzle(createClient({ url: process.env.DATABASE_URL ?? "file:local.db" }), { schema });
 
-const HONEY_IMAGES = [
-  "https://images.unsplash.com/photo-1587049352846-4a222e784d38?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1587049352851-8d4e89133924?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1628840042765-356cda07504e?q=80&w=1200&auto=format&fit=crop",
-];
-
 const CATEGORIES = [
   { slug: "sidr", name: "عسل السدر" },
-  { slug: "orange-blossom", name: "عسل الأزهار" },
-  { slug: "wildflower", name: "عسل بري متنوع" },
-  { slug: "gift-sets", name: "سلال وهدايا" },
+  { slug: "clover", name: "عسل البرسيم" },
+  { slug: "citrus", name: "عسل الموالح" },
+  { slug: "wild", name: "أعشاب جبلية وخلطات" },
 ];
 
 const PRODUCTS: Array<{
@@ -26,148 +20,150 @@ const PRODUCTS: Array<{
   price: number;
   stock: number;
   category: string;
-  image: number;
+  image: string;
   featured: boolean;
 }> = [
   {
     slug: "sidr-natural",
     name: "عسل سدر طبيعي",
-    description: "عسل سدر نقي 100% من مناحل سيناء، قوام كثيف وطعم مميز وخصائص علاجية مشهورة.",
+    description:
+      "عسل سدر نقي 100% من مناحل سيناء وسفوح سانت كاترين، قوام كثيف وطعم مميز وخصائص علاجية مشهورة.",
     price: 380_00,
     stock: 25,
     category: "sidr",
-    image: 0,
+    image: "/images/honey/sidr.svg",
     featured: true,
   },
   {
     slug: "sidr-mountain",
-    name: "عسل سدر جبلي",
-    description: "إنتاج جبلي نادر بمذاق أعمق ولون داكن، يُعصر كمية محدودة كل موسم.",
-    price: 420_00,
+    name: "عسل سدر جبلي فاخر",
+    description: "إنتاج جبلي نادر بلون داكن ومذاق أعمق، يُعصر كمية محدودة من مرتفعات سيناء كل موسم.",
+    price: 450_00,
     stock: 18,
     category: "sidr",
-    image: 1,
+    image: "/images/honey/sidr.svg",
     featured: true,
   },
   {
     slug: "sidr-1kg",
-    name: "عسل سدر 1 كجم",
-    description: "عبوة عائلية سعة كيلو من أجود عسل السدر لاستخدام يومي طويل.",
-    price: 640_00,
+    name: "عسل سدر سيناء 1 كجم",
+    description: "عبوة عائلية سعة كيلو من أجود عسل السدر السيناوي لاستخدام يومي طويل.",
+    price: 720_00,
     stock: 12,
     category: "sidr",
-    image: 0,
+    image: "/images/honey/sidr.svg",
+    featured: false,
+  },
+  {
+    slug: "clover-blossom",
+    name: "عسل البرسيم المصري",
+    description:
+      "عسل فاتح برائحة أزهار البرسيم المصرية الشهيرة، أخف أنواع العسل وأكثرها استخدامًا صباحًا.",
+    price: 160_00,
+    stock: 40,
+    category: "clover",
+    image: "/images/honey/clover.svg",
+    featured: true,
+  },
+  {
+    slug: "clover-cream",
+    name: "عسل برسيم كريمي",
+    description: "قوام كريمي ناعم يذوب على اللسان، مفضّل لدى الأطفال والعائلات.",
+    price: 180_00,
+    stock: 22,
+    category: "clover",
+    image: "/images/honey/cream.svg",
+    featured: false,
+  },
+  {
+    slug: "clover-1kg",
+    name: "عسل البرسيم 1 كجم",
+    description: "عبوة كيلو من عسل البرسيم الطازج من مناحل الدلتا وريف مصر.",
+    price: 290_00,
+    stock: 16,
+    category: "clover",
+    image: "/images/honey/clover.svg",
     featured: false,
   },
   {
     slug: "orange-blossom",
     name: "عسل زهر البرتقال",
-    description: "عسل فاتح برائحة زهر البرتقال من ريف مصر، مثالي للإفطار.",
-    price: 260_00,
+    description: "عسل ذهبي برائحة زهر البرتقال والموالح من أراضي البحيرة والدلتا، مثالي للإفطار.",
+    price: 240_00,
     stock: 30,
-    category: "orange-blossom",
-    image: 1,
+    category: "citrus",
+    image: "/images/honey/citrus.svg",
     featured: true,
   },
   {
-    slug: "orange-cream",
-    name: "عسل برتقال كريمي",
-    description: "قوام كريمي ناعم يذوب على اللسان، مفضّل لدى الأطفال.",
-    price: 280_00,
-    stock: 22,
-    category: "orange-blossom",
-    image: 0,
+    slug: "citrus-mix",
+    name: "عسل الموالح المشكل",
+    description: "خليط عسل الليمون والبرتقال واليوسفي، لطيف على المعدة وعطر المنكه.",
+    price: 220_00,
+    stock: 20,
+    category: "citrus",
+    image: "/images/honey/citrus.svg",
     featured: false,
   },
   {
     slug: "orange-1kg",
     name: "عسل زهر البرتقال 1 كجم",
-    description: "عبوة كيلو من عسل البرتقال الطازج بعطر أزهار النرجس.",
-    price: 460_00,
+    description: "عبوة كيلو من عسل الموالح الطازج بقطف موسمي من بساتين الدلتا.",
+    price: 430_00,
     stock: 14,
-    category: "orange-blossom",
-    image: 1,
+    category: "citrus",
+    image: "/images/honey/citrus.svg",
     featured: false,
   },
   {
-    slug: "wild-flower",
-    name: "عسل أزهار برية",
-    description: "مراعي متعددة الأزهار تعطي مذاقًا غنيًا متوازنًا من مناحل الدلتا.",
-    price: 240_00,
-    stock: 35,
-    category: "wildflower",
-    image: 2,
+    slug: "royal-jelly",
+    name: "عسل بالغذاء الملكي",
+    description: "عسل برسيم مصري مدعّم بالغذاء الملكي الطازج، منشط طبيعي للطاقة والمناعة.",
+    price: 340_00,
+    stock: 18,
+    category: "citrus",
+    image: "/images/honey/royal.svg",
     featured: true,
   },
   {
-    slug: "mountain-honey",
-    name: "عسل جبلي",
-    description: "عسل من المرتفعات الطبيعية، غني بالعناصر ومضادات الأكسدة.",
-    price: 300_00,
-    stock: 20,
-    category: "wildflower",
-    image: 1,
-    featured: false,
+    slug: "sinai-wildflower",
+    name: "عسل أعشاب سيناء",
+    description: "عسل جبلي متعدد الأزهار والأعشاب البرية من جنوب سيناء، مذاق غني ولون كهرماني.",
+    price: 280_00,
+    stock: 25,
+    category: "wild",
+    image: "/images/honey/wild.svg",
+    featured: true,
   },
   {
-    slug: "manuka",
-    name: "عسل مانوكا",
-    description: "صنف مستورد فاخر بتركيز عالٍ من المركبات النشطة.",
-    price: 950_00,
-    stock: 8,
-    category: "wildflower",
-    image: 0,
+    slug: "cotton-honey",
+    name: "عسل القطن الصعيدي",
+    description: "عسل فاتح ناعم من حقول القطن في صعيد مصر، خفيف ولطيف على الأطفال.",
+    price: 200_00,
+    stock: 20,
+    category: "wild",
+    image: "/images/honey/cotton.svg",
     featured: false,
   },
   {
     slug: "honeycomb",
-    name: "قرص العسل الطبيعي",
-    description: "قرص شمع كامل بشكله الأصلي، يُقطَع ويُؤكل طازجًا من الفرازات.",
-    price: 180_00,
+    name: "قرص الشمع الصافي",
+    description: "قرص شمع كامل بأقراصه الطبيعية يُقطَع ويُؤكل طازجًا من الفرازات مباشرة.",
+    price: 150_00,
     stock: 16,
-    category: "wildflower",
-    image: 2,
-    featured: false,
-  },
-  {
-    slug: "pine-honey",
-    name: "عسل الصنوبر",
-    description: "لون غامق وطعم حاد مميز، خيار مثالي مع الشاي والأعشاب.",
-    price: 330_00,
-    stock: 10,
-    category: "wildflower",
-    image: 1,
+    category: "wild",
+    image: "/images/honey/comb.svg",
     featured: false,
   },
   {
     slug: "gift-trio",
-    name: "بوكس عسل ثلاثي",
-    description: "ثلاث عينات مختارة (سدر، برتقال، أزهار برية) في علبة هدية أنيقة.",
-    price: 750_00,
+    name: "بوكس عسل مصري ثلاثي",
+    description: "ثلاث عينات مختارة (سدر سيناء، زهر البرتقال، البرسيم) في علبة هدية أنيقة.",
+    price: 640_00,
     stock: 15,
-    category: "gift-sets",
-    image: 0,
+    category: "wild",
+    image: "/images/honey/gift.svg",
     featured: true,
-  },
-  {
-    slug: "gift-wedding",
-    name: "سلة هدايا مناسبات",
-    description: "سلة فاخرة لعروسين أو مولود جديد، تشمل عسلًا وشموعًا مشكيلة.",
-    price: 1100_00,
-    stock: 6,
-    category: "gift-sets",
-    image: 2,
-    featured: false,
-  },
-  {
-    slug: "gift-with-comb",
-    name: "علبة عسل بأقراص الشمع",
-    description: "عسل سدر مع قطع شمع حقيقية في صندوق خشبي هدية.",
-    price: 450_00,
-    stock: 9,
-    category: "gift-sets",
-    image: 1,
-    featured: false,
   },
 ];
 
@@ -194,7 +190,7 @@ async function upsertProduct(p: (typeof PRODUCTS)[number], categoryId: string): 
     description: p.description,
     price: p.price,
     stock: p.stock,
-    image: HONEY_IMAGES[p.image % HONEY_IMAGES.length],
+    image: p.image,
     categoryId,
     featured: p.featured ? 1 : 0,
   };
@@ -218,6 +214,23 @@ async function seed(): Promise<void> {
   // deterministic — the suite accumulates an order on every checkout.
   await db.delete(schema.orderItem);
   await db.delete(schema.order);
+
+  // Prune catalog rows that no longer exist in the current seed (renamed or
+  // removed products/categories would otherwise linger forever).
+  const slugs = PRODUCTS.map((p) => p.slug);
+  await db.delete(schema.product).where(
+    sql`${schema.product.slug} not in (${sql.join(
+      slugs.map((s) => sql`${s}`),
+      sql`, `,
+    )})`,
+  );
+  const catSlugs = CATEGORIES.map((c) => c.slug);
+  await db.delete(schema.category).where(
+    sql`${schema.category.slug} not in (${sql.join(
+      catSlugs.map((s) => sql`${s}`),
+      sql`, `,
+    )})`,
+  );
 
   const categoryIds = new Map<string, string>();
   for (const c of CATEGORIES) categoryIds.set(c.slug, await upsertCategory(c.slug, c.name));

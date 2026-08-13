@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="برطمان عسل سدر سيناء">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="36%" r="80%">
+      <stop offset="0%" stop-color="#fffaf0"/>
+      <stop offset="100%" stop-color="#f0e3c6"/>
+    </radialGradient>
+    <linearGradient id="honey" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe08a"/>
+      <stop offset="100%" stop-color="#dca83a"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg)"/>
+  <g fill="none" stroke="#dca83a" stroke-opacity="0.14" stroke-width="2">
+    <path d="M58 54l20 11.5v23L58 100l-20-11.5v-23L58 54Z"/>
+    <path d="M100 34l20 11.5v23l-20 11.5-20-11.5v-23l20-11.5Z"/>
+    <path d="M310 60l20 11.5v23l-20 11.5-20-11.5v-23l20-11.5Z"/>
+    <path d="M352 98l16 9v18l-16 9-16-9v-18l16-9Z"/>
+    <path d="M40 152l16 9v18l-16 9-16-9v-18l16-9Z"/>
+  </g>
+  <g fill="#ffe08a" fill-opacity="0.5">
+    <circle cx="88" cy="146" r="5"/>
+    <circle cx="318" cy="122" r="4"/>
+    <circle cx="58" cy="234" r="4"/>
+    <circle cx="346" cy="238" r="5"/>
+    <circle cx="118" cy="302" r="4"/>
+    <circle cx="288" cy="318" r="5"/>
+  </g>
+  <ellipse cx="200" cy="356" rx="86" ry="11" fill="#2b1c10" opacity="0.12"/>
+  <g>
+    <rect x="156" y="90" width="88" height="33" rx="9" fill="#8a5a33"/>
+    <rect x="156" y="90" width="88" height="12" rx="6" fill="#a06b3e"/>
+    <rect x="181" y="79" width="38" height="13" rx="6.5" fill="#6e4b31"/>
+    <path d="M168 124 q-4 12 2 18 q5 6 0 13" fill="#ffe08a" fill-opacity="0.9"/>
+    <path d="M166 124 h68 c6 0 10 4 10 10 v90 c0 30 -10 50 -26 59 c-8 4 -24 4 -32 0 c-16 -9 -26 -29 -26 -59 v-90 c0 -6 4 -10 10 -10 z" fill="url(#honey)"/>
+    <ellipse cx="200" cy="134" rx="43" ry="6.5" fill="#ffe08a" opacity="0.9"/>
+    <g>
+      <rect x="166" y="194" width="68" height="56" rx="9" fill="#fffaf0" stroke="#dca83a" stroke-opacity="0.35"/>
+      <path d="M200 210 l16 9 v19 l-16 9 l-16 -9 v-19 l16 -9Z" fill="url(#honey)" stroke="#dca83a" stroke-opacity="0.4"/>
+      <rect x="186" y="252" width="28" height="3.5" rx="1.75" fill="#dca83a" opacity="0.4"/>
+    </g>
+    <rect x="172" y="132" width="15" height="140" rx="7.5" fill="#ffffff" opacity="0.18"/>
+    <ellipse cx="172" cy="140" rx="6" ry="14" fill="#ffffff" opacity="0.3"/>
+  </g>
+</svg>

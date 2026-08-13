@@ -23,9 +23,9 @@ describe("ProductCard", () => {
     render(ProductCard, {
       product: {
         id: "p2",
-        name: "عسل مانوكا",
-        slug: "manuka",
-        price: 950_00,
+        name: "عسل القطن الصعيدي",
+        slug: "cotton-honey",
+        price: 200_00,
         stock: 0,
         image: "https://example.com/m.jpg",
       },
