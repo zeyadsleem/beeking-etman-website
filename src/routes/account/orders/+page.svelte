@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatEGP } from "$lib/currency";
+  import SectionTitle from "$lib/components/SectionTitle.svelte";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -9,10 +10,7 @@
 <svelte:head><title>طلباتي — مملكة النحل</title></svelte:head>
 
 <div class="mt-6">
-  <h1 class="rule-flourish headline text-4xl text-cocoa-900">
-    <i aria-hidden="true"></i>
-    طلباتي
-  </h1>
+  <SectionTitle as="h1" className="text-4xl">طلباتي</SectionTitle>
   {#if data.orders.length === 0}
     <div class="dot-bg mt-8 flex flex-col items-center rounded-[1.8rem] border border-dashed border-cocoa-200 bg-parchment p-14 text-center">
       <svg width="56" height="62" viewBox="0 0 26 30" fill="none" aria-hidden="true">

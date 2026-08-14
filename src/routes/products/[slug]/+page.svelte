@@ -3,6 +3,7 @@
   import Price from "$lib/components/Price.svelte";
   import ProductCard from "$lib/components/ProductCard.svelte";
   import QuantityPicker from "$lib/components/QuantityPicker.svelte";
+  import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { addToCart } from "$lib/cart-store.svelte";
   import { formatEGP } from "$lib/currency";
   import type { PageData } from "./$types";
@@ -71,9 +72,9 @@
     <div class="flex flex-wrap items-center gap-3">
       <Price amount={selectedVariant.price} className="rounded-full border border-gold-400 bg-ink-950 px-5 py-1.5 text-2xl font-extrabold text-gold-300 shadow-warm-sm" />
       {#if selectedVariant.stock === 0}
-        <span class="badge-stock bg-red-100 text-red-700">نفدت الكمية</span>
+        <span class="badge-out">نفدت الكمية</span>
       {:else}
-        <span class="badge-stock border border-gold-400/40 bg-parchment text-cocoa-700">متوفر: {selectedVariant.stock} قطعة</span>
+        <span class="badge-neutral">متوفر: {selectedVariant.stock} قطعة</span>
       {/if}
     </div>
 
@@ -113,16 +114,26 @@
 
     <div class="mt-4 grid grid-cols-3 gap-3 border-t border-dashed border-cocoa-200 pt-5 text-center">
       <div>
-        <p class="text-lg">🐝</p>
-        <p class="mt-1 text-xs font-semibold text-cocoa-700">عسل خام</p>
+        <svg class="mx-auto h-7 w-7 text-honey-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 4.5c2.6 0 4.5 1.9 4.5 4.5h-9C7.5 6.4 9.4 4.5 12 4.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+          <path d="M7.5 9h9v1.5a4.5 4.5 0 0 1-9 0V9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+          <path d="M12 15v3.5M9.5 18.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+        <p class="mt-1.5 text-xs font-semibold text-cocoa-700">عسل خام</p>
       </div>
       <div>
-        <p class="text-lg">🍯</p>
-        <p class="mt-1 text-xs font-semibold text-cocoa-700">بدون إضافات</p>
+        <svg class="mx-auto h-7 w-7 text-honey-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3l2.1 4.3 4.7.7-3.4 3.3.8 4.7L12 13.9l-4.2 2.1.8-4.7L5.2 8l4.7-.7L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+        </svg>
+        <p class="mt-1.5 text-xs font-semibold text-cocoa-700">بدون إضافات</p>
       </div>
       <div>
-        <p class="text-lg">📦</p>
-        <p class="mt-1 text-xs font-semibold text-cocoa-700">توصيل سريع</p>
+        <svg class="mx-auto h-7 w-7 text-honey-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3 6h11v9H3zM14 9h3l3 3v3h-6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+          <circle cx="7" cy="18.5" r="1.8" stroke="currentColor" stroke-width="1.6" />
+          <circle cx="17" cy="18.5" r="1.8" stroke="currentColor" stroke-width="1.6" />
+        </svg>
+        <p class="mt-1.5 text-xs font-semibold text-cocoa-700">توصيل سريع</p>
       </div>
     </div>
   </div>
@@ -130,10 +141,7 @@
 
 {#if data.related.length > 0}
   <section class="mt-16">
-    <h2 class="rule-flourish headline text-3xl text-cocoa-900">
-      <i aria-hidden="true"></i>
-      منتجات مشابهة
-    </h2>
+    <SectionTitle className="text-3xl">منتجات مشابهة</SectionTitle>
     <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {#each data.related as product (product.id)}
         <ProductCard {product} />

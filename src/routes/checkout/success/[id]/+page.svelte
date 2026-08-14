@@ -18,7 +18,7 @@
   </div>
   <h1 class="headline mt-5 text-4xl leading-tight text-cocoa-900">شكراً لك! تم استلام طلبك</h1>
   <p class="mt-3 text-lg text-cocoa-600">
-    رقم الطلب <span class="rounded-full border border-honey-300 bg-honey-50 px-4 py-1 font-extrabold text-honey-800" data-testid="order-number">{data.order.number}</span>
+    رقم الطلب <span class="badge-ok px-4 py-1 font-extrabold" data-testid="order-number">{data.order.number}</span>
   </p>
   <p class="mt-2 text-sm text-cocoa-400">الدفع تمت محاكاته — لا يوجد أي خصم فعلي على بطاقتك.</p>
 

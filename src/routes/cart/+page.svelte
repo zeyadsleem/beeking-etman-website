@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import Price from "$lib/components/Price.svelte";
   import QuantityPicker from "$lib/components/QuantityPicker.svelte";
+  import SectionTitle from "$lib/components/SectionTitle.svelte";
   import {
     clearCart,
     getTotals,
@@ -23,10 +24,7 @@
 <svelte:head><title>سلة التسوق — مملكة النحل</title></svelte:head>
 
 <div class="mt-6">
-  <h1 class="rule-flourish headline text-4xl text-cocoa-900">
-    <i aria-hidden="true"></i>
-    سلة التسوق
-  </h1>
+  <SectionTitle as="h1" className="text-4xl">سلة التسوق</SectionTitle>
 
   {#if cartState.items.length === 0}
     <div class="dot-bg mt-10 flex flex-col items-center rounded-[1.8rem] border border-dashed border-cocoa-200 bg-parchment p-14 text-center">

@@ -35,9 +35,9 @@
       <div class="absolute inset-0 bg-gradient-to-t from-cocoa-950/20 to-transparent opacity-0 transition duration-300 group-hover:opacity-100"></div>
     </div>
     {#if product.variants[0]?.stock === 0}
-      <span class="badge-stock absolute bottom-4 start-1/2 -translate-x-1/2 bg-cocoa-900/85 text-white">نفدت الكمية</span>
+      <span class="badge-out absolute bottom-4 start-1/2 -translate-x-1/2">نفدت الكمية</span>
     {:else if product.variants[0] && product.variants[0].stock <= 5}
-      <span class="badge-stock absolute bottom-4 start-1/2 -translate-x-1/2 bg-honey-600/95 text-white">كمية محدودة</span>
+      <span class="badge-warn absolute bottom-4 start-1/2 -translate-x-1/2">كمية محدودة</span>
     {/if}
   </a>
   <div class="flex flex-1 flex-col gap-2 p-4">
@@ -51,15 +51,28 @@
           <Price amount={product.variants[0]?.price ?? 0} className="text-lg font-extrabold text-honey-800" />
         {/if}
       </div>
-      <button
-        type="button"
-        class="rounded-full bg-honey-600 px-4 py-2 text-sm font-semibold text-white shadow-warm-sm transition-all duration-300 hover:bg-honey-500 hover:shadow-warm disabled:cursor-not-allowed disabled:opacity-40"
-        disabled={product.variants[0]?.stock === 0 || product.variants.length === 0}
-        onclick={handleAdd}
-        data-testid="add-to-cart"
-      >
-        {product.variants[0]?.stock === 0 || product.variants.length === 0 ? "غير متوفر" : "أضف للسلة"}
-      </button>
+      {#if product.variants.length > 1}
+        <a
+          href={`/products/${product.slug}`}
+          class="inline-flex items-center justify-center gap-1.5 rounded-full border-2 border-gold-500 px-4 py-2 text-sm font-semibold text-gold-700 transition-all duration-300 hover:border-gold-600 hover:bg-gold-400/10"
+          aria-label={`اختيار الحجم — ${product.name}`}
+        >
+          اختر الحجم
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+      {:else}
+        <button
+          type="button"
+          class="rounded-full bg-honey-600 px-4 py-2 text-sm font-semibold text-white shadow-warm-sm transition-all duration-300 hover:bg-honey-500 hover:shadow-warm disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={product.variants[0]?.stock === 0}
+          onclick={handleAdd}
+          data-testid="add-to-cart"
+        >
+          {product.variants[0]?.stock === 0 ? "غير متوفر" : "أضف للسلة"}
+        </button>
+      {/if}
     </div>
   </div>
 </section>

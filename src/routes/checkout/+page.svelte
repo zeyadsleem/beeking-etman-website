@@ -2,6 +2,7 @@
   import { enhance } from "$app/forms";
   import { clearCart } from "$lib/cart-store.svelte";
   import { formatEGP } from "$lib/currency";
+  import SectionTitle from "$lib/components/SectionTitle.svelte";
   import type { ActionData, PageData } from "./$types";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -32,10 +33,7 @@
     }}
     class="space-y-5 rounded-[1.8rem] border border-cocoa-100 bg-parchment p-6 shadow-warm sm:p-8"
   >
-    <h1 class="rule-flourish headline text-3xl text-cocoa-900">
-      <i aria-hidden="true"></i>
-      معلومات التوصيل
-    </h1>
+    <SectionTitle as="h1" className="text-4xl">معلومات التوصيل</SectionTitle>
 
     {#if error("cart")}
       <p class="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert" data-testid="cart-error">{error("cart")}</p>

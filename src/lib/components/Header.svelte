@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { cartCount, openDrawer } from "$lib/cart-store.svelte";
 
   let {
@@ -20,7 +21,7 @@
     const target = event.currentTarget as HTMLFormElement;
     const input = target.querySelector<HTMLInputElement>('input[name="q"]');
     const q = (input?.value ?? "").trim();
-    window.location.assign(q ? `/products?q=${encodeURIComponent(q)}` : "/products");
+    void goto(q ? `/products?q=${encodeURIComponent(q)}` : "/products");
   }
 </script>
 
@@ -48,13 +49,26 @@
     </nav>
 
     <form class="ms-auto hidden flex-1 max-w-xs items-center gap-2 sm:flex" role="search" onsubmit={submitSearch}>
-      <input
-        type="search"
-        name="q"
-        placeholder="ابحث عن عسل…"
-        aria-label="بحث عن منتج"
-        class="field rounded-full bg-white/70"
-      />
+      <div class="relative flex-1">
+        <svg
+          class="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-cocoa-400"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+          <path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <input
+          type="search"
+          name="q"
+          placeholder="ابحث عن عسل…"
+          aria-label="بحث عن منتج"
+          class="field rounded-full bg-white/70 ps-10"
+        />
+      </div>
     </form>
 
     <div class="ms-auto flex items-center gap-3 sm:ms-0">

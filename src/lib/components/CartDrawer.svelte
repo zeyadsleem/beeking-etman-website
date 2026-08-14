@@ -47,10 +47,14 @@
   $effect(() => {
     if (cartState.drawerOpen) {
       lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      document.body.style.overflow = "hidden";
       closeButton?.focus();
-    } else if (lastFocused) {
-      lastFocused.focus();
-      lastFocused = null;
+    } else {
+      if (lastFocused) {
+        lastFocused.focus();
+        lastFocused = null;
+      }
+      document.body.style.overflow = "";
     }
   });
 </script>
@@ -118,7 +122,7 @@
         <p class="mb-3 text-xs text-honey-700">
           {#if getTotals().shipping === 0}توصيل مجاني ✓{:else}الشحن {formatEGP(getTotals().shipping)}{/if}
         </p>
-        <a href="/cart" class="btn-dark w-full text-sm" onclick={closeDrawer}>عرض السلة</a>
+        <a href="/cart" class="btn-outline w-full text-sm" onclick={closeDrawer}>عرض السلة</a>
         <a href="/checkout" class="btn-honey mt-2 w-full text-sm" onclick={closeDrawer}>إتمام الشراء</a>
       </footer>
     {/if}

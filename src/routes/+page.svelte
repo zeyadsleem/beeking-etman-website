@@ -1,5 +1,6 @@
 <script lang="ts">
   import ProductCard from "$lib/components/ProductCard.svelte";
+  import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { reveal } from "$lib/actions/reveal.svelte";
   import { countUp } from "$lib/actions/countup.svelte";
   import type { ProductSummary } from "$lib/server/store";
@@ -157,10 +158,7 @@
 
 <section class="mt-16">
   <div class="flex items-end justify-between gap-4" use:reveal>
-    <h2 class="rule-flourish headline text-3xl text-cocoa-900">
-      <i aria-hidden="true"></i>
-      اختير لك
-    </h2>
+    <SectionTitle className="text-3xl">اختير لك</SectionTitle>
     <a href="/products" class="btn-outline text-sm">كل المنتجات</a>
   </div>
   <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -173,10 +171,7 @@
 </section>
 
 <section id="categories" class="mt-16">
-  <h2 class="rule-flourish headline text-3xl text-cocoa-900" use:reveal>
-    <i aria-hidden="true"></i>
-    قصة كل كنز
-  </h2>
+  <div use:reveal><SectionTitle className="text-3xl">قصة كل كنز</SectionTitle></div>
   <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {#each data.categories as cat, i (cat.id)}
       <a
@@ -204,7 +199,7 @@
     <section class="mt-16">
       <div class="flex items-end justify-between gap-4" use:reveal>
         <div>
-          <h2 class="headline text-3xl text-cocoa-900">{rail.title}</h2>
+          <SectionTitle className="text-3xl">{rail.title}</SectionTitle>
           <p class="mt-1 text-sm text-cocoa-500">{rail.note}</p>
         </div>
         <a href="/products" class="btn-outline text-sm">تصفح الكل</a>
@@ -221,10 +216,7 @@
 {/each}
 
 <section class="mt-16 rounded-[2rem] border border-gold-500/30 bg-ink-950 px-6 py-10 text-center shadow-warm-sm">
-  <h2 class="rule-flourish headline mx-auto text-3xl text-parchment">
-    <i aria-hidden="true"></i>
-    لماذا مملكة النحل؟
-  </h2>
+  <SectionTitle className="mx-auto text-3xl text-parchment">لماذا مملكة النحل؟</SectionTitle>
   <div class="mx-auto mt-8 grid max-w-4xl gap-8 sm:grid-cols-3">
     <div use:reveal>
       <div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gold-400/15 text-gold-300">

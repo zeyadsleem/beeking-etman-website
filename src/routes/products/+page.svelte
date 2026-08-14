@@ -36,7 +36,7 @@
 
 <svelte:head><title>المتجر — مملكة النحل</title></svelte:head>
 
-<section class="relative mt-6 overflow-hidden rounded-[1.8rem] border border-gold-500/30 bg-ink-950 px-6 py-10 text-parchment shadow-warm">
+<section class="relative mt-6 overflow-hidden rounded-[2rem] border border-gold-500/30 bg-ink-950 px-6 py-10 text-parchment shadow-warm">
   <div class="honeycomb-bg absolute inset-0 opacity-25"></div>
   <div class="dot-bg absolute inset-0 opacity-20"></div>
   <div class="relative max-w-xl">
@@ -60,7 +60,7 @@
   <label class="text-sm font-medium text-cocoa-700">
     ترتيب
     <select
-      class="ms-2 rounded-full border border-cocoa-200 bg-white px-4 py-2 text-sm text-cocoa-900 transition focus:border-honey-500 focus:ring-2 focus:ring-honey-500/25 focus:outline-none"
+      class="field w-auto rounded-full py-2"
       value={data.filters.sort}
       onchange={(e) => selectSort((e.currentTarget as HTMLSelectElement).value)}
     >
@@ -95,7 +95,7 @@
 </div>
 
 {#if data.products.length === 0}
-  <div class="mt-14 flex flex-col items-center gap-3 text-center">
+  <div class="dot-bg mt-14 flex flex-col items-center gap-3 rounded-[1.8rem] border border-dashed border-cocoa-200 bg-parchment p-14 text-center">
     <svg width="52" height="58" viewBox="0 0 26 30" fill="none" aria-hidden="true">
       <path d="M13 1l11 6.5v13L13 27 2 20.5v-13L13 1Z" fill="none" stroke="#ddc5a8" stroke-width="1.6" />
     </svg>
