@@ -1,21 +1,21 @@
 import { expect, test } from "@playwright/test";
 
-test("guest browses, adds to cart, and completes checkout", async ({ page }) => {
-  await page.goto("/");
+test("guest browses, picks a variant, checks out", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("عسل");
 
   await page.getByRole("link", { name: "المتجر" }).first().click();
   await expect(page).toHaveURL(/\/products/);
 
-  const card = page.getByRole("link", { name: "عسل سدر طبيعي" }).first();
-  await card.click();
-  await expect(page).toHaveURL(/\/products\/sidr-natural/);
+  await page.getByRole("link", { name: "عسل سدر مصري" }).first().click();
+  await expect(page).toHaveURL(/\/products\/sidr-egyptian/);
 
+  await page.getByRole("button", { name: "500 جرام" }).click();
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   await page.getByRole("button", { name: "فتح سلة التسوق" }).click();
   await expect(page.getByTestId("cart-drawer")).toBeVisible();
-  await expect(page.getByTestId("cart-drawer")).toContainText("عسل سدر طبيعي");
+  await expect(page.getByTestId("cart-drawer")).toContainText("عسل سدر مصري");
 
   await page.getByRole("link", { name: "إتمام الشراء" }).click();
   await page.getByLabel("الاسم بالكامل").fill("أحمد محمد");
@@ -37,9 +37,9 @@ test("guest browses, adds to cart, and completes checkout", async ({ page }) => 
 });
 
 test("checkout shows validation errors for bad input", async ({ page }) => {
-  await page.goto("/products/sidr-natural");
+  await page.goto("/products/sidr-egyptian", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
-  await page.goto("/checkout");
+  await page.goto("/checkout", { waitUntil: "domcontentloaded" });
 
   await page.getByRole("button", { name: "تأكيد الطلب" }).click();
 
