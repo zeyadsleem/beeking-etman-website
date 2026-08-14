@@ -4,7 +4,6 @@ import {
   adjustQuantity,
   computeTotals,
   FREE_SHIPPING_THRESHOLD,
-  linesToItems,
   removeItem,
   SHIPPING_COST,
 } from "./cart";
@@ -76,16 +75,5 @@ describe("computeTotals", () => {
     expect(computeTotals([item({ ...product, price: FREE_SHIPPING_THRESHOLD }, 1)]).shipping).toBe(
       0,
     );
-  });
-});
-
-describe("linesToItems", () => {
-  it("maps and clamps quantity to stock", () => {
-    expect(linesToItems([{ variantId: "v1", quantity: 9 }], [product])).toEqual([
-      { ...product, quantity: 3 },
-    ]);
-  });
-  it("drops unknown variants", () => {
-    expect(linesToItems([{ variantId: "nope", quantity: 1 }], [product])).toEqual([]);
   });
 });

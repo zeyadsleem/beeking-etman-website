@@ -46,12 +46,14 @@ design spec: `docs/superpowers/plans/2026-08-12-honey-store.md` and
 ## Data model
 
 - `store_category` — categories (name, slug).
-- `store_product` — catalog items (name, slug, description, price in qirsh,
-  stock, image, category ref, featured).
+- `store_product` — honey types (name, slug, description, image, category ref,
+  featured). Money/stock live on variants.
+- `store_product_variant` — sellable lines per product (name, price in qirsh,
+  stock, image, sort order). Cart/checkout/orders are keyed by variant.
 - `store_order` — orders (number, customer fields, total in qirsh, status,
   nullable `user_id`, created-at).
-- `store_order_item` — line items (order ref, product ref, name, quantity,
-  unit price in qirsh).
+- `store_order_item` — line items (order ref, product ref, name, `variant_name`,
+  quantity, unit price in qirsh).
 - Better Auth tables — user/session/account, etc. The scaffold `task` table is
   a leftover.
 
@@ -59,10 +61,11 @@ design spec: `docs/superpowers/plans/2026-08-12-honey-store.md` and
 
 - Cart is client-mirrored and server-signed; the server is the source of truth
   at order time. `POST /api/cart` sanitizes unsigned input before signing.
-- Checkout runs in a Drizzle transaction: re-reads stock, decrements with a
-  stock guard, inserts order + items, mocks payment (`status = "paid"`). A
-  failed payment leaves the cart intact; sequential submits cannot duplicate an
-  order.
+- Checkout resolves cart lines to variant items via `resolveCartItems`, then
+  runs in a Drizzle transaction: re-reads variant stock, decrements with a
+  stock guard, inserts order + items (with `variant_name`), mocks payment
+  (`status = "paid"`). A failed payment leaves the cart intact; sequential
+  submits cannot duplicate an order.
 - Checkout failure never echoes card data; success page is `private, no-store`.
 - Auth rate limiting is in-memory (per-process); login/register and account
   order details are ownership-gated.

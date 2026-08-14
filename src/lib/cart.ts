@@ -53,11 +53,3 @@ export function adjustQuantity(items: CartItem[], variantId: string, delta: numb
 export function removeItem(items: CartItem[], variantId: string): CartItem[] {
   return items.filter((i) => i.variantId !== variantId);
 }
-
-export function linesToItems(lines: CartLine[], catalog: Omit<CartItem, "quantity">[]): CartItem[] {
-  return lines.flatMap((line) => {
-    const product = catalog.find((p) => p.variantId === line.variantId);
-    if (!product) return [];
-    return [{ ...product, quantity: Math.min(line.quantity, product.stock) }];
-  });
-}

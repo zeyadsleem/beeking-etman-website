@@ -172,3 +172,45 @@ so removed items lingered).
 **Consequences:** Every image clearly reads as honey and loads from first-party
 static assets (no remote 404 risk). Seed runs are idempotent. The `sidr-natural`
 product (عسل سدر طبيعي) is preserved, so the e2e suite is unchanged.
+
+## 2026-08-14: Variant product model (size/package per honey type)
+
+**Context:** The real Egyptian catalog sells the same honey in many sizes and
+packages (500 جم، 1 ك، زجاج، بلاستيك، Vib، اسكويز…). Treating each as a separate
+`store_product` duplicated names and blurry search; the user's 43-line price list
+is really ~21 honey types × variant lines.
+
+**Decision:** `store_product` becomes a honey _type_ and a new
+`store_product_variant` table (`id, productId, name, price, stock, image,
+sortOrder`) carries the sellable lines. Cart/checkout/order are variant-keyed:
+`CartLine { variantId, quantity }`, `CartItem` carries `variantName`, and
+`store_order_item.variant_name` records the purchased line (migration
+`drizzle/0001_messy_vargas.sql`). Store queries return `ProductSummary` with
+`variants` + `minPrice`; `resolveCartItems(db, lines)` joins variant→product for
+checkout/orders. Seed maps each of the user's 43 lines to exactly one variant.
+
+**Consequences:** One product page per honey with a size selector; cards show
+min-price and quick-add the cheapest in-stock variant; order history shows the
+exact line bought. Stock is decremented per variant.
+
+## 2026-08-14: Royal Kingdom rebrand with real honey photography
+
+**Context:** The user named the store مملكة النحل (عتمان الأصلي) and asked to
+compete with big Egyptian honey sites using a luxury dark+gold aesthetic and real
+photography instead of the hand-drawn SVG art.
+
+**Decision:** Rebranded everywhere (favicon, header/footer wordmarks, titles) to
+مملكة النحل / عتمان الأصلي with a gold-on-ink Royal Kingdom theme over parchment:
+new `ink-*`/`gold-*` Tailwind tokens, `.btn-gold`/`.btn-ink` buttons, royal
+textures, `::view-transition-*` styles, and `@utility` animations (`animate-drip`,
+`animate-shine`, `animate-marquee`) plus `startViewTransition` on client
+navigation. Home was rebuilt with a dark royal hero (gold drip), count-up stats,
+a marquee ticker, category storytelling banners, benefit rails, and staggered
+scroll reveals (`src/lib/actions/reveal.svelte.ts`, `countup.svelte.ts`). The
+catalog now uses real honey photographs from Unsplash CDN, each verified with
+`curl -sI` to return `200 image/*` before being committed (three of the planned
+URLs 404'd and were replaced after `websearch` + re-verification).
+
+**Consequences:** A distinctive royal brand that still keeps every Arabic e2e
+hook; remote images are verified but remain third-party (a future first-party
+CDN migration is tracked in `docs/todo.md`).
