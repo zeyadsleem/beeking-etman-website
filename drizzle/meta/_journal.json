@@ -15,6 +15,20 @@
       "when": 1786656673498,
       "tag": "0001_messy_vargas",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786708283390,
+      "tag": "0002_true_venus",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1786810000000,
+      "tag": "0003_fts_search",
+      "breakpoints": true
     }
   ]
 }

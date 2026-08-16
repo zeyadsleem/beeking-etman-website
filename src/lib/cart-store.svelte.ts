@@ -40,8 +40,28 @@ function persist(items: CartItem[]): void {
   }).catch(() => undefined);
 }
 
+let syncBound = false;
+
+function bindCrossTabSync(): void {
+  if (syncBound || !browser) return;
+  syncBound = true;
+  window.addEventListener("storage", (event) => {
+    if (event.key !== STORAGE_KEY || event.newValue === null) return;
+    const parsed = CartItemSchema.array().safeParse(JSON.parse(event.newValue));
+    state.items = parsed.success ? parsed.data : [];
+    void fetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: state.items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
+      }),
+    }).catch(() => undefined);
+  });
+}
+
 export function loadCart(): void {
   if (!browser) return;
+  bindCrossTabSync();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {

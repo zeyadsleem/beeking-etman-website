@@ -4,13 +4,17 @@ import { eq } from "drizzle-orm";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
-import { createOrder } from "./orders";
+import { createOrder, isNonceConflict } from "./orders";
+import { isBusyError } from "$lib/server/sqlite";
 import type { Customer } from "./orders";
 
 const DB_FILE = "orders-test.db";
 
+let client: ReturnType<typeof createClient> | null = null;
+
 async function buildDb() {
-  const client = createClient({ url: `file:${DB_FILE}` });
+  client?.close();
+  client = createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
   await db.run(`DROP TABLE IF EXISTS store_order_item`);
   await db.run(`DROP TABLE IF EXISTS store_order`);
@@ -37,6 +41,7 @@ async function buildDb() {
   await db.run(`
     CREATE TABLE store_order (
       id TEXT PRIMARY KEY NOT NULL, number TEXT NOT NULL UNIQUE,
+      nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
       address TEXT NOT NULL, city TEXT NOT NULL, total INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
@@ -94,13 +99,19 @@ const customer: Customer = {
 };
 
 afterAll(() => {
+  client?.close();
   if (existsSync(DB_FILE)) unlinkSync(DB_FILE);
 });
 
 describe("createOrder", () => {
   it("creates an order, decrements variant stock, stores variantName", async () => {
     const { db, v } = await buildDb();
-    const result = await createOrder(db, [{ variantId: v.id, quantity: 2 }], customer, undefined);
+    const result = await createOrder(
+      db,
+      [{ variantId: v.id, quantity: 2 }],
+      customer,
+      crypto.randomUUID(),
+    );
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -135,13 +146,18 @@ describe("createOrder", () => {
 
   it("rejects an empty cart", async () => {
     const { db } = await buildDb();
-    const result = await createOrder(db, [], customer);
+    const result = await createOrder(db, [], customer, crypto.randomUUID());
     expect(result.ok).toBe(false);
   });
 
   it("rejects out-of-stock and writes nothing", async () => {
     const { db, v } = await buildDb();
-    const result = await createOrder(db, [{ variantId: v.id, quantity: 5 }], customer);
+    const result = await createOrder(
+      db,
+      [{ variantId: v.id, quantity: 5 }],
+      customer,
+      crypto.randomUUID(),
+    );
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -153,5 +169,68 @@ describe("createOrder", () => {
       .where(eq(schema.productVariant.id, v.id))
       .get();
     expect(stock?.stock).toBe(3);
+  });
+
+  it("returns the same order for a replayed nonce (idempotency)", async () => {
+    const { db, v } = await buildDb();
+    const nonce = crypto.randomUUID();
+    const first = await createOrder(db, [{ variantId: v.id, quantity: 1 }], customer, nonce);
+    const second = await createOrder(db, [{ variantId: v.id, quantity: 1 }], customer, nonce);
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+    expect(second.orderId).toBe(first.orderId);
+    expect(second.orderNumber).toBe(first.orderNumber);
+    expect(second.total).toBe(first.total);
+
+    const stock = await db
+      .select()
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, v.id))
+      .get();
+    expect(stock?.stock).toBe(2);
+    const orders = await db.select().from(schema.order);
+    expect(orders).toHaveLength(1);
+  });
+});
+
+describe("isNonceConflict", () => {
+  it("returns true when the error message references store_order.nonce", () => {
+    expect(isNonceConflict(new Error("UNIQUE constraint failed: store_order.nonce"))).toBe(true);
+  });
+
+  it("returns false when only the code is SQLITE_CONSTRAINT_UNIQUE", () => {
+    const error = new Error("constraint failed") as Error & { code: string };
+    error.code = "SQLITE_CONSTRAINT_UNIQUE";
+    expect(isNonceConflict(error)).toBe(false);
+  });
+
+  it("returns false for unrelated errors", () => {
+    expect(isNonceConflict(new Error("database is locked"))).toBe(false);
+    expect(isNonceConflict(new Error("OUT_OF_STOCK:عسل سدر مصري"))).toBe(false);
+  });
+
+  it("returns false for non-Error values", () => {
+    expect(isNonceConflict(null)).toBe(false);
+    expect(isNonceConflict({ message: "store_order.nonce" })).toBe(false);
+    expect(isNonceConflict("store_order.nonce")).toBe(false);
+  });
+});
+
+describe("isBusyError", () => {
+  it("returns true when the error code is SQLITE_BUSY", () => {
+    const error = new Error("database is locked") as Error & { code: string };
+    error.code = "SQLITE_BUSY";
+    expect(isBusyError(error)).toBe(true);
+  });
+
+  it("returns true when the message mentions a locked database", () => {
+    expect(isBusyError(new Error("database is locked"))).toBe(true);
+  });
+
+  it("returns false for unrelated and non-Error values", () => {
+    expect(isBusyError(new Error("OUT_OF_STOCK:عسل سدر مصري"))).toBe(false);
+    expect(isBusyError(null)).toBe(false);
   });
 });

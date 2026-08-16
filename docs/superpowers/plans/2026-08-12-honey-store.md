@@ -88,7 +88,7 @@ Apply to every task unless a task says otherwise.
 
 - [ ] **Step 1: Verify .gitignore covers the DB**
 
-Read `/home/zeyad/projects/svelte-app/.gitignore`. Add if missing:
+Read `/home/zeyad/projects/beeking-etman-website/.gitignore`. Add if missing:
 
 ```gitignore
 local.db

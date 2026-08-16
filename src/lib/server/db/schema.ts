@@ -1,12 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-
-export const task = sqliteTable("task", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  title: text("title").notNull(),
-  priority: integer("priority").notNull().default(1),
-});
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const category = sqliteTable("store_category", {
   id: text("id")
@@ -54,6 +46,7 @@ export const order = sqliteTable("store_order", {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   number: text("number").notNull().unique(),
+  nonce: text("nonce").unique(),
   email: text("email").notNull(),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
@@ -82,5 +75,15 @@ export const orderItem = sqliteTable("store_order_item", {
   quantity: integer("quantity").notNull(),
   unitPrice: integer("unit_price").notNull(),
 });
+
+export const rateLimit = sqliteTable(
+  "store_rate_limit",
+  {
+    key: text("key").notNull(),
+    windowStart: integer("window_start").notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.key, table.windowStart] })],
+);
 
 export * from "./auth.schema";

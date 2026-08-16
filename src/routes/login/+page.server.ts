@@ -1,10 +1,13 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { APIError } from "better-auth/api";
 import { auth } from "$lib/server/auth";
-import { clientAddressKey, createRateLimiter } from "$lib/server/rate-limit";
+import { db } from "$lib/server/db";
+import { getLang } from "$lib/server/lang";
+import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
+import { t } from "$lib/i18n/messages";
 import type { Actions, PageServerLoad } from "./$types";
 
-const loginLimiter = createRateLimiter({ windowMs: 60_000, max: 10 });
+const loginLimiter = createDbRateLimiter(db, { windowMs: 60_000, max: 10 });
 
 export const load: PageServerLoad = (event) => {
   if (event.locals.user) redirect(302, "/account/orders");
@@ -12,8 +15,9 @@ export const load: PageServerLoad = (event) => {
 
 export const actions: Actions = {
   signIn: async (event) => {
-    if (!loginLimiter.allow(clientAddressKey(event))) {
-      return fail(429, { message: "محاولات كثيرة، حاول لاحقًا" });
+    const lang = getLang(event);
+    if (!(await loginLimiter.allow(`login:${clientAddressKey(event)}`))) {
+      return fail(429, { message: t(lang, "errors.tooManyAttempts") });
     }
     const form = Object.fromEntries(await event.request.formData());
     const email = typeof form.email === "string" ? form.email : "";
@@ -21,8 +25,9 @@ export const actions: Actions = {
     try {
       await auth.api.signInEmail({ body: { email, password } });
     } catch (error) {
-      if (error instanceof APIError) return fail(400, { message: "بيانات الدخول غير صحيحة" });
-      return fail(500, { message: "حدث خطأ غير متوقع" });
+      if (error instanceof APIError)
+        return fail(400, { message: t(lang, "errors.invalidCredentials") });
+      return fail(500, { message: t(lang, "errors.unexpected") });
     }
     redirect(302, "/account/orders");
   },

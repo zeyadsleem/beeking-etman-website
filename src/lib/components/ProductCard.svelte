@@ -1,10 +1,26 @@
 <script lang="ts">
+  import { AspectRatio } from "bits-ui";
   import { addToCart } from "$lib/cart-store.svelte";
   import Price from "./Price.svelte";
   import { formatEGP } from "$lib/currency";
+  import { t, type Lang } from "$lib/i18n/messages";
   import type { ProductSummary } from "$lib/server/store";
 
-  let { product }: { product: ProductSummary } = $props();
+  let { lang = "ar", product }: { lang?: Lang; product: ProductSummary } = $props();
+
+  // The image element whose snapshot morphs into the product page image.
+  let imageEl = $state<HTMLImageElement>();
+
+  // Opt the clicked card image into a shared-element view transition BEFORE
+  // navigation starts (the element's onclick fires before SvelteKit's nav).
+  // The name is applied per-click instead of statically because the same
+  // product can appear more than once on a page (featured + rails), and
+  // duplicate view-transition-name values would throw InvalidStateError.
+  function beginImageTransition() {
+    if (!imageEl) return;
+    imageEl.style.viewTransitionName = `product-${product.id}`;
+    imageEl.style.viewTransitionClass = "product-img";
+  }
 
   function handleAdd() {
     if (product.variants.length === 0) return;
@@ -23,41 +39,45 @@
   }
 </script>
 
-<section class="group flex flex-col overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-warm">
-  <a href={`/products/${product.slug}`} class="relative block overflow-hidden bg-honey-100 p-2 pb-0">
-    <div class="arch-frame relative aspect-[4/3] overflow-hidden border border-honey-200">
+<section class="group flex flex-col overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment transition-all duration-300 hover:border-cocoa-200 hover:shadow-warm-sm">
+  <a href={`/products/${product.slug}`} class="relative block overflow-hidden bg-cocoa-100" onclick={beginImageTransition}>
+    <AspectRatio.Root ratio={4 / 3} class="overflow-hidden">
       <img
+        bind:this={imageEl}
         src={product.variants[0]?.image ?? product.image}
         alt={product.name}
         loading="lazy"
         class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
       />
-      <div class="absolute inset-0 bg-gradient-to-t from-cocoa-950/20 to-transparent opacity-0 transition duration-300 group-hover:opacity-100"></div>
-    </div>
+    </AspectRatio.Root>
     {#if product.variants[0]?.stock === 0}
-      <span class="badge-out absolute bottom-4 start-1/2 -translate-x-1/2">نفدت الكمية</span>
+      <span class="badge-out absolute bottom-4 start-1/2 -translate-x-1/2">{t(lang, "product.outOfStock")}</span>
     {:else if product.variants[0] && product.variants[0].stock <= 5}
-      <span class="badge-warn absolute bottom-4 start-1/2 -translate-x-1/2">كمية محدودة</span>
+      <span class="badge-warn absolute bottom-4 start-1/2 -translate-x-1/2">{t(lang, "product.lowStock")}</span>
     {/if}
   </a>
   <div class="flex flex-1 flex-col gap-2 p-4">
     <h2 class="headline text-lg leading-snug text-cocoa-900">{product.name}</h2>
     <div class="mt-auto flex items-center justify-between gap-2">
-      <div class="flex flex-col">
+      <div class="flex flex-col gap-0.5">
         {#if product.variants.length > 1}
-          <span class="text-[11px] font-semibold text-cocoa-500">يبدأ من {formatEGP(product.minPrice)}</span>
-          <Price amount={product.minPrice} className="text-lg font-extrabold text-honey-800" />
+          <span class="flex items-center gap-1.5 text-xs font-semibold text-cocoa-400">
+            <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-honey-600" aria-hidden="true"></span>
+            {t(lang, "product.startsFrom")} {formatEGP(product.minPrice)}
+          </span>
+          <Price amount={product.minPrice} className="text-lg font-extrabold text-cocoa-900" />
         {:else}
-          <Price amount={product.variants[0]?.price ?? 0} className="text-lg font-extrabold text-honey-800" />
+          <Price amount={product.variants[0]?.price ?? 0} className="text-lg font-extrabold text-cocoa-900" />
         {/if}
       </div>
       {#if product.variants.length > 1}
         <a
           href={`/products/${product.slug}`}
-          class="inline-flex items-center justify-center gap-1.5 rounded-full border-2 border-gold-500 px-4 py-2 text-sm font-semibold text-gold-700 transition-all duration-300 hover:border-gold-600 hover:bg-gold-400/10"
-          aria-label={`اختيار الحجم — ${product.name}`}
+          onclick={beginImageTransition}
+          class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-cocoa-300 bg-transparent px-4 py-2 text-sm font-semibold text-cocoa-800 transition-all duration-300 hover:border-cocoa-900 hover:text-cocoa-950"
+          aria-label={t(lang, "product.chooseSizeAria", { name: product.name })}
         >
-          اختر الحجم
+          {t(lang, "product.chooseSize")}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -65,12 +85,12 @@
       {:else}
         <button
           type="button"
-          class="rounded-full bg-honey-600 px-4 py-2 text-sm font-semibold text-white shadow-warm-sm transition-all duration-300 hover:bg-honey-500 hover:shadow-warm disabled:cursor-not-allowed disabled:opacity-40"
+          class="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-ink-950 px-4 py-2 text-sm font-semibold text-parchment shadow-warm-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-warm disabled:cursor-not-allowed disabled:opacity-40"
           disabled={product.variants[0]?.stock === 0}
           onclick={handleAdd}
           data-testid="add-to-cart"
         >
-          {product.variants[0]?.stock === 0 ? "غير متوفر" : "أضف للسلة"}
+          {product.variants[0]?.stock === 0 ? t(lang, "product.unavailable") : t(lang, "product.addToCartShort")}
         </button>
       {/if}
     </div>

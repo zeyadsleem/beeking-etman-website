@@ -8,10 +8,13 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
   await page.getByRole("link", { name: "المتجر" }).first().click();
   await expect(page).toHaveURL(/\/products/);
 
-  await page.getByRole("link", { name: "عسل سدر مصري" }).first().click();
-  await expect(page).toHaveURL(/\/products\/sidr-egyptian/);
+  await page.getByLabel("بحث عن منتج").fill("سدر");
+  await page.getByLabel("بحث عن منتج").press("Enter");
+  await expect(page).toHaveURL(/\/products\?q=/);
 
-  await page.getByRole("button", { name: "500 جرام" }).click();
+  await page.getByRole("link", { name: "عسل سدر مصري" }).first().click();
+  await expect(page).toHaveURL(/\/products\/sidr-honey-1kg/);
+
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   await page.getByRole("button", { name: "فتح سلة التسوق" }).click();
   await expect(page.getByTestId("cart-drawer")).toBeVisible();
@@ -37,7 +40,7 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
 });
 
 test("checkout shows validation errors for bad input", async ({ page }) => {
-  await page.goto("/products/sidr-egyptian", { waitUntil: "domcontentloaded" });
+  await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   await page.goto("/checkout", { waitUntil: "domcontentloaded" });
 

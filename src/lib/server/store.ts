@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, like, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, ne, sql, type SQL } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { CartItem, CartLine } from "$lib/cart";
 import * as schema from "$lib/server/db/schema";
@@ -30,13 +30,33 @@ export type SortOrder = "newest" | "price-asc" | "price-desc";
 export interface ProductFilters {
   query?: string;
   category?: string;
-  sort?: SortOrder;
   limit?: number;
   offset?: number;
+  sort?: SortOrder;
 }
+
+export interface ProductPageFilters {
+  query?: string;
+  category?: string;
+  sort?: SortOrder;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ProductPageResult {
+  products: ProductSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export const PRODUCTS_PAGE_SIZE = 12;
 
 type VariantRow = typeof schema.productVariant.$inferSelect;
 type ProductRow = typeof schema.product.$inferSelect;
+
+const minPriceExpr = sql<number>`(SELECT MIN(${schema.productVariant.price}) FROM ${schema.productVariant} WHERE ${schema.productVariant.productId} = ${schema.product.id})`;
 
 export function withVariants(
   rows: ProductRow[],
@@ -104,26 +124,103 @@ export async function getFeaturedProducts(
   );
 }
 
-export async function listProducts(
+function toFtsQuery(query: string): string {
+  return query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => `"${token.replaceAll('"', '""')}"*`)
+    .join(" ");
+}
+
+async function searchProductIds(
   db: LibSQLDatabase<typeof schema>,
-  filters: ProductFilters = {},
-): Promise<ProductSummary[]> {
-  const conds = [];
+  query: string,
+  limit: number,
+): Promise<string[]> {
+  const rows = (await db.all(sql`
+    SELECT product_id
+    FROM store_product_fts
+    WHERE store_product_fts MATCH ${toFtsQuery(query)}
+    ORDER BY rank
+    LIMIT ${limit}
+  `)) as { product_id: string }[];
+  return rows.map((r) => r.product_id);
+}
+
+async function buildProductWhere(
+  db: LibSQLDatabase<typeof schema>,
+  filters: Pick<ProductFilters, "query" | "category">,
+): Promise<{ where: SQL | undefined; none: boolean }> {
+  const conds: SQL[] = [];
   if (filters.query) {
-    const q = `%${filters.query.trim()}%`;
-    conds.push(or(like(schema.product.name, q), like(schema.product.description, q))!);
+    const ids = await searchProductIds(db, filters.query, 1000);
+    if (ids.length === 0) return { where: undefined, none: true };
+    conds.push(inArray(schema.product.id, ids));
   }
   if (filters.category) {
     conds.push(eq(schema.product.categoryId, filters.category));
   }
-  const where = conds.length ? and(...conds) : undefined;
+  return { where: conds.length ? and(...conds) : undefined, none: false };
+}
+
+function orderByFor(sort: SortOrder, minPrice: SQL<number>) {
+  switch (sort) {
+    case "price-asc":
+      return asc(minPrice);
+    case "price-desc":
+      return desc(minPrice);
+    default:
+      return desc(schema.product.createdAt);
+  }
+}
+
+export async function listProducts(
+  db: LibSQLDatabase<typeof schema>,
+  filters: ProductFilters = {},
+): Promise<ProductSummary[]> {
+  const { where, none } = await buildProductWhere(db, filters);
+  if (none) return [];
   const rows = await db
     .select()
     .from(schema.product)
     .where(where)
-    .orderBy(desc(schema.product.createdAt))
+    .orderBy(orderByFor(filters.sort ?? "newest", minPriceExpr))
     .limit(filters.limit ?? 1000)
     .offset(filters.offset ?? 0);
+  return withVariants(
+    rows,
+    await loadVariantsForProducts(
+      db,
+      rows.map((r) => r.id),
+    ),
+  );
+}
+
+export async function listProductsPage(
+  db: LibSQLDatabase<typeof schema>,
+  filters: ProductPageFilters = {},
+): Promise<ProductPageResult> {
+  const requestedPage = Math.max(1, filters.page ?? 1);
+  const pageSize = filters.pageSize ?? PRODUCTS_PAGE_SIZE;
+  const { where, none } = await buildProductWhere(db, filters);
+  if (none) {
+    return { products: [], total: 0, page: 1, pageSize, totalPages: 0 };
+  }
+  const [totalRow] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.product)
+    .where(where);
+  const total = totalRow?.count ?? 0;
+  const totalPages = Math.ceil(total / pageSize);
+  const page = Math.min(requestedPage, Math.max(1, totalPages));
+  const rows = await db
+    .select()
+    .from(schema.product)
+    .where(where)
+    .orderBy(orderByFor(filters.sort ?? "newest", minPriceExpr))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
   const summaries = withVariants(
     rows,
     await loadVariantsForProducts(
@@ -131,9 +228,46 @@ export async function listProducts(
       rows.map((r) => r.id),
     ),
   );
-  if (filters.sort === "price-asc") summaries.sort((a, b) => a.minPrice - b.minPrice);
-  if (filters.sort === "price-desc") summaries.sort((a, b) => b.minPrice - a.minPrice);
-  return summaries;
+  return { products: summaries, total, page, pageSize, totalPages };
+}
+
+export interface SearchSuggestionProduct {
+  name: string;
+  slug: string;
+  image: string;
+  minPrice: number;
+}
+
+export async function getSearchSuggestions(
+  db: LibSQLDatabase<typeof schema>,
+  query: string,
+): Promise<{
+  products: SearchSuggestionProduct[];
+  categories: { id: string; name: string; slug: string }[];
+}> {
+  const trimmed = query.trim();
+  const q = `%${trimmed}%`;
+  const [ids, categories] = await Promise.all([
+    searchProductIds(db, trimmed, 6),
+    db.select().from(schema.category).where(like(schema.category.name, q)).limit(3),
+  ]);
+  const rows = ids.length
+    ? await db.select().from(schema.product).where(inArray(schema.product.id, ids))
+    : [];
+  const variants = await loadVariantsForProducts(
+    db,
+    rows.map((r) => r.id),
+  );
+  const products: SearchSuggestionProduct[] = rows.map((row) => {
+    const vs = variants.get(row.id) ?? [];
+    return {
+      name: row.name,
+      slug: row.slug,
+      image: row.image,
+      minPrice: vs.length ? Math.min(...vs.map((v) => v.price)) : row.price,
+    };
+  });
+  return { products, categories };
 }
 
 export async function getProductWithVariants(
@@ -142,7 +276,7 @@ export async function getProductWithVariants(
 ): Promise<ProductSummary | null> {
   const row = await db.select().from(schema.product).where(eq(schema.product.slug, slug)).get();
   if (!row) return null;
-  const list = await withVariants([row], await loadVariantsForProducts(db, [row.id]));
+  const list = withVariants([row], await loadVariantsForProducts(db, [row.id]));
   return list[0];
 }
 
@@ -168,40 +302,48 @@ export async function getRelatedProducts(
   );
 }
 
+export interface ResolvedCart {
+  items: CartItem[];
+  missing: string[];
+}
+
 export async function resolveCartItems(
   db: LibSQLDatabase<typeof schema>,
   lines: CartLine[],
-): Promise<CartItem[]> {
-  if (lines.length === 0) return [];
+): Promise<ResolvedCart> {
+  if (lines.length === 0) return { items: [], missing: [] };
   const ids = [...new Set(lines.map((l) => l.variantId))];
   const variants = await db
     .select()
     .from(schema.productVariant)
     .where(inArray(schema.productVariant.id, ids));
-  if (variants.length === 0) return [];
+  if (variants.length === 0) return { items: [], missing: ids };
   const products = await db
     .select()
     .from(schema.product)
     .where(inArray(schema.product.id, [...new Set(variants.map((v) => v.productId))]));
   const productById = new Map(products.map((p) => [p.id, p]));
   const variantById = new Map(variants.map((v) => [v.id, v]));
-  return lines.flatMap((line) => {
+  const items: CartItem[] = [];
+  const missingSet = new Set<string>();
+  for (const line of lines) {
     const v = variantById.get(line.variantId);
-    if (!v) return [];
-    const p = productById.get(v.productId);
-    if (!p) return [];
-    return [
-      {
-        variantId: v.id,
-        productId: p.id,
-        name: p.name,
-        variantName: v.name,
-        slug: p.slug,
-        image: v.image,
-        price: v.price,
-        stock: v.stock,
-        quantity: Math.min(line.quantity, v.stock),
-      },
-    ];
-  });
+    const p = v ? productById.get(v.productId) : undefined;
+    if (!v || !p) {
+      missingSet.add(line.variantId);
+      continue;
+    }
+    items.push({
+      variantId: v.id,
+      productId: p.id,
+      name: p.name,
+      variantName: v.name,
+      slug: p.slug,
+      image: v.image,
+      price: v.price,
+      stock: v.stock,
+      quantity: Math.min(line.quantity, v.stock),
+    });
+  }
+  return { items, missing: [...missingSet] };
 }

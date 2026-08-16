@@ -7,12 +7,19 @@ import { getProductWithVariants, listProducts, resolveCartItems } from "./store"
 
 const DB_FILE = "store-test.db";
 
+let client: ReturnType<typeof createClient> | null = null;
+
 async function buildDb() {
-  const client = createClient({ url: `file:${DB_FILE}` });
+  client?.close();
+  client = createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
   await db.run(`DROP TABLE IF EXISTS store_product_variant`);
   await db.run(`DROP TABLE IF EXISTS store_product`);
   await db.run(`DROP TABLE IF EXISTS store_category`);
+  await db.run(`DROP TRIGGER IF EXISTS store_product_fts_ai`);
+  await db.run(`DROP TRIGGER IF EXISTS store_product_fts_ad`);
+  await db.run(`DROP TRIGGER IF EXISTS store_product_fts_au`);
+  await db.run(`DROP TABLE IF EXISTS store_product_fts`);
   await db.run(`
     CREATE TABLE store_category (
       id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE
@@ -30,6 +37,28 @@ async function buildDb() {
       price INTEGER NOT NULL, stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0
     )`);
+  await db.run(`
+    CREATE VIRTUAL TABLE store_product_fts USING fts5(
+      product_id UNINDEXED,
+      name,
+      description,
+      tokenize = 'unicode61'
+    )`);
+  await db.run(`
+    CREATE TRIGGER store_product_fts_ai AFTER INSERT ON store_product BEGIN
+      INSERT INTO store_product_fts(product_id, name, description)
+      VALUES (new.id, new.name, new.description);
+    END`);
+  await db.run(`
+    CREATE TRIGGER store_product_fts_ad AFTER DELETE ON store_product BEGIN
+      DELETE FROM store_product_fts WHERE product_id = old.id;
+    END`);
+  await db.run(`
+    CREATE TRIGGER store_product_fts_au AFTER UPDATE ON store_product BEGIN
+      DELETE FROM store_product_fts WHERE product_id = old.id;
+      INSERT INTO store_product_fts(product_id, name, description)
+      VALUES (new.id, new.name, new.description);
+    END`);
   const cat = (
     await db
       .insert(schema.category)
@@ -77,6 +106,7 @@ async function buildDb() {
 }
 
 afterAll(() => {
+  client?.close();
   if (existsSync(DB_FILE)) unlinkSync(DB_FILE);
 });
 
@@ -88,15 +118,17 @@ describe("store queries with variants", () => {
     expect(product?.minPrice).toBe(380_00);
   });
 
-  it("sorts price-asc by minPrice", async () => {
+  it("searches by name", async () => {
     const { db } = await buildDb();
-    const rows = await listProducts(db, { sort: "price-asc" });
-    expect(rows[0].minPrice).toBe(380_00);
+    const rows = await listProducts(db, { query: "سدر" });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].name).toBe("عسل سدر مصري");
   });
 
   it("resolveCartItems joins variant info and clamps to stock", async () => {
     const { db, v1 } = await buildDb();
-    const items = await resolveCartItems(db, [{ variantId: v1.id, quantity: 99 }]);
+    const { items, missing } = await resolveCartItems(db, [{ variantId: v1.id, quantity: 99 }]);
+    expect(missing).toEqual([]);
     expect(items).toHaveLength(1);
     expect(items[0].variantName).toBe("500 جرام");
     expect(items[0].quantity).toBe(6);
@@ -105,6 +137,9 @@ describe("store queries with variants", () => {
 
   it("resolveCartItems drops unknown variants", async () => {
     const { db } = await buildDb();
-    expect(await resolveCartItems(db, [{ variantId: "nope", quantity: 1 }])).toEqual([]);
+    expect(await resolveCartItems(db, [{ variantId: "nope", quantity: 1 }])).toEqual({
+      items: [],
+      missing: ["nope"],
+    });
   });
 });

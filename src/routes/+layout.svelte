@@ -2,9 +2,8 @@
   import "@fontsource-variable/cairo";
   import "@fontsource/amiri/arabic-400.css";
   import "@fontsource/amiri/arabic-700.css";
-  import "@fontsource/aref-ruqaa/arabic-400.css";
-  import "@fontsource/aref-ruqaa/arabic-700.css";
-  import { onNavigate } from "$app/navigation";
+  import { beforeNavigate, onNavigate } from "$app/navigation";
+  import { getDir, t } from "$lib/i18n/messages";
   import "./layout.css";
   import favicon from "$lib/assets/favicon.svg";
   import Header from "$lib/components/Header.svelte";
@@ -13,6 +12,24 @@
   import type { LayoutData } from "./$types";
 
   let { children, data }: { children: import("svelte").Snippet; data: LayoutData } = $props();
+
+  $effect(() => {
+    document.documentElement.lang = data.lang;
+    document.documentElement.dir = getDir(data.lang);
+  });
+
+  beforeNavigate((navigation) => {
+    // Skip same-page clicks, but never popstate (back/forward): the browser
+    // updates location.href before firing popstate, so the URL already equals
+    // the target and cancelling would block every back/forward navigation.
+    if (navigation.type !== "popstate" && navigation.to && navigation.to.url.href === location.href) {
+      navigation.cancel();
+      return;
+    }
+    // Entrance animations only play on the initial full page load; on
+    // client-side navigations the view transition already handles the fade.
+    document.documentElement.classList.add("has-nav");
+  });
 
   onNavigate((navigation) => {
     if (!document.startViewTransition) return;
@@ -27,14 +44,14 @@
 
 <svelte:head>
   <link rel="icon" href={favicon} />
-  <title>مملكة النحل | عتمان الأصلي</title>
+  <title>{t(data.lang, "brand.tagline")}</title>
 </svelte:head>
 
 <div class="flex min-h-screen flex-col">
-  <Header categories={data.categories} user={data.user} />
+  <Header categories={data.categories} user={data.user} lang={data.lang} />
   <main class="mx-auto w-full max-w-7xl flex-1 px-4">
     {@render children()}
   </main>
-  <Footer />
-  <CartDrawer />
+  <Footer lang={data.lang} />
+  <CartDrawer lang={data.lang} />
 </div>

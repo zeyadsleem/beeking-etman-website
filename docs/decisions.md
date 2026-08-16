@@ -2,6 +2,116 @@
 
 Append-only, newest last. Each entry records a meaningful architectural choice.
 
+## 2026-08-16: Thoughtful bits-ui adoption for interactive primitives
+
+**Context:** The storefront hand-rolled a lot of interaction code (cart drawer
+focus trap/Escape/scroll-lock, native selects for variants/sort, fixed aspect
+ratios, duplicated breadcrumbs and button markup) while `bits-ui` was already in
+`package.json`. The user asked to use the library's full feature set for
+consistency with less custom code, keep the existing visual identity, and fix a
+white flash/flicker on client-side route changes.
+
+**Decision:**
+
+- **Flash fix:** `::view-transition-old(root)` is frozen (`animation: none`) and
+  `::view-transition-new(root)` fades in over it, so the near-white `paper`
+  background never flashes through during the cross-fade. Entrance animations
+  (`animate-fade-up/float/spin-slow`) are gated to the first full load via
+  `html.has-nav` (set in `beforeNavigate`) — they no longer replay on every
+  client-side navigation.
+- **RTL for floating layers:** bits-ui floating layers default to `dir="ltr"`
+  and do not auto-detect direction. `Combobox.Content` now receives an explicit
+  `dir="rtl"`, fixing both Arabic text rendering and floating-ui logical
+  alignment (the dropdown aligns to the input's right edge).
+- **Dialog for the cart drawer:** `CartDrawer` uses `Dialog.Root bind:open`
+  - Portal/Overlay/Content/Title/Description/Close, deleting ~60 lines of
+    hand-rolled a11y code. The drawer test id stays `data-testid="cart-drawer"`.
+- **ToggleGroup** replaces the native selects for variant (product detail) and
+  sort/category (products page) selection; `.chip` + a `data-[state=on]`-driven
+  `@utility chip-active` keep the existing visual. The "الكل" category item uses
+  an explicit `"all"` sentinel so an empty selection still highlights the
+  default item (ToggleGroup's single-mode `""` means "nothing selected").
+- **AspectRatio.Root** for product images (cards + detail + Hero) fixes
+  layout shift.
+- **Shared components:** `Breadcrumb` (uses `Separator.Root` for dividers) and
+  `Button` (wraps bits-ui `Button.Root`, mapping `variant` →
+  `.btn-primary/.btn-outline/.btn-ghost`) adopted site-wide.
+- **Cleanup:** removed dead CSS (`wordmark`, `rule-flourish`); moved
+  `@utility chip-active` out of `@layer components` (Tailwind v4 forbids nesting
+  `@utility`); dropped a redundant `await` in `getProductWithVariants`; hardened
+  `verify.e2e.ts` to wait for the initial `load` event before counting full
+  loads.
+
+**Consequences:** bits-ui now owns the interactive behavior (dialog, toggle
+groups, combobox positioning, aspect ratio) while the design stays in
+`layout.css`. The full gate is green: `vp check` clean (0 errors/warnings), 59
+unit tests pass, 5 e2e tests pass (view transitions still fire, CLS low, no
+`.reveal-hidden`), verified across repeated runs.
+
+## 2026-08-14: One product per sellable line with per-container imagery
+
+**Context:** The user's real price list is 43 sellable lines (عسل برسيم 1 ك
+زجاج، 1 ك بلاستيك، 1 ك اسكويز، 500 زجاج، Vib، نص Vib، شمع، مكسرات بالعسل…). The
+variant model grouped them under ~21 honey types, so each line was a button on a
+shared page and the catalog rotated ~10 generic photos that did not represent
+the actual packages. The user asked for each line to be its own product with a
+truly representative image, organized under category sections.
+
+**Decision:** Flattened the catalog: each of the user's 43 lines is now its own
+`store_product` with a single `store_product_variant` (schema unchanged — cart,
+checkout, and store queries still work as-is). Product names are the user's exact
+line names (مكسرات بالعسل for the former عسل مكسرات). Images are new, verified
+(`curl` 200 `image/*`) Unsplash/Pexels photos chosen per package type: glass jar
+(light/dark), plastic jar, squeeze bottle, comb frame, comb chunks, nuts-in-honey
+jar, tin can, plus per-nut shots (بندق/فستق/لوز/كاجو/مشكّل), bee pollen, royal
+jelly, propolis, ginseng, palm pollen, and honey spoons — no more shared generic
+art. Home rails, category stories, and the hero caption were updated to the new
+slugs; the e2e flow now opens `sidr-honey-1kg` directly (no size selector).
+
+**Consequences:** 43 standalone product pages each with an accurate image, name,
+price, and description. Products sharing a package type still share a photo
+(e.g. all plastic jars), which is acceptable; a true first-party photo shoot
+remains the future option (tracked in `docs/todo.md`).
+
+## 2026-08-14: PNG brand logo replaces SVG BrandMark
+
+**Context:** The user provided a real brand logo (`static/images/logo.png`,
+643×649 RGBA) and asked to use it as the store's logo.
+
+**Decision:** Replaced the generated `BrandMark.svelte` SVG component with the
+PNG in the header, footer, and auth pages (`<img src="/images/logo.png">`).
+The now-unused component was deleted. The wordmark text (مملكة النحل / عتمان
+الأصلي) was removed from the visual chrome — the image alone is the logo — but
+is kept as `sr-only` text (plus the `alt` attribute) so the brand name stays
+present for SEO and screen readers.
+
+**Consequences:** The brand uses the owner's actual mark as a standalone logo;
+the SVG is gone. Favicon remains the `favicon.svg` in `$lib/assets`.
+
+## 2026-08-14: Light editorial UI redesign (minimal + clean)
+
+**Context:** The Royal Kingdom dark+gold theme felt heavy against the artisanal
+honey brand. The user asked for a "minimal and clean" redesign of the whole
+storefront, replacing the royal look entirely rather than layering on top of
+it.
+
+**Decision:** Replaced the gold-on-ink system with a light, airy editorial
+system in `src/routes/layout.css`: warm paper/white background, deep cocoa
+text, ONE restrained honey accent (honey-700), clean Cairo body with Amiri
+display, subtle 1px cocoa borders, and minimal shadows. Removed all royal
+motifs (gold drips, marquee ticker, arch frames, honeycomb/grain/dot
+textures, count-up hero, gold-gradient buttons) — `.btn-primary`, `.btn-outline`,
+`.btn-ghost`, `.chip`/`.chip-active`, `.eyebrow`, and a new shared
+`BrandMark.svelte` logo component replaced them. The five UI areas (chrome,
+landing, catalog, commerce, auth) were redesigned in parallel by subagents
+against the shared token foundation, then QA'd and verified. `Aref Ruqaa`
+font import removed (wordmark now renders in Amiri).
+
+**Consequences:** A cohesive minimal storefront that still preserves every
+Arabic e2e hook, `data-testid`, field label, and button name, so the full test
+suite passes unchanged (59 unit + 2 e2e). The `vp check` gate is clean aside
+from one pre-existing `await-thenable` warning in `src/lib/server/store.ts`.
+
 ## 2026-08-13: Harden checkout against double-submit and card echo
 
 **Context:** Code review of the checkout flow (commit `845c211`) found two blockers:
@@ -214,3 +324,216 @@ URLs 404'd and were replaced after `websearch` + re-verification).
 **Consequences:** A distinctive royal brand that still keeps every Arabic e2e
 hook; remote images are verified but remain third-party (a future first-party
 CDN migration is tracked in `docs/todo.md`).
+
+## 2026-08-14: Production-readiness hardening
+
+**Context:** A production-readiness audit found gaps: no idempotency on order
+creation (concurrent double-submit could duplicate an order), card expiry only
+format-validated, in-memory per-process rate limiting (unsafe for multi-instance
+and reset on restart), no Docker/CI, and no boot-time env validation.
+
+**Decision:**
+
+- **Order nonce:** `store_order.nonce` (nullable, unique) carries a
+  `crypto.randomUUID()` generated in the checkout `load`, passed as a hidden
+  form field, and validated as a UUID in `checkoutSchema`. `createOrder` takes a
+  required `nonce`; a replay (pre-check or UNIQUE-violation catch) returns the
+  existing order and redirects to its success page. One nonce ⇒ at most one
+  order. Two deliberately separate tabs still create two orders — accepted as
+  correct purchase intent. Rejected: content-derived cart hash (blocks
+  legitimate repeat of an identical cart) and a separate idempotency table
+  (YAGNI). The local libsql driver has no busy timeout, so a concurrent
+  same-nonce submit surfaces `SQLITE_BUSY` rather than a UNIQUE violation;
+  `createOrder` retries up to 3 times with linear backoff and falls back to the
+  nonce re-query so the loser still resolves to the existing order.
+- **Card expiry:** `checkoutSchema` refines `MM/YY` to reject dates before the
+  end of the expiry month (valid through `23:59:59.999` of the last day).
+- **DB-backed rate limiting:** replaced the in-memory `createRateLimiter` with
+  `createDbRateLimiter(db, { windowMs, max })` on a fixed-window
+  `store_rate_limit(key, window_start, count)` table with a composite PK; the
+  atomic `INSERT … ON CONFLICT DO UPDATE` decision point means SQLite serializes
+  concurrent hits so the limit is exact. Keys are namespaced per endpoint
+  (`login:${ip}` / `register:${ip}`) because the shared table would otherwise
+  merge counters. Fixed-window (up to 2×max burst at a boundary) accepted over
+  sliding-window complexity; DB-backed counts now persist across restarts.
+  Security review found Better Auth's JSON API (`POST /api/auth/sign-in/email`,
+  `/api/auth/sign-up/email`, served by the `svelteKitHandler`) bypassed the
+  form-action limiter, so `src/hooks.server.ts` now applies the same limiter to
+  those paths before delegating — brute force is throttled on both the forms
+  and the JSON API.
+- **Env boot validation:** `src/lib/server/env.ts` self-executes on import and
+  is imported first in `auth.ts` and `db/index.ts`. In production (`$app/
+environment` `dev === false`) it throws if `BETTER_AUTH_SECRET` is missing or
+  < 32 chars or `ORIGIN` is unset. Dev stays lenient. Validation (and the
+  equivalent guards in `db/index.ts` and `auth.ts`) is skipped while `$app/
+environment` `building` is true, because SvelteKit's postbuild analysis
+  imports the server bundle with no env vars set — production runtime still
+  fails fast.
+- **Docker + CI:** multi-stage `Dockerfile` (node:22-alpine, non-root runtime),
+  `.dockerignore`, `src/routes/api/health/+server.ts` for the HEALTHCHECK, a
+  `start` script, and a GitHub Actions workflow splitting a fast `test` job
+  (check, unit, build) from a gated `e2e` job that installs Playwright with
+  system deps. CI env sets a ≥32-char test secret + ORIGIN. Deviation from the
+  original plan: the runtime stage installs production dependencies (`pnpm
+install --prod --frozen-lockfile`) — adapter-node externalizes everything in
+  `dependencies`, and the libsql native binding cannot be bundled — so
+  `@libsql/client` and `drizzle-orm` moved from devDependencies to
+  dependencies. Verified with a standalone `node build/index.js` boot and a
+  full `docker build` + container run. Code review follow-ups landed: the
+  runtime image copies `drizzle/` and runs `scripts/migrate.mjs`
+  (`drizzle-orm/libsql/migrator`, plain ESM, no toolchain) before boot so a
+  fresh container never starts with an empty schema; `/api/health` now probes
+  the DB (`select 1`) so a broken database fails the HEALTHCHECK instead of
+  reporting healthy; and the sign-up JSON-API limiter uses the register
+  window (5/hour) rather than the login window so account-creation spam can't
+  bypass the form limit.
+- **Leftovers:** removed the dead `task` table (migration `0002_*`).
+  `store_product.price` / `store_product.stock` columns are dead but **kept** —
+  a SQLite column drop risks a table-recreate migration across three FK
+  relationships for zero runtime gain; deferred to a maintenance release with a
+  reviewed hand-written migration.
+
+**Consequences:** Duplicate orders are prevented at the database boundary;
+expired cards are rejected; rate limiting survives restarts and scales to
+multi-instance; misconfigured production fails fast; the app ships in a
+container with CI verifying check/unit/build/e2e.
+
+## 2026-08-16 — FTS search migration fix and test stability
+
+- **Root cause of broken search:** migration `0003_fts_search.sql` inserted the
+  TEXT `store_product.id` into the FTS5 `rowid`, which must be INTEGER →
+  `SQLITE_MISMATCH`, so `drizzle-kit migrate` failed and `store_product_fts`
+  never existed; every `MATCH` query threw `no such table`.
+- **Fix:** FTS5 now auto-assigns its integer `rowid`; `product_id` is a stored
+  `UNINDEXED` column. Delete/update triggers use `DELETE FROM store_product_fts
+WHERE product_id = old.id`. The backfill insert works (43/43 products).
+- **Tests:** `store.spec.ts` `buildDb()` now creates the FTS table + triggers
+  so the search test actually exercises FTS. `orders.spec.ts` and
+  `store.spec.ts` now reuse a single libsql client per file and close it, which
+  eliminates the `SQLITE_BUSY` flakiness (multiple never-closed connections to
+  the same test `.db`).
+- **Config:** server test project sets `testTimeout: 15_000` — real file-backed
+  libsql setup can exceed the 5s default when the client (chromium) project
+  runs in parallel.
+- **Cleanup:** removed unused `or` import from `store.ts`.
+
+## 2026-08-16 — Server-side pagination and sort for the catalog
+
+**Context:** `/products` loaded up to 1000 products and sorted client-side with
+`@tanstack/svelte-table` — fine for 43 rows, not for a real catalog. A real
+catalog needs offset + total from the server.
+
+**Decision:** `listProductsPage(db, filters)` returns
+`{ products, total, page, pageSize, totalPages }` (page size 12). Price sorting
+uses a correlated `MIN(price)` subquery over variants (`minPriceExpr`); sorting
+(`newest` / `price-asc` / `price-desc`) is applied in SQL, so paging slices a
+sorted set. `listProducts` remains for the home-page rails (limit 100). The
+TanStack table, its sorting state, and the dependency were removed; the products
+page now navigates via URL params (`q`/`category`/`sort`/`page`) with
+prev/next + "صفحة X من Y" controls hidden when there is a single page.
+
+**Consequences:** One source of truth for sorting (the URL) and the server;
+pagination scales to thousands of rows; the TanStack dependency is gone. The
+e2e happy path searches for "سدر" before clicking the product, since
+`sidr-honey-1kg` is no longer on page 1.
+
+## 2026-08-16 — SQLite FTS5 full-text search
+
+**Context:** Search used `LIKE '%q%'` — no index, full scan per query, and it
+degrades as the catalog grows.
+
+**Decision:** FTS5 virtual table `store_product_fts(product_id UNINDEXED, name,
+description)` with `unicode61` tokenizer, kept in sync by triggers on
+`store_product` INSERT/UPDATE/DELETE (migration `0003_fts_search.sql`,
+backfilled on apply). Queries build prefix tokens (`"token"*`) and run
+`MATCH` via raw SQL (`searchProductIds`), joined back to product rows by id;
+`listProducts`, `listProductsPage`, and `getSearchSuggestions` all route
+query filters through FTS. Categories still search with `LIKE` (3 rows).
+
+**Consequences:** Prefix/token search is indexed and fast at scale. Arabic has
+no stemming under `unicode61`, so search matches whole-token prefixes (e.g.
+"سدر" matches "عسل سدر مصري"); substring-within-word queries are not
+supported — acceptable for the catalog and documented as a trade-off.
+
+## 2026-08-16 — Bilingual i18n layer (Arabic default, English switchable)
+
+**Context:** All UI strings were Arabic, embedded verbatim in components —
+documented as a trade-off; adding a language required a full layer.
+
+**Decision:** Introduced `src/lib/i18n/messages.ts` — flat message catalogs
+(`ar` + `en`, `Record<MessageKey, string>` enforcing parity), `t(lang, key,
+params)` with `{param}` interpolation and fallback to ar then the key,
+`getDir(lang)`, `getLocale(lang)` (`ar-EG`/`en-US`). `lang` comes from a
+`lang` cookie (`src/lib/server/lang.ts`), read in `+layout.server.ts`, flows
+to pages via `data.lang`, and drives `document.documentElement` `lang`/`dir`
+in `+layout.svelte`. A language switcher in the header POSTs to
+`/api/lang?lang=X` then reloads. Server messages (zod schema factory
+`createCheckoutSchema(lang)`, order errors, login/register, 404s, rate-limit
+responses) all localize through the same catalogs. Default language is Arabic
+so e2e Arabic selectors and unit specs keep passing. **Scope:** UI chrome is
+fully bilingual; DB catalog content (product names/descriptions) remains
+Arabic-only — a follow-up would need a per-entity translation model.
+
+**Consequences:** A real i18n foundation exists with zero breaking changes to
+the Arabic default; switching languages flips `dir`/`lang` and Intl locale.
+Catalog content translation is the documented next step, not part of this ADR.
+
+## 2026-08-16 — Checkout rate limiting, order-number retry, and HMAC secret hardening
+
+**Context:** The review flagged three small gaps: the checkout submit action had
+no rate limit (spam orders insert rows + decrement stock), order numbers
+(`HNY-######`, ~900k space) collided to a generic error, and
+`getCartSecret` silently fell back to a fixed `'dev-secret'` on misconfiguration.
+
+**Decision:**
+
+- **Checkout rate limit:** `CHECKOUT_LIMIT = createDbRateLimiter(db,
+{ windowMs: 60_000, max: 10 })` keyed `checkout:${ip}`, checked first in the
+  submit action (429 with `errors.tooManyAttempts`).
+- **Order-number collision retry:** `generateOrderNumber()` moved inside the
+  retry loop; a new `isOrderNumberConflict` (message includes
+  `store_order.number`) retries with a fresh number up to `MAX_ORDER_ATTEMPTS`
+  before failing with a specific message. `isNonceConflict` is now strict
+  (message must include `store_order.nonce`), so a plain `SQLITE_CONSTRAINT_UNIQUE`
+  no longer masquerades as a nonce replay.
+- **HMAC secret:** `getCartSecret(env)` uses `BETTER_AUTH_SECRET` when set;
+  in dev only it falls back to a clearly-named dev constant; in production a
+  missing secret throws at boot. No silent weak signing.
+
+**Consequences:** Checkout is throttled like auth; order creation is resilient
+to number collisions; cart-cookie HMAC can no longer silently degrade.
+
+## 2026-08-16 — Rate limiter resilience: busy retry and global pruning
+
+**Context:** `createDbRateLimiter.allow()` had no busy-timeout retry (a rate
+limit hit colliding with a checkout write lock could fail a request) and only
+pruned expired buckets per key, so abandoned keys could accumulate.
+
+**Decision:** The insert/upsert now retries on `SQLITE_BUSY` (reusing the
+`sqlite.ts` helpers, 3 retries, linear backoff) and throws on non-busy errors
+instead of mis-reporting. Global cleanup is opportunistic: `pruneAbandonedKeys`
+deletes buckets older than 2h with ~1% probability per `allow()` call, wrapped
+in a best-effort catch so pruning never blocks a request.
+
+**Consequences:** Rate limiting is resilient under SQLite contention and
+self-cleans abandoned buckets without a scheduled job.
+
+## 2026-08-16 — Cart resilience: cross-tab sync and missing-line reporting
+
+**Context:** Two cart issues: no `storage` event sync between tabs (each tab
+kept its own cart copy), and `resolveCartItems` silently dropped cart lines
+whose variant was deleted mid-session.
+
+**Decision:**
+
+- **Cross-tab sync:** `cart-store.svelte.ts` binds a `storage` listener on
+  first `loadCart()`; when another tab writes `honey_cart_v2`, the current tab
+  adopts the new items and re-syncs the cookie.
+- **Missing lines:** `resolveCartItems` now returns `{ items, missing }`
+  instead of a bare array. Checkout surfaces `missing` as `missingVariantIds`
+  in the page data; the checkout page prunes those variants from the client
+  cart on mount, so a deleted variant no longer lingers invisibly until order
+  time. Callers updated (checkout load, `createOrder` uses `items`).
+
+**Consequences:** Tabs converge on the latest cart; stale variants are removed
+from the UI immediately instead of disappearing silently at checkout.

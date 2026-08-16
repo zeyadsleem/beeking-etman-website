@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { dev } from "$app/environment";
 import type { Cookies } from "@sveltejs/kit";
 import type { CartLine } from "$lib/cart";
 
@@ -70,5 +71,7 @@ export function clearCartCookie(cookies: Cookies): void {
 }
 
 export function getCartSecret(env: typeof import("$env/dynamic/private").env): string {
-  return env.BETTER_AUTH_SECRET || env.ORIGIN || "dev-secret";
+  if (env.BETTER_AUTH_SECRET) return env.BETTER_AUTH_SECRET;
+  if (dev) return "dev-cart-signing-secret";
+  throw new Error("BETTER_AUTH_SECRET is required to sign the cart cookie");
 }
