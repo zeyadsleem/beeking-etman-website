@@ -10,8 +10,8 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
   await page.getByRole("link", { name: "المتجر" }).first().click();
   await expect(page).toHaveURL(/\/products/);
 
-  await page.getByLabel("بحث عن منتج").fill("سدر");
-  await page.getByLabel("بحث عن منتج").press("Enter");
+  await page.getByLabel("بحث في المتجر").fill("سدر");
+  await page.getByLabel("بحث في المتجر").press("Enter");
   await expect(page).toHaveURL(/\/products\?q=/);
 
   await page.getByRole("link", { name: "عسل سدر مصري" }).first().click();

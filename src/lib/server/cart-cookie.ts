@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { dev } from "$app/environment";
 import type { Cookies } from "@sveltejs/kit";
-import type { CartLine } from "$lib/cart";
+import { isAdditiveKey } from "$lib/blends";
+import type { BlendLineAdditive, CartEntry, CartLine } from "$lib/cart";
 
 export const CART_COOKIE_NAME = "honey_cart";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
@@ -16,18 +17,42 @@ function splitPayload(raw: string): { body: string; sig: string } {
   return { body: raw.slice(0, dot), sig: raw.slice(dot + 1) };
 }
 
-export function sanitizeCartLines(input: unknown): CartLine[] {
+function sanitizeRegularLine(entry: Record<string, unknown>): CartLine[] {
+  const { variantId, quantity } = entry;
+  if (typeof variantId !== "string" || variantId.length === 0) return [];
+  if (typeof quantity !== "number" || !Number.isFinite(quantity) || quantity <= 0) return [];
+  return [{ variantId, quantity: Math.floor(quantity) }];
+}
+
+function sanitizeBlendLine(entry: Record<string, unknown>): CartEntry[] {
+  const { id, baseVariantId, jarSize, additives } = entry;
+  if (typeof id !== "string" || id.length === 0) return [];
+  if (typeof baseVariantId !== "string" || baseVariantId.length === 0) return [];
+  if (jarSize !== "half" && jarSize !== "full") return [];
+  if (!Array.isArray(additives)) return [];
+  const cleaned = additives.flatMap((raw): BlendLineAdditive[] => {
+    if (typeof raw !== "object" || raw === null) return [];
+    const { key, variantId, qty } = raw as Record<string, unknown>;
+    if (!isAdditiveKey(key)) return [];
+    if (typeof variantId !== "string" || variantId.length === 0) return [];
+    if (typeof qty !== "number" || !Number.isFinite(qty) || qty <= 0) return [];
+    return [{ key, variantId, qty: Math.floor(qty) }];
+  });
+  if (cleaned.length === 0) return [];
+  return [{ kind: "blend", id, baseVariantId, jarSize, additives: cleaned }];
+}
+
+export function sanitizeCartLines(input: unknown): CartEntry[] {
   if (!Array.isArray(input)) return [];
   return input.flatMap((entry) => {
     if (typeof entry !== "object" || entry === null) return [];
-    const { variantId, quantity } = entry as Record<string, unknown>;
-    if (typeof variantId !== "string" || variantId.length === 0) return [];
-    if (typeof quantity !== "number" || !Number.isFinite(quantity) || quantity <= 0) return [];
-    return [{ variantId, quantity: Math.floor(quantity) }];
+    const record = entry as Record<string, unknown>;
+    if (record.kind === "blend") return sanitizeBlendLine(record);
+    return sanitizeRegularLine(record);
   });
 }
 
-export function signCartCookie(secret: string, lines: CartLine[]): string {
+export function signCartCookie(secret: string, lines: CartEntry[]): string {
   const body = JSON.stringify(sanitizeCartLines(lines));
   return `${body}.${sign(secret, body)}`;
 }
@@ -37,7 +62,7 @@ export function verifyCartCookie(raw: string): { ok: boolean } {
   return { ok: body.length > 0 && sig.length > 0 };
 }
 
-export function readCartFromString(raw: string, secret: string): CartLine[] {
+export function readCartFromString(raw: string, secret: string): CartEntry[] {
   const { body, sig } = splitPayload(raw);
   if (!body || !sig) return [];
   const expected = sign(secret, body);
@@ -51,13 +76,13 @@ export function readCartFromString(raw: string, secret: string): CartLine[] {
   }
 }
 
-export function readCartCookie(cookies: Cookies, secret: string): CartLine[] {
+export function readCartCookie(cookies: Cookies, secret: string): CartEntry[] {
   const raw = cookies.get(CART_COOKIE_NAME);
   if (!raw) return [];
   return readCartFromString(raw, secret);
 }
 
-export function setCartCookie(cookies: Cookies, secret: string, lines: CartLine[]): void {
+export function setCartCookie(cookies: Cookies, secret: string, lines: CartEntry[]): void {
   cookies.set(CART_COOKIE_NAME, signCartCookie(secret, lines), {
     path: "/",
     httpOnly: true,

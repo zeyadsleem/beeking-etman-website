@@ -1,7 +1,8 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { computeTotals } from "$lib/cart";
-import type { CartLine } from "$lib/cart";
+import type { CartEntry, CartItem } from "$lib/cart";
+import { isBlendEntry, isBlendItem } from "$lib/cart";
 import { t, type Lang } from "$lib/i18n/messages";
 import { resolveCartItems } from "$lib/server/store";
 import { isBusyError, sleep, SQLITE_BUSY_RETRIES } from "$lib/server/sqlite";
@@ -39,6 +40,55 @@ function isOutOfStockError(error: unknown): error is Error {
   return error instanceof Error && error.message.startsWith("OUT_OF_STOCK:");
 }
 
+interface OrderUnit {
+  variantId: string;
+  productId: string;
+  name: string;
+  variantName: string;
+  quantity: number;
+  unitPrice: number;
+  stock: number;
+}
+
+function toOrderUnits(items: CartItem[]): OrderUnit[] {
+  const units: OrderUnit[] = [];
+  for (const item of items) {
+    if (isBlendItem(item)) {
+      units.push({
+        variantId: item.baseVariantId,
+        productId: item.productId,
+        name: item.name,
+        variantName: item.variantName,
+        quantity: 1,
+        unitPrice: item.basePrice,
+        stock: item.stock,
+      });
+      for (const a of item.additives) {
+        units.push({
+          variantId: a.variantId,
+          productId: a.productId,
+          name: a.name,
+          variantName: "",
+          quantity: a.qty,
+          unitPrice: a.price,
+          stock: a.stock,
+        });
+      }
+    } else {
+      units.push({
+        variantId: item.variantId,
+        productId: item.productId,
+        name: item.name,
+        variantName: item.variantName,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        stock: item.stock,
+      });
+    }
+  }
+  return units;
+}
+
 async function findOrderByNonce(
   db: LibSQLDatabase<typeof schema>,
   nonce: string,
@@ -56,7 +106,7 @@ async function findOrderByNonce(
 
 export async function createOrder(
   db: LibSQLDatabase<typeof schema>,
-  lines: CartLine[],
+  lines: CartEntry[],
   customer: Customer,
   nonce: string,
   userId?: string,
@@ -71,9 +121,23 @@ export async function createOrder(
     return { ok: false, message: t(lang, "orders.noProducts"), outOfStock: [] };
   }
 
-  const requested = new Map(lines.map((l) => [l.variantId, l.quantity]));
+  const requested = new Map<string, number>();
+  for (const line of lines) {
+    if (isBlendEntry(line)) {
+      requested.set(line.baseVariantId, (requested.get(line.baseVariantId) ?? 0) + 1);
+      for (const a of line.additives) {
+        requested.set(a.variantId, (requested.get(a.variantId) ?? 0) + a.qty);
+      }
+    } else {
+      requested.set(line.variantId, (requested.get(line.variantId) ?? 0) + line.quantity);
+    }
+  }
+
+  const units = toOrderUnits(items);
   const outOfStock = [
-    ...new Set(items.filter((i) => (requested.get(i.variantId) ?? 0) > i.stock).map((i) => i.name)),
+    ...new Set(
+      units.filter((u) => (requested.get(u.variantId) ?? u.quantity) > u.stock).map((u) => u.name),
+    ),
   ];
   if (outOfStock.length > 0) {
     return {
@@ -96,19 +160,18 @@ export async function createOrder(
     const orderId = crypto.randomUUID();
     try {
       await db.transaction(async (tx) => {
-        for (const item of items) {
-          const requestedQty = requested.get(item.variantId) ?? item.quantity;
+        for (const unit of units) {
           const updated = await tx
             .update(schema.productVariant)
-            .set({ stock: sql`${schema.productVariant.stock} - ${item.quantity}` })
+            .set({ stock: sql`${schema.productVariant.stock} - ${unit.quantity}` })
             .where(
               and(
-                eq(schema.productVariant.id, item.variantId),
-                gte(schema.productVariant.stock, requestedQty),
+                eq(schema.productVariant.id, unit.variantId),
+                gte(schema.productVariant.stock, unit.quantity),
               ),
             )
             .returning({ id: schema.productVariant.id });
-          if (updated.length === 0) throw new Error(`OUT_OF_STOCK:${item.name}`);
+          if (updated.length === 0) throw new Error(`OUT_OF_STOCK:${unit.name}`);
         }
         await tx.insert(schema.order).values({
           id: orderId,
@@ -125,13 +188,13 @@ export async function createOrder(
           createdAt: Date.now(),
         });
         await tx.insert(schema.orderItem).values(
-          items.map((i) => ({
+          units.map((u) => ({
             orderId,
-            productId: i.productId,
-            productName: i.name,
-            variantName: i.variantName,
-            quantity: i.quantity,
-            unitPrice: i.price,
+            productId: u.productId,
+            productName: u.name,
+            variantName: u.variantName,
+            quantity: u.quantity,
+            unitPrice: u.unitPrice,
           })),
         );
       });

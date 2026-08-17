@@ -1,5 +1,10 @@
 import { error } from "@sveltejs/kit";
-import { getCategories, listProductsPage, PRODUCTS_PAGE_SIZE } from "$lib/server/store";
+import {
+  findCategoryByQuery,
+  getCategories,
+  listProductsPage,
+  PRODUCTS_PAGE_SIZE,
+} from "$lib/server/store";
 import type { SortOrder } from "$lib/server/store";
 import { db } from "$lib/server/db";
 import { t } from "$lib/i18n/messages";
@@ -20,13 +25,25 @@ export const load: PageServerLoad = async (event) => {
 
   const categories = await getCategories(db, lang);
   if (!categories.length) error(500, t(lang, "products.unavailable"));
-  const activeCategory = categories.find((c) => c.slug === rawCategory);
-  if (rawCategory && !activeCategory) error(404, t(lang, "products.categoryNotFound"));
+
+  // When the query names a category (e.g. "السدر"), filter by that category
+  // instead of running a plain text search, so the results come pre-filtered.
+  let categorySlug = rawCategory;
+  let autoCategory = false;
+  if (!categorySlug && rawQ) {
+    const matched = await findCategoryByQuery(db, rawQ);
+    if (matched) {
+      categorySlug = matched.slug;
+      autoCategory = true;
+    }
+  }
+  const activeCategory = categories.find((c) => c.slug === categorySlug);
+  if (categorySlug && !activeCategory) error(404, t(lang, "products.categoryNotFound"));
 
   const result = await listProductsPage(
     db,
     {
-      query: rawQ,
+      query: autoCategory ? "" : rawQ,
       category: activeCategory?.id ?? "",
       sort,
       page,
@@ -38,6 +55,6 @@ export const load: PageServerLoad = async (event) => {
   return {
     categories,
     ...result,
-    filters: { q: rawQ, category: rawCategory, sort, page: result.page },
+    filters: { q: rawQ, category: categorySlug, sort, page: result.page },
   };
 };

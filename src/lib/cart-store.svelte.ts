@@ -1,11 +1,19 @@
 import { browser } from "$app/environment";
 import { z } from "zod";
-import { addItem, adjustQuantity, computeTotals, removeItem } from "./cart";
-import type { CartItem, CartTotals } from "./cart";
+import {
+  addBlendItem,
+  addItem,
+  adjustQuantity,
+  computeTotals,
+  isBlendItem,
+  removeById,
+} from "./cart";
+import type { BlendCartItem, CartEntry, CartItem, CartTotals, RegularCartItem } from "./cart";
+import type { JarSize } from "./blends";
 
 const STORAGE_KEY = "honey_cart_v2";
 
-const CartItemSchema = z.object({
+const RegularItemSchema = z.object({
   variantId: z.string(),
   productId: z.string(),
   name: z.string(),
@@ -17,12 +25,54 @@ const CartItemSchema = z.object({
   stock: z.number(),
 });
 
+const BlendAdditiveSchema = z.object({
+  key: z.enum(["royalJelly", "propolis", "ginseng", "palmPollen", "beePollen"]),
+  variantId: z.string(),
+  productId: z.string(),
+  name: z.string(),
+  image: z.string(),
+  qty: z.number(),
+  price: z.number(),
+  stock: z.number(),
+});
+
+const BlendItemSchema = z.object({
+  kind: z.literal("blend"),
+  id: z.string(),
+  baseVariantId: z.string(),
+  productId: z.string(),
+  name: z.string(),
+  variantName: z.string(),
+  image: z.string(),
+  jarSize: z.enum(["half", "full"]),
+  basePrice: z.number(),
+  stock: z.number(),
+  quantity: z.literal(1),
+  additives: z.array(BlendAdditiveSchema),
+});
+
+const CartItemSchema = z.union([RegularItemSchema, BlendItemSchema]);
+
 interface CartUiState {
   items: CartItem[];
   drawerOpen: boolean;
 }
 
 const state = $state<CartUiState>({ items: [], drawerOpen: false });
+
+function toEntries(items: CartItem[]): CartEntry[] {
+  return items.map((i) =>
+    isBlendItem(i)
+      ? {
+          kind: "blend" as const,
+          id: i.id,
+          baseVariantId: i.baseVariantId,
+          jarSize: i.jarSize as JarSize,
+          additives: i.additives.map((a) => ({ key: a.key, variantId: a.variantId, qty: a.qty })),
+        }
+      : { variantId: i.variantId, quantity: i.quantity },
+  );
+}
 
 function persist(items: CartItem[]): void {
   if (!browser) return;
@@ -34,9 +84,7 @@ function persist(items: CartItem[]): void {
   void fetch("/api/cart", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
-    }),
+    body: JSON.stringify({ items: toEntries(items) }),
   }).catch(() => undefined);
 }
 
@@ -52,9 +100,7 @@ function bindCrossTabSync(): void {
     void fetch("/api/cart", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: state.items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
-      }),
+      body: JSON.stringify({ items: toEntries(state.items) }),
     }).catch(() => undefined);
   });
 }
@@ -81,7 +127,8 @@ interface CartNameRefreshItem {
 }
 
 async function refreshNamesFromServer(): Promise<void> {
-  if (state.items.length === 0) return;
+  const regularItems = state.items.filter((i) => !isBlendItem(i));
+  if (regularItems.length === 0) return;
   try {
     const res = await fetch("/api/cart");
     if (!res.ok) return;
@@ -89,6 +136,7 @@ async function refreshNamesFromServer(): Promise<void> {
     const byVariant = new Map(data.items.map((i) => [i.variantId, i]));
     let changed = false;
     state.items = state.items.map((item) => {
+      if (isBlendItem(item)) return item;
       const server = byVariant.get(item.variantId);
       if (!server || (server.name === item.name && server.variantName === item.variantName)) {
         return item;
@@ -108,20 +156,25 @@ async function refreshNamesFromServer(): Promise<void> {
   }
 }
 
-export function addToCart(product: Omit<CartItem, "quantity">, quantity = 1): void {
+export function addToCart(product: Omit<RegularCartItem, "quantity">, quantity = 1): void {
   state.items = addItem(state.items, product, quantity);
   persist(state.items);
 }
 
+export function addBlend(blend: Omit<BlendCartItem, "kind" | "id">): void {
+  state.items = addBlendItem(state.items, blend);
+  persist(state.items);
+}
+
 export function setQuantity(variantId: string, quantity: number): void {
-  const current = state.items.find((i) => i.variantId === variantId);
+  const current = state.items.find((i) => !isBlendItem(i) && i.variantId === variantId);
   if (!current) return;
   state.items = adjustQuantity(state.items, variantId, quantity - current.quantity);
   persist(state.items);
 }
 
-export function removeFromCart(variantId: string): void {
-  state.items = removeItem(state.items, variantId);
+export function removeFromCart(id: string): void {
+  state.items = removeById(state.items, id);
   persist(state.items);
 }
 

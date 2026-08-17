@@ -5,6 +5,7 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 import { createOrder, isNonceConflict } from "./orders";
+import { SHIPPING_COST } from "$lib/cart";
 import { isBusyError } from "$lib/server/sqlite";
 import type { Customer } from "./orders";
 
@@ -196,6 +197,93 @@ describe("createOrder", () => {
     expect(stock?.stock).toBe(2);
     const orders = await db.select().from(schema.order);
     expect(orders).toHaveLength(1);
+  });
+
+  it("places an order with a blend line (base + additive units)", async () => {
+    const { db, v } = await buildDb();
+    const categoryId = (await db.select({ id: schema.category.id }).from(schema.category).get())!
+      .id;
+    const additive = (
+      await db
+        .insert(schema.product)
+        .values({
+          name: "غذاء ملكات",
+          nameEn: "Royal Jelly",
+          slug: "royal-jelly-test",
+          description: "د",
+          descriptionEn: "d",
+          price: 0,
+          stock: 0,
+          image: "https://example.com/rj.jpg",
+          categoryId,
+          featured: 0,
+          createdAt: Date.now(),
+        })
+        .returning()
+    )[0];
+    const additiveVariant = (
+      await db
+        .insert(schema.productVariant)
+        .values({
+          productId: additive.id,
+          name: "5 جم",
+          nameEn: "5g",
+          price: 85_00,
+          stock: 2,
+          image: "https://example.com/rj.jpg",
+          sortOrder: 0,
+        })
+        .returning()
+    )[0];
+
+    const result = await createOrder(
+      db,
+      [
+        {
+          kind: "blend",
+          id: "blend-1",
+          baseVariantId: v.id,
+          jarSize: "half",
+          additives: [{ key: "royalJelly", variantId: additiveVariant.id, qty: 2 }],
+        },
+      ],
+      customer,
+      crypto.randomUUID(),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.total).toBe(380_00 + 2 * 85_00 + SHIPPING_COST);
+
+    const baseStock = await db
+      .select()
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, v.id))
+      .get();
+    expect(baseStock?.stock).toBe(2);
+    const additiveStock = await db
+      .select()
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, additiveVariant.id))
+      .get();
+    expect(additiveStock?.stock).toBe(0);
+
+    const items = await db.select().from(schema.orderItem);
+    expect(items).toHaveLength(2);
+    expect(items).toEqual([
+      expect.objectContaining({
+        productName: "عسل سدر مصري",
+        variantName: "نص كيلو",
+        quantity: 1,
+        unitPrice: 380_00,
+      }),
+      expect.objectContaining({
+        productName: "غذاء ملكات",
+        variantName: "",
+        quantity: 2,
+        unitPrice: 85_00,
+      }),
+    ]);
   });
 });
 

@@ -13,6 +13,7 @@
   import QuantityPicker from "./QuantityPicker.svelte";
   import Price from "./Price.svelte";
   import Button from "./Button.svelte";
+  import { isBlendItem, itemId, lineTotal } from "$lib/cart";
   import { t, type Lang } from "$lib/i18n/messages";
 
   let { lang = "ar" }: { lang?: Lang } = $props();
@@ -46,18 +47,61 @@
         </div>
       {:else}
         <ul class="flex-1 space-y-4 overflow-y-auto p-4">
-          {#each cartState.items as item (item.variantId)}
-            <li class="flex gap-3 rounded-xl border border-cocoa-100 bg-paper p-2.5">
-              <a href={`/products/${item.slug}`} class="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100">
-                <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
-              </a>
-              <div class="flex flex-1 flex-col gap-1.5">
-                <a href={`/products/${item.slug}`} class="line-clamp-1 text-sm font-semibold text-cocoa-800 transition-colors hover:text-honey-700">{item.name}</a>
-                <span class="text-[11px] font-medium text-cocoa-500">{item.variantName}</span>
-                <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
-                <button type="button" class="w-fit text-xs text-cocoa-400 transition-colors hover:text-clay-600" onclick={() => removeFromCart(item.variantId)}>{t(lang, "cart.remove")}</button>
+          {#each cartState.items as item (itemId(item))}
+            <li class="flex gap-3 rounded-xl border border-cocoa-100 bg-paper p-3">
+              {#if isBlendItem(item)}
+                <a href="/blends" class="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100">
+                  <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
+                </a>
+              {:else}
+                <a href={`/products/${item.slug}`} class="w-16 shrink-0 self-stretch overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100">
+                  <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
+                </a>
+              {/if}
+              <div class="flex min-w-0 flex-1 flex-col">
+                <div class="flex items-start justify-between gap-2">
+                  {#if isBlendItem(item)}
+                    <span class="line-clamp-1 text-sm font-semibold text-cocoa-800">{item.name}</span>
+                  {:else}
+                    <a href={`/products/${item.slug}`} class="line-clamp-1 text-sm font-semibold text-cocoa-800 transition-colors hover:text-honey-700">{item.name}</a>
+                  {/if}
+                  <button
+                    type="button"
+                    class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-cocoa-400 transition-colors hover:bg-clay-50 hover:text-clay-600"
+                    onclick={() => removeFromCart(itemId(item))}
+                    aria-label={t(lang, "cart.remove")}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                </div>
+                {#if isBlendItem(item)}
+                  <span class="mt-0.5 text-[11px] font-bold text-honey-700">
+                    {t(lang, "blends.cartName")} · {item.variantName}
+                  </span>
+                  {#if item.additives.length > 0}
+                    <ul class="mt-1 flex flex-wrap gap-1">
+                      {#each item.additives as a (a.variantId)}
+                        <li class="rounded-full bg-honey-50 px-2 py-0.5 text-[10px] text-cocoa-700">
+                          {a.name} × {a.qty}
+                        </li>
+                      {/each}
+                    </ul>
+                  {/if}
+                {:else}
+                  <span class="mt-0.5 text-[11px] font-medium text-cocoa-500">{item.variantName}</span>
+                {/if}
+                <div class="mt-auto flex items-center justify-between gap-2 pt-2">
+                  {#if isBlendItem(item)}
+                    <span class="text-xs text-cocoa-500">{t(lang, "cart.quantity")} 1</span>
+                  {:else}
+                    <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
+                  {/if}
+                  <Price amount={lineTotal(item)} lang={lang} className="text-sm font-bold text-cocoa-900" />
+                </div>
               </div>
-              <Price amount={item.price * item.quantity} lang={lang} className="ms-auto self-start text-sm font-bold text-cocoa-900" />
             </li>
           {/each}
         </ul>

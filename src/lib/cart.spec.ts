@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
+  addBlendItem,
   addItem,
   adjustQuantity,
+  blendTotal,
   computeTotals,
   FREE_SHIPPING_THRESHOLD,
+  isBlendItem,
+  itemId,
+  lineTotal,
+  removeById,
   removeItem,
   SHIPPING_COST,
 } from "./cart";
-import type { CartItem } from "./cart";
+import type { BlendCartItem, CartItem } from "./cart";
 
 const product = {
   variantId: "v1",
@@ -58,7 +64,11 @@ describe("adjustQuantity", () => {
 describe("removeItem", () => {
   it("removes only the matching variant", () => {
     const other = { ...product, variantId: "v2" };
-    expect(removeItem([item(product), item(other)], "v1").map((i) => i.variantId)).toEqual(["v2"]);
+    expect(
+      removeItem([item(product), item(other)], "v1").map((i) =>
+        isBlendItem(i) ? "" : i.variantId,
+      ),
+    ).toEqual(["v2"]);
   });
 });
 
@@ -75,5 +85,82 @@ describe("computeTotals", () => {
     expect(computeTotals([item({ ...product, price: FREE_SHIPPING_THRESHOLD }, 1)]).shipping).toBe(
       0,
     );
+  });
+});
+
+const blend = (overrides: Partial<BlendCartItem> = {}): BlendCartItem => ({
+  kind: "blend",
+  id: "blend-1",
+  baseVariantId: "base-1",
+  productId: "p-base",
+  name: "عسل سدر مصري",
+  variantName: "نص كيلو",
+  image: "https://example.com/honey.jpg",
+  jarSize: "half",
+  basePrice: 380_00,
+  stock: 5,
+  quantity: 1,
+  additives: [
+    {
+      key: "royalJelly",
+      variantId: "rj-1",
+      productId: "p-rj",
+      name: "غذاء ملكات",
+      image: "https://example.com/rj.jpg",
+      qty: 1,
+      price: 85_00,
+      stock: 3,
+    },
+    {
+      key: "propolis",
+      variantId: "pr-1",
+      productId: "p-pr",
+      name: "بروبليس",
+      image: "https://example.com/pr.jpg",
+      qty: 2,
+      price: 160_00,
+      stock: 4,
+    },
+  ],
+  ...overrides,
+});
+
+describe("blend items", () => {
+  it("isBlendItem and itemId resolve a blend by id", () => {
+    expect(isBlendItem(blend())).toBe(true);
+    expect(itemId(blend())).toBe("blend-1");
+    expect(itemId(item(product))).toBe("v1");
+  });
+  it("blendTotal sums base and additive doses", () => {
+    expect(blendTotal(blend())).toBe(380_00 + 85_00 + 2 * 160_00);
+  });
+  it("lineTotal equals blendTotal for blends and price×qty otherwise", () => {
+    expect(lineTotal(blend())).toBe(blendTotal(blend()));
+    expect(lineTotal(item(product, 2))).toBe(2 * 380_00);
+  });
+  it("addBlendItem appends with a generated id", () => {
+    const { id: _id, kind: _kind, ...rest } = blend();
+    const added = addBlendItem([], rest)[0];
+    expect(isBlendItem(added)).toBe(true);
+    if (isBlendItem(added)) {
+      expect(added.id).toMatch(/^blend-/);
+      expect(added).toMatchObject(rest);
+    }
+  });
+  it("removeById removes only the matching line", () => {
+    const regular = item(product);
+    const lines: CartItem[] = [regular, blend()];
+    expect(removeById(lines, "blend-1")).toEqual([regular]);
+    expect(removeById(lines, "v1")).toEqual([blend()]);
+  });
+  it("computeTotals includes additive doses and counts quantity as 1", () => {
+    const totals = computeTotals([blend()]);
+    expect(totals.itemCount).toBe(1);
+    expect(totals.subtotal).toBe(380_00 + 85_00 + 2 * 160_00);
+  });
+  it("adjustQuantity and removeItem never touch blends", () => {
+    const lines: CartItem[] = [blend()];
+    expect(adjustQuantity(lines, "rj-1", -1)).toEqual(lines);
+    expect(removeItem(lines, "rj-1")).toEqual(lines);
   });
 });

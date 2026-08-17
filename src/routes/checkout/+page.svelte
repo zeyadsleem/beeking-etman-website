@@ -2,6 +2,7 @@
   import { enhance } from "$app/forms";
   import { clearCart } from "$lib/cart-store.svelte";
   import { formatEGP } from "$lib/currency";
+  import { isBlendItem, itemId, lineTotal } from "$lib/cart";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { t } from "$lib/i18n/messages";
@@ -106,10 +107,30 @@
   <aside class="h-fit rounded-2xl border border-cocoa-100 bg-parchment p-5 shadow-warm-sm">
     <h2 class="headline text-xl text-cocoa-900">{t(lang, "cart.summary")}</h2>
     <ul class="mt-4 space-y-3">
-      {#each data.items as item (item.variantId)}
-        <li class="flex justify-between gap-2 text-sm text-cocoa-700">
-          <span class="line-clamp-1">{t(lang, "checkout.itemLine", { name: item.name, variantName: item.variantName, quantity: item.quantity })}</span>
-          <span class="font-semibold">{formatEGP(item.price * item.quantity, lang)}</span>
+      {#each data.items as item (itemId(item))}
+        <li class="flex flex-col gap-1 text-sm text-cocoa-700">
+          {#if isBlendItem(item)}
+            <div class="flex justify-between gap-2">
+              <span class="line-clamp-1">
+                {t(lang, "blends.cartName")} — {item.name} ({item.variantName}) × 1
+              </span>
+              <span class="font-semibold">{formatEGP(lineTotal(item), lang)}</span>
+            </div>
+            {#if item.additives.length > 0}
+              <ul class="flex flex-wrap gap-1">
+                {#each item.additives as a (a.variantId)}
+                  <li class="rounded-full bg-honey-50 px-2 py-0.5 text-[11px] text-cocoa-500">
+                    {a.name} × {a.qty}
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          {:else}
+            <div class="flex justify-between gap-2">
+              <span class="line-clamp-1">{t(lang, "checkout.itemLine", { name: item.name, variantName: item.variantName, quantity: item.quantity })}</span>
+              <span class="font-semibold">{formatEGP(lineTotal(item), lang)}</span>
+            </div>
+          {/if}
         </li>
       {/each}
     </ul>
