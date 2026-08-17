@@ -50,11 +50,11 @@
             </a>
             <div class="flex flex-1 flex-col gap-1.5">
               <a href={`/products/${item.slug}`} class="headline text-base text-cocoa-900 hover:text-honey-700">{item.name}</a>
-              <span class="text-sm font-medium text-cocoa-500">{t(lang, "cart.itemLine", { variantName: item.variantName, price: formatEGP(item.price) })}</span>
+              <span class="text-sm font-medium text-cocoa-500">{t(lang, "cart.itemLine", { variantName: item.variantName, price: formatEGP(item.price, lang) })}</span>
               <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
               <button type="button" class="w-fit text-xs text-cocoa-400 transition hover:text-clay-600" onclick={() => removeFromCart(item.variantId)}>{t(lang, "cart.remove")}</button>
             </div>
-            <Price amount={item.price * item.quantity} className="font-extrabold text-cocoa-900 sm:ms-auto" />
+            <Price amount={item.price * item.quantity} lang={lang} className="font-extrabold text-cocoa-900 sm:ms-auto" />
           </li>
         {/each}
       </ul>
@@ -63,9 +63,9 @@
         <h2 class="headline text-xl text-cocoa-900">{t(lang, "cart.summary")}</h2>
         <dl class="mt-4 space-y-2 text-sm text-cocoa-700">
           <div class="flex justify-between"><dt>{t(lang, "cart.itemCount")}</dt><dd class="font-semibold">{totals.itemCount}</dd></div>
-          <div class="flex justify-between"><dt>{t(lang, "cart.subtotal")}</dt><dd class="font-semibold">{formatEGP(totals.subtotal)}</dd></div>
-          <div class="flex justify-between"><dt>{t(lang, "cart.shipping")}</dt><dd class="font-semibold">{totals.shipping === 0 ? t(lang, "cart.free") : formatEGP(totals.shipping)}</dd></div>
-          <div class="mt-3 flex justify-between border-t border-cocoa-100 pt-3 text-base font-extrabold text-cocoa-900"><dt>{t(lang, "cart.total")}</dt><dd>{formatEGP(totals.total)}</dd></div>
+          <div class="flex justify-between"><dt>{t(lang, "cart.subtotal")}</dt><dd class="font-semibold">{formatEGP(totals.subtotal, lang)}</dd></div>
+          <div class="flex justify-between"><dt>{t(lang, "cart.shipping")}</dt><dd class="font-semibold">{totals.shipping === 0 ? t(lang, "cart.free") : formatEGP(totals.shipping, lang)}</dd></div>
+          <div class="mt-3 flex justify-between border-t border-cocoa-100 pt-3 text-base font-extrabold text-cocoa-900"><dt>{t(lang, "cart.total")}</dt><dd>{formatEGP(totals.total, lang)}</dd></div>
         </dl>
         <Button variant="primary" href="/checkout" class="mt-5 w-full">{t(lang, "cart.checkout")}</Button>
         <a href="/products" class="mt-2 block text-center text-sm text-cocoa-500 transition hover:text-honey-700">{t(lang, "cart.continue")}</a>

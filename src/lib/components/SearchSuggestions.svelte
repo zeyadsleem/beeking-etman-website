@@ -197,7 +197,7 @@
                       </span>
                       <span class="block text-xs text-cocoa-400">
                         {item.kind === "product" && item.minPrice
-                          ? `${t(lang, "search.from")} ${formatEGP(item.minPrice)}`
+                          ? `${t(lang, "search.from")} ${formatEGP(item.minPrice, lang)}`
                           : t(lang, "search.browseCategory")}
                       </span>
                     </span>

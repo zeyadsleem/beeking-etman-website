@@ -66,7 +66,7 @@ export async function createOrder(
     return { ok: false, message: t(lang, "orders.cartEmpty"), outOfStock: [] };
   }
 
-  const { items } = await resolveCartItems(db, lines);
+  const { items } = await resolveCartItems(db, lines, lang);
   if (items.length === 0) {
     return { ok: false, message: t(lang, "orders.noProducts"), outOfStock: [] };
   }

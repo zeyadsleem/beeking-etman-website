@@ -25,11 +25,12 @@ function shippingValues(
   return Object.fromEntries(Object.entries(form).filter(([key]) => !CARD_FIELDS.has(key)));
 }
 
-export const load: PageServerLoad = async ({ cookies }) => {
+export const load: PageServerLoad = async (event) => {
+  const lang = getLang(event);
   const nonce = crypto.randomUUID();
-  const lines = readCartCookie(cookies, getCartSecret(env));
+  const lines = readCartCookie(event.cookies, getCartSecret(env));
   if (lines.length === 0) redirect(302, "/cart");
-  const { items, missing } = await resolveCartItems(db, lines);
+  const { items, missing } = await resolveCartItems(db, lines, lang);
   if (items.length === 0) redirect(302, "/cart");
   return { nonce, items, missingVariantIds: missing, totals: computeTotals(items) };
 };

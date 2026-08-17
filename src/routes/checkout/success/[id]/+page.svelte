@@ -28,13 +28,13 @@
       {#each data.items as item (item.id)}
         <li class="flex justify-between gap-2">
           <span>{item.productName}{item.variantName ? ` (${item.variantName})` : ""} × {item.quantity}</span>
-          <span class="font-semibold">{formatEGP(item.unitPrice * item.quantity)}</span>
+          <span class="font-semibold">{formatEGP(item.unitPrice * item.quantity, lang)}</span>
         </li>
       {/each}
     </ul>
     <dl class="mt-4 flex justify-between border-t border-cocoa-100 pt-3 text-base font-extrabold text-cocoa-900">
       <dt>{t(lang, "success.total")}</dt>
-      <dd>{formatEGP(data.order.total)}</dd>
+      <dd>{formatEGP(data.order.total, lang)}</dd>
     </dl>
   </section>
 

@@ -2,7 +2,11 @@ import { expect, test, chromium } from "@playwright/test";
 
 test("no reveal-hidden, low CLS, same-page click is a no-op", async () => {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const context = await browser.newContext({
+    locale: "ar-EG",
+    viewport: { width: 1280, height: 800 },
+  });
+  const page = await context.newPage();
 
   const consoleErrors: string[] = [];
   page.on("pageerror", (e) => consoleErrors.push(String(e)));
@@ -65,7 +69,11 @@ test("no reveal-hidden, low CLS, same-page click is a no-op", async () => {
 
 test("cross-page navigation is client-side and still transitions", async () => {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const context = await browser.newContext({
+    locale: "ar-EG",
+    viewport: { width: 1280, height: 800 },
+  });
+  const page = await context.newPage();
 
   let fullLoads = 0;
   page.on("load", () => fullLoads++);
@@ -109,7 +117,11 @@ test("cross-page navigation is client-side and still transitions", async () => {
 
 test("browser back after client-side navigation returns home", async () => {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const context = await browser.newContext({
+    locale: "ar-EG",
+    viewport: { width: 1280, height: 800 },
+  });
+  const page = await context.newPage();
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.locator("h1").first()).toBeVisible();
@@ -129,7 +141,11 @@ test("browser back after client-side navigation returns home", async () => {
 
 test("hash link still scrolls to section", async () => {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const context = await browser.newContext({
+    locale: "ar-EG",
+    viewport: { width: 1280, height: 800 },
+  });
+  const page = await context.newPage();
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.locator("h1").first()).toBeVisible();

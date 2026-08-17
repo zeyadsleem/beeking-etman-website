@@ -85,7 +85,7 @@
 
     <div class="flex flex-wrap items-end gap-3">
       <div class="flex flex-col">
-        <Price amount={selectedVariant.price} className="text-3xl font-extrabold text-cocoa-900" />
+        <Price amount={selectedVariant.price} lang={lang} className="text-3xl font-extrabold text-cocoa-900" />
         <span class="mt-1.5 h-[3px] w-10 rounded-full bg-honey-600" aria-hidden="true"></span>
       </div>
       {#if selectedVariant.stock === 0}
@@ -123,7 +123,7 @@
         <QuantityPicker lang={lang} value={quantity} max={selectedVariant.stock} onChange={(q) => (quantity = q)} />
         <Button variant="primary" type="button" onclick={handleAdd}>{t(lang, "detail.addToCart")}</Button>
       </div>
-      <p class="text-sm font-semibold text-cocoa-500">{t(lang, "detail.total", { total: formatEGP(selectedVariant.price * quantity) })}</p>
+      <p class="text-sm font-semibold text-cocoa-500">{t(lang, "detail.total", { total: formatEGP(selectedVariant.price * quantity, lang) })}</p>
     {/if}
 
     <div class="mt-4 grid grid-cols-3 gap-3 border-t border-cocoa-100 pt-5 text-center">

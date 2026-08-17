@@ -5,6 +5,7 @@ export const category = sqliteTable("store_category", {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
+  nameEn: text("name_en").notNull().default(""),
   slug: text("slug").notNull().unique(),
 });
 
@@ -13,8 +14,10 @@ export const product = sqliteTable("store_product", {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
+  nameEn: text("name_en").notNull().default(""),
   slug: text("slug").notNull().unique(),
   description: text("description").notNull(),
+  descriptionEn: text("description_en").notNull().default(""),
   price: integer("price").notNull(),
   stock: integer("stock").notNull().default(0),
   image: text("image").notNull(),
@@ -35,6 +38,7 @@ export const productVariant = sqliteTable("store_product_variant", {
     .notNull()
     .references(() => product.id),
   name: text("name").notNull(),
+  nameEn: text("name_en").notNull().default(""),
   price: integer("price").notNull(),
   stock: integer("stock").notNull().default(0),
   image: text("image").notNull(),

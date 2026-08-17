@@ -478,6 +478,56 @@ Arabic-only — a follow-up would need a per-entity translation model.
 the Arabic default; switching languages flips `dir`/`lang` and Intl locale.
 Catalog content translation is the documented next step, not part of this ADR.
 
+## 2026-08-17 — Full catalog translation (per-entity bilingual columns)
+
+**Context:** In English mode every DB-backed string (product names,
+descriptions, categories, variant names) was still Arabic. UI chrome was
+already bilingual via `t(lang, key)`, but catalog data lived only in Arabic
+`name`/`description` columns.
+
+**Decision:** Added bilingual columns to the catalog tables —
+`store_category.name_en`, `store_product.name_en` + `description_en`,
+`store_product_variant.name_en` (all `NOT NULL DEFAULT ''`). FTS was rebuilt
+(`store_product_fts` now indexes `name_en`/`description_en`) so English search
+works. `store.ts` functions take `lang: Lang = 'ar'` and localize via a
+`localized(ar, en, lang)` helper; every server load, the search-suggestions
+endpoint, and `resolveCartItems` pass the current `lang` through.
+`api/cart` gained a GET handler that resolves cookie cart lines in the current
+language, and `cart-store.svelte.ts` refreshes stored names on load so cart
+drawer/page names follow the active language. The hardcoded Arabic product 404
+was replaced with a `products.notFound` message key. Seed now carries
+`nameEn`/`descriptionEn` for all 43 products, 43 variants, and 6 categories.
+`formatEGP(amount, lang)` now picks the locale per language (`ar-EG` Arabic
+digits vs `en-US` Western digits + `EGP`), so prices and totals render in
+Western digits in English mode.
+
+**Consequences:** Arabic and English modes are now fully bilingual end-to-end,
+including search and price formatting. The Arabic default is unchanged; English
+rows fall back to the Arabic text if ever left empty. Order-history line items
+remain immutable historical snapshots (stored in the order's language at
+purchase time).
+
+## 2026-08-17 — Automatic language detection from the browser
+
+**Context:** After the full catalog translation, first-time visitors with an
+English browser still saw Arabic until they used the switcher. We evaluated
+frontend `navigator.language` vs backend `Accept-Language` (per an Arabic
+article): frontend detection flashes after hydration, and naive `.includes('ar')`
+ignores q-value priority; cookies beat localStorage (no SSR access).
+
+**Decision:** Detect language on the server from the `Accept-Language` header.
+`getLang(event)` now resolves: explicit `lang` cookie first, else
+`parseAcceptLanguage(event.request.headers.get('accept-language'))`, else `ar`.
+`parseAcceptLanguage` is a pure, unit-tested parser that respects q-values,
+takes the base tag (`ar-EG` → `ar`), only accepts `ar`/`en`, and falls back to
+`ar`. The manual switcher cookie still overrides. `formatEGP`/`Price.svelte`
+take `lang` so prices use `ar-EG` Arabic-Indic digits or `en-US` Western digits.
+
+**Consequences:** A first visit now matches the browser's primary language with
+zero flash of wrong language; the cookie keeps the user's explicit choice.
+Playwright e2e contexts pin `locale: "ar-EG"` so `Accept-Language` selects
+Arabic deterministically and the Arabic selectors stay green.
+
 ## 2026-08-16 — Checkout rate limiting, order-number retry, and HMAC secret hardening
 
 **Context:** The review flagged three small gaps: the checkout submit action had

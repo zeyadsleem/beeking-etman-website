@@ -29,6 +29,13 @@
       "when": 1786810000000,
       "tag": "0003_fts_search",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1786921887128,
+      "tag": "0004_yellow_gwen_stacy",
+      "breakpoints": true
     }
   ]
 }

@@ -57,7 +57,7 @@
                 <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
                 <button type="button" class="w-fit text-xs text-cocoa-400 transition-colors hover:text-clay-600" onclick={() => removeFromCart(item.variantId)}>{t(lang, "cart.remove")}</button>
               </div>
-              <Price amount={item.price * item.quantity} className="ms-auto self-start text-sm font-bold text-cocoa-900" />
+              <Price amount={item.price * item.quantity} lang={lang} className="ms-auto self-start text-sm font-bold text-cocoa-900" />
             </li>
           {/each}
         </ul>
@@ -67,10 +67,10 @@
         <footer class="border-t border-cocoa-200 bg-paper p-4">
           <div class="mb-1 flex justify-between text-sm text-cocoa-700">
             <span>{t(lang, "cart.subtotal")}</span>
-            <Price amount={getTotals().subtotal} />
+            <Price amount={getTotals().subtotal} lang={lang} />
           </div>
           <p class="mb-3 text-xs text-honey-700">
-            {#if getTotals().shipping === 0}{t(lang, "cart.freeShipping")}{:else}{t(lang, "cart.shipping")} {formatEGP(getTotals().shipping)}{/if}
+            {#if getTotals().shipping === 0}{t(lang, "cart.freeShipping")}{:else}{t(lang, "cart.shipping")} {formatEGP(getTotals().shipping, lang)}{/if}
           </p>
           <Button variant="outline" href="/cart" class="w-full text-sm" onclick={closeDrawer}>{t(lang, "cart.viewCart")}</Button>
           <Button variant="primary" href="/checkout" class="mt-2 w-full text-sm" onclick={closeDrawer}>{t(lang, "cart.checkout")}</Button>

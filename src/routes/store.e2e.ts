@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+test.use({ locale: "ar-EG" });
+
 test("guest browses, picks a variant, checks out", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
 

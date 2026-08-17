@@ -71,6 +71,41 @@ export function loadCart(): void {
   } catch {
     state.items = [];
   }
+  void refreshNamesFromServer();
+}
+
+interface CartNameRefreshItem {
+  variantId: string;
+  name: string;
+  variantName: string;
+}
+
+async function refreshNamesFromServer(): Promise<void> {
+  if (state.items.length === 0) return;
+  try {
+    const res = await fetch("/api/cart");
+    if (!res.ok) return;
+    const data = (await res.json()) as { items: CartNameRefreshItem[] };
+    const byVariant = new Map(data.items.map((i) => [i.variantId, i]));
+    let changed = false;
+    state.items = state.items.map((item) => {
+      const server = byVariant.get(item.variantId);
+      if (!server || (server.name === item.name && server.variantName === item.variantName)) {
+        return item;
+      }
+      changed = true;
+      return { ...item, name: server.name, variantName: server.variantName };
+    });
+    if (changed) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
+      } catch {
+        // Storage unavailable; the in-memory names are already updated.
+      }
+    }
+  } catch {
+    // Server refresh is best-effort; keep the cached names.
+  }
 }
 
 export function addToCart(product: Omit<CartItem, "quantity">, quantity = 1): void {

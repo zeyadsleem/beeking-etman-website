@@ -133,9 +133,10 @@ preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
       `SQLITE_BUSY` via the shared `src/lib/server/sqlite.ts` helpers.
 - [x] `store_rate_limit` rows for abandoned keys are now opportunistically
       pruned globally (2h window, ~1% per `allow()` call, best-effort).
-- [ ] Catalog content i18n: product names/descriptions in the DB are Arabic-only
-      (UI chrome is bilingual). Translating catalog content needs a per-entity
-      translation model; deferred follow-up.
+- [x] Catalog content i18n: bilingual `name_en`/`description_en` columns on
+      category/product/variant, rebuilt FTS for English search, `lang`-aware
+      store queries, and cart-name refresh — English mode is now fully
+      translated (2026-08-17).
 - [ ] Container data persistence: `DATABASE_URL=file:/data/local.db` + a
       mounted volume (or a libsql remote) is required so orders survive a
       redeploy; document in the README deploy section.

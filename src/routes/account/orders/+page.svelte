@@ -31,7 +31,7 @@
             <span class="text-sm text-cocoa-500">{t(lang, "orders.status")}</span>
             <span class="ms-2 badge-ok">{#if order.status === "paid"}{t(lang, "orders.paid")}{:else}{t(lang, "orders.unknown")}{/if}</span>
           </div>
-          <span class="font-extrabold text-cocoa-900">{formatEGP(order.total)}</span>
+          <span class="font-extrabold text-cocoa-900">{formatEGP(order.total, lang)}</span>
         </li>
       {/each}
     </ul>

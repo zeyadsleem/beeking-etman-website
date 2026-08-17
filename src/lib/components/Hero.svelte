@@ -134,7 +134,7 @@
           </div>
           <figcaption class="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-xl border border-cocoa-100 bg-parchment/95 px-4 py-3 shadow-warm-sm backdrop-blur">
             <span class="truncate text-sm font-semibold text-cocoa-900">{main?.name}</span>
-            <Price amount={main?.minPrice ?? 0} className="headline shrink-0 text-lg text-honey-700" />
+            <Price amount={main?.minPrice ?? 0} lang={lang} className="headline shrink-0 text-lg text-honey-700" />
           </figcaption>
         </figure>
 
@@ -147,7 +147,7 @@
             {/if}
             <figcaption class="px-3 py-2">
               <p class="truncate text-xs font-semibold text-cocoa-900">{secondary.name}</p>
-              <Price amount={secondary.minPrice} className="text-xs font-bold text-honey-700" />
+              <Price amount={secondary.minPrice} lang={lang} className="text-xs font-bold text-honey-700" />
             </figcaption>
           </figure>
         {/if}
@@ -191,7 +191,7 @@
         </div>
         <figcaption class="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-xl border border-cocoa-100 bg-parchment/95 px-4 py-3 shadow-warm-sm backdrop-blur">
           <span class="truncate text-sm font-semibold text-cocoa-900">{main?.name}</span>
-          <Price amount={main?.minPrice ?? 0} className="headline shrink-0 text-lg text-honey-700" />
+          <Price amount={main?.minPrice ?? 0} lang={lang} className="headline shrink-0 text-lg text-honey-700" />
         </figcaption>
       </figure>
 

@@ -18,18 +18,22 @@ export const load: PageServerLoad = async (event) => {
   const sort: SortOrder = SORTS.has(rawSort) ? (rawSort as SortOrder) : "newest";
   const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
 
-  const categories = await getCategories(db);
+  const categories = await getCategories(db, lang);
   if (!categories.length) error(500, t(lang, "products.unavailable"));
   const activeCategory = categories.find((c) => c.slug === rawCategory);
   if (rawCategory && !activeCategory) error(404, t(lang, "products.categoryNotFound"));
 
-  const result = await listProductsPage(db, {
-    query: rawQ,
-    category: activeCategory?.id ?? "",
-    sort,
-    page,
-    pageSize: PRODUCTS_PAGE_SIZE,
-  });
+  const result = await listProductsPage(
+    db,
+    {
+      query: rawQ,
+      category: activeCategory?.id ?? "",
+      sort,
+      page,
+      pageSize: PRODUCTS_PAGE_SIZE,
+    },
+    lang,
+  );
 
   return {
     categories,

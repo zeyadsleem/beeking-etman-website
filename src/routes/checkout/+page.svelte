@@ -109,14 +109,14 @@
       {#each data.items as item (item.variantId)}
         <li class="flex justify-between gap-2 text-sm text-cocoa-700">
           <span class="line-clamp-1">{t(lang, "checkout.itemLine", { name: item.name, variantName: item.variantName, quantity: item.quantity })}</span>
-          <span class="font-semibold">{formatEGP(item.price * item.quantity)}</span>
+          <span class="font-semibold">{formatEGP(item.price * item.quantity, lang)}</span>
         </li>
       {/each}
     </ul>
     <dl class="mt-4 space-y-1 border-t border-cocoa-100 pt-3 text-sm text-cocoa-700">
-      <div class="flex justify-between"><dt>{t(lang, "cart.subtotal")}</dt><dd class="font-semibold">{formatEGP(data.totals.subtotal)}</dd></div>
-      <div class="flex justify-between"><dt>{t(lang, "cart.shipping")}</dt><dd class="font-semibold">{data.totals.shipping === 0 ? t(lang, "cart.free") : formatEGP(data.totals.shipping)}</dd></div>
-      <div class="flex justify-between text-base font-extrabold text-cocoa-900"><dt>{t(lang, "cart.total")}</dt><dd>{formatEGP(data.totals.total)}</dd></div>
+      <div class="flex justify-between"><dt>{t(lang, "cart.subtotal")}</dt><dd class="font-semibold">{formatEGP(data.totals.subtotal, lang)}</dd></div>
+      <div class="flex justify-between"><dt>{t(lang, "cart.shipping")}</dt><dd class="font-semibold">{data.totals.shipping === 0 ? t(lang, "cart.free") : formatEGP(data.totals.shipping, lang)}</dd></div>
+      <div class="flex justify-between text-base font-extrabold text-cocoa-900"><dt>{t(lang, "cart.total")}</dt><dd>{formatEGP(data.totals.total, lang)}</dd></div>
     </dl>
     <p class="mt-4 text-xs text-cocoa-400">{t(lang, "checkout.agree")}</p>
   </aside>

@@ -23,19 +23,23 @@ async function buildDb() {
   await db.run(`DROP TABLE IF EXISTS store_category`);
   await db.run(`
     CREATE TABLE store_category (
-      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE
+      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_en TEXT NOT NULL DEFAULT '',
+      slug TEXT NOT NULL UNIQUE
     )`);
   await db.run(`
     CREATE TABLE store_product (
-      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
-      description TEXT NOT NULL, price INTEGER NOT NULL, stock INTEGER NOT NULL DEFAULT 0,
-      image TEXT NOT NULL, category_id TEXT NOT NULL, featured INTEGER NOT NULL DEFAULT 0,
+      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_en TEXT NOT NULL DEFAULT '',
+      slug TEXT NOT NULL UNIQUE, description TEXT NOT NULL,
+      description_en TEXT NOT NULL DEFAULT '', price INTEGER NOT NULL,
+      stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
+      category_id TEXT NOT NULL, featured INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL
     )`);
   await db.run(`
     CREATE TABLE store_product_variant (
       id TEXT PRIMARY KEY NOT NULL, product_id TEXT NOT NULL, name TEXT NOT NULL,
-      price INTEGER NOT NULL, stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
+      name_en TEXT NOT NULL DEFAULT '', price INTEGER NOT NULL,
+      stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0
     )`);
   await db.run(`

@@ -1,6 +1,11 @@
-const egpFormatter = new Intl.NumberFormat("ar-EG", { style: "currency", currency: "EGP" });
+import { getLocale, type Lang } from "./i18n/messages";
 
-export function formatEGP(amountQirsh: number): string {
+const formatters: Record<Lang, Intl.NumberFormat> = {
+  ar: new Intl.NumberFormat(getLocale("ar"), { style: "currency", currency: "EGP" }),
+  en: new Intl.NumberFormat(getLocale("en"), { style: "currency", currency: "EGP" }),
+};
+
+export function formatEGP(amountQirsh: number, lang: Lang = "ar"): string {
   if (!Number.isInteger(amountQirsh) || amountQirsh < 0) return "—";
-  return egpFormatter.format(amountQirsh / 100);
+  return formatters[lang].format(amountQirsh / 100);
 }

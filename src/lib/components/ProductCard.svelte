@@ -63,11 +63,11 @@
         {#if product.variants.length > 1}
           <span class="flex items-center gap-1.5 text-xs font-semibold text-cocoa-400">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-honey-600" aria-hidden="true"></span>
-            {t(lang, "product.startsFrom")} {formatEGP(product.minPrice)}
+            {t(lang, "product.startsFrom")} {formatEGP(product.minPrice, lang)}
           </span>
-          <Price amount={product.minPrice} className="text-lg font-extrabold text-cocoa-900" />
+          <Price amount={product.minPrice} lang={lang} className="text-lg font-extrabold text-cocoa-900" />
         {:else}
-          <Price amount={product.variants[0]?.price ?? 0} className="text-lg font-extrabold text-cocoa-900" />
+          <Price amount={product.variants[0]?.price ?? 0} lang={lang} className="text-lg font-extrabold text-cocoa-900" />
         {/if}
       </div>
       {#if product.variants.length > 1}

@@ -17,4 +17,13 @@ describe("formatEGP", () => {
   it("guards invalid input", () => {
     expect(formatEGP(-1)).toBe("—");
   });
+  it("formats in Western digits with EGP for English", () => {
+    const out = formatEGP(26450, "en");
+    expect(out).toMatch(/264\.50/);
+    expect(out).toContain("EGP");
+    expect(out).not.toMatch(/[٠-٩]/);
+  });
+  it("defaults to Arabic when lang is omitted", () => {
+    expect(formatEGP(26000)).toContain("ج.م.");
+  });
 });

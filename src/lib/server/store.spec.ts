@@ -22,19 +22,23 @@ async function buildDb() {
   await db.run(`DROP TABLE IF EXISTS store_product_fts`);
   await db.run(`
     CREATE TABLE store_category (
-      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE
+      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_en TEXT NOT NULL DEFAULT '',
+      slug TEXT NOT NULL UNIQUE
     )`);
   await db.run(`
     CREATE TABLE store_product (
-      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
-      description TEXT NOT NULL, price INTEGER NOT NULL, stock INTEGER NOT NULL DEFAULT 0,
-      image TEXT NOT NULL, category_id TEXT NOT NULL, featured INTEGER NOT NULL DEFAULT 0,
+      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_en TEXT NOT NULL DEFAULT '',
+      slug TEXT NOT NULL UNIQUE, description TEXT NOT NULL,
+      description_en TEXT NOT NULL DEFAULT '', price INTEGER NOT NULL,
+      stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
+      category_id TEXT NOT NULL, featured INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL
     )`);
   await db.run(`
     CREATE TABLE store_product_variant (
       id TEXT PRIMARY KEY NOT NULL, product_id TEXT NOT NULL, name TEXT NOT NULL,
-      price INTEGER NOT NULL, stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
+      name_en TEXT NOT NULL DEFAULT '', price INTEGER NOT NULL,
+      stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0
     )`);
   await db.run(`
@@ -42,12 +46,14 @@ async function buildDb() {
       product_id UNINDEXED,
       name,
       description,
+      name_en,
+      description_en,
       tokenize = 'unicode61'
     )`);
   await db.run(`
     CREATE TRIGGER store_product_fts_ai AFTER INSERT ON store_product BEGIN
-      INSERT INTO store_product_fts(product_id, name, description)
-      VALUES (new.id, new.name, new.description);
+      INSERT INTO store_product_fts(product_id, name, description, name_en, description_en)
+      VALUES (new.id, new.name, new.description, new.name_en, new.description_en);
     END`);
   await db.run(`
     CREATE TRIGGER store_product_fts_ad AFTER DELETE ON store_product BEGIN
@@ -56,13 +62,13 @@ async function buildDb() {
   await db.run(`
     CREATE TRIGGER store_product_fts_au AFTER UPDATE ON store_product BEGIN
       DELETE FROM store_product_fts WHERE product_id = old.id;
-      INSERT INTO store_product_fts(product_id, name, description)
-      VALUES (new.id, new.name, new.description);
+      INSERT INTO store_product_fts(product_id, name, description, name_en, description_en)
+      VALUES (new.id, new.name, new.description, new.name_en, new.description_en);
     END`);
   const cat = (
     await db
       .insert(schema.category)
-      .values({ name: "عسل السدر", slug: "sidr" })
+      .values({ name: "عسل السدر", nameEn: "Sidr Honey", slug: "sidr" })
       .returning({ id: schema.category.id })
   )[0];
   const p = (
@@ -70,8 +76,10 @@ async function buildDb() {
       .insert(schema.product)
       .values({
         name: "عسل سدر مصري",
+        nameEn: "Egyptian Sidr Honey",
         slug: "sidr-egyptian",
         description: "سدر مصري",
+        descriptionEn: "Egyptian Sidr",
         price: 0,
         stock: 0,
         image: "https://example.com/s.jpg",
@@ -87,6 +95,7 @@ async function buildDb() {
       {
         productId: p.id,
         name: "1 ك",
+        nameEn: "1kg",
         price: 700_00,
         stock: 4,
         image: "https://example.com/s.jpg",
@@ -95,6 +104,7 @@ async function buildDb() {
       {
         productId: p.id,
         name: "500 جرام",
+        nameEn: "500g",
         price: 380_00,
         stock: 6,
         image: "https://example.com/s.jpg",
@@ -123,6 +133,21 @@ describe("store queries with variants", () => {
     const rows = await listProducts(db, { query: "سدر" });
     expect(rows).toHaveLength(1);
     expect(rows[0].name).toBe("عسل سدر مصري");
+  });
+
+  it("localizes to English when lang=en", async () => {
+    const { db } = await buildDb();
+    const product = await getProductWithVariants(db, "sidr-egyptian", "en");
+    expect(product?.name).toBe("Egyptian Sidr Honey");
+    expect(product?.description).toBe("Egyptian Sidr");
+    expect(product?.variants.map((v) => v.name)).toEqual(["500g", "1kg"]);
+  });
+
+  it("searches by English name", async () => {
+    const { db } = await buildDb();
+    const rows = await listProducts(db, { query: "Sidr" }, "en");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].name).toBe("Egyptian Sidr Honey");
   });
 
   it("resolveCartItems joins variant info and clamps to stock", async () => {

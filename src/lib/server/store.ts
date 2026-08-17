@@ -1,7 +1,12 @@
-import { and, asc, desc, eq, inArray, like, ne, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, ne, or, sql, type SQL } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { CartItem, CartLine } from "$lib/cart";
+import type { Lang } from "$lib/i18n/messages";
 import * as schema from "$lib/server/db/schema";
+
+function localized(ar: string, en: string, lang: Lang): string {
+  return lang === "en" ? en : ar;
+}
 
 export interface ProductVariantSummary {
   id: string;
@@ -61,6 +66,7 @@ const minPriceExpr = sql<number>`(SELECT MIN(${schema.productVariant.price}) FRO
 export function withVariants(
   rows: ProductRow[],
   variantsByProduct: Map<string, VariantRow[]>,
+  lang: Lang = "ar",
 ): ProductSummary[] {
   return rows.map((row) => {
     const variants = (variantsByProduct.get(row.id) ?? [])
@@ -68,14 +74,14 @@ export function withVariants(
       .sort((a, b) => a.sortOrder - b.sortOrder);
     return {
       id: row.id,
-      name: row.name,
+      name: localized(row.name, row.nameEn, lang),
       slug: row.slug,
-      description: row.description,
+      description: localized(row.description, row.descriptionEn, lang),
       image: row.image,
       categoryId: row.categoryId,
       featured: row.featured,
       createdAt: row.createdAt,
-      variants,
+      variants: variants.map((v) => ({ ...v, name: localized(v.name, v.nameEn, lang) })),
       minPrice: variants.length ? Math.min(...variants.map((v) => v.price)) : 0,
     };
   });
@@ -101,13 +107,16 @@ async function loadVariantsForProducts(
 
 export async function getCategories(
   db: LibSQLDatabase<typeof schema>,
+  lang: Lang = "ar",
 ): Promise<{ id: string; name: string; slug: string }[]> {
-  return db.select().from(schema.category).orderBy(asc(schema.category.name));
+  const rows = await db.select().from(schema.category).orderBy(asc(schema.category.name));
+  return rows.map((c) => ({ id: c.id, name: localized(c.name, c.nameEn, lang), slug: c.slug }));
 }
 
 export async function getFeaturedProducts(
   db: LibSQLDatabase<typeof schema>,
   limit = 8,
+  lang: Lang = "ar",
 ): Promise<ProductSummary[]> {
   const rows = await db
     .select()
@@ -121,6 +130,7 @@ export async function getFeaturedProducts(
       db,
       rows.map((r) => r.id),
     ),
+    lang,
   );
 }
 
@@ -178,6 +188,7 @@ function orderByFor(sort: SortOrder, minPrice: SQL<number>) {
 export async function listProducts(
   db: LibSQLDatabase<typeof schema>,
   filters: ProductFilters = {},
+  lang: Lang = "ar",
 ): Promise<ProductSummary[]> {
   const { where, none } = await buildProductWhere(db, filters);
   if (none) return [];
@@ -194,12 +205,14 @@ export async function listProducts(
       db,
       rows.map((r) => r.id),
     ),
+    lang,
   );
 }
 
 export async function listProductsPage(
   db: LibSQLDatabase<typeof schema>,
   filters: ProductPageFilters = {},
+  lang: Lang = "ar",
 ): Promise<ProductPageResult> {
   const requestedPage = Math.max(1, filters.page ?? 1);
   const pageSize = filters.pageSize ?? PRODUCTS_PAGE_SIZE;
@@ -227,6 +240,7 @@ export async function listProductsPage(
       db,
       rows.map((r) => r.id),
     ),
+    lang,
   );
   return { products: summaries, total, page, pageSize, totalPages };
 }
@@ -241,16 +255,26 @@ export interface SearchSuggestionProduct {
 export async function getSearchSuggestions(
   db: LibSQLDatabase<typeof schema>,
   query: string,
+  lang: Lang = "ar",
 ): Promise<{
   products: SearchSuggestionProduct[];
   categories: { id: string; name: string; slug: string }[];
 }> {
   const trimmed = query.trim();
   const q = `%${trimmed}%`;
-  const [ids, categories] = await Promise.all([
+  const [ids, categoryRows] = await Promise.all([
     searchProductIds(db, trimmed, 6),
-    db.select().from(schema.category).where(like(schema.category.name, q)).limit(3),
+    db
+      .select()
+      .from(schema.category)
+      .where(or(like(schema.category.name, q), like(schema.category.nameEn, q)))
+      .limit(3),
   ]);
+  const categories = categoryRows.map((c) => ({
+    id: c.id,
+    name: localized(c.name, c.nameEn, lang),
+    slug: c.slug,
+  }));
   const rows = ids.length
     ? await db.select().from(schema.product).where(inArray(schema.product.id, ids))
     : [];
@@ -261,7 +285,7 @@ export async function getSearchSuggestions(
   const products: SearchSuggestionProduct[] = rows.map((row) => {
     const vs = variants.get(row.id) ?? [];
     return {
-      name: row.name,
+      name: localized(row.name, row.nameEn, lang),
       slug: row.slug,
       image: row.image,
       minPrice: vs.length ? Math.min(...vs.map((v) => v.price)) : row.price,
@@ -273,10 +297,11 @@ export async function getSearchSuggestions(
 export async function getProductWithVariants(
   db: LibSQLDatabase<typeof schema>,
   slug: string,
+  lang: Lang = "ar",
 ): Promise<ProductSummary | null> {
   const row = await db.select().from(schema.product).where(eq(schema.product.slug, slug)).get();
   if (!row) return null;
-  const list = withVariants([row], await loadVariantsForProducts(db, [row.id]));
+  const list = withVariants([row], await loadVariantsForProducts(db, [row.id]), lang);
   return list[0];
 }
 
@@ -284,6 +309,7 @@ export async function getRelatedProducts(
   db: LibSQLDatabase<typeof schema>,
   product: Pick<ProductSummary, "id" | "categoryId">,
   limit = 4,
+  lang: Lang = "ar",
 ): Promise<ProductSummary[]> {
   const rows = await db
     .select()
@@ -299,6 +325,7 @@ export async function getRelatedProducts(
       db,
       rows.map((r) => r.id),
     ),
+    lang,
   );
 }
 
@@ -310,6 +337,7 @@ export interface ResolvedCart {
 export async function resolveCartItems(
   db: LibSQLDatabase<typeof schema>,
   lines: CartLine[],
+  lang: Lang = "ar",
 ): Promise<ResolvedCart> {
   if (lines.length === 0) return { items: [], missing: [] };
   const ids = [...new Set(lines.map((l) => l.variantId))];
@@ -336,8 +364,8 @@ export async function resolveCartItems(
     items.push({
       variantId: v.id,
       productId: p.id,
-      name: p.name,
-      variantName: v.name,
+      name: localized(p.name, p.nameEn, lang),
+      variantName: localized(v.name, v.nameEn, lang),
       slug: p.slug,
       image: v.image,
       price: v.price,

@@ -93,9 +93,18 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `storage` listener keeps cart state in sync across tabs; `resolveCartItems`
   reports missing variants so the checkout page prunes them from the UI.
 - The catalog is server-sorted and paged (`/products`, 12/page); search goes
-  through SQLite FTS5.
+  through SQLite FTS5 (indexing both Arabic and English name/description).
 - Language is Arabic by default and switchable to English (`lang` cookie); all
-  UI chrome and server messages localize via `src/lib/i18n/messages.ts`.
+  UI chrome and server messages localize via `src/lib/i18n/messages.ts`. A
+  first visit auto-detects the browser language from the `Accept-Language`
+  header (`parseAcceptLanguage` in `src/lib/server/lang.ts`, q-value aware),
+  with the explicit cookie always taking precedence. Catalog content is stored
+  bilingually (`name`/`description` + `name_en`/
+  `description_en` on category/product/variant); `store.ts` queries take a
+  `lang` and localize via a `localized()` helper. `GET /api/cart` resolves
+  cookie cart lines in the active language so client-side cart names refresh.
+  `formatEGP(amount, lang)` in `src/lib/currency.ts` formats prices with
+  `ar-EG` (Arabic-Indic digits) or `en-US` (Western digits + `EGP`).
 - Checkout resolves cart lines to variant items via `resolveCartItems`, then
   runs in a Drizzle transaction: re-reads variant stock, decrements with a
   stock guard, inserts order + items (with `variant_name`), mocks payment
