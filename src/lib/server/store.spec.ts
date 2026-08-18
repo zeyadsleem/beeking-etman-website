@@ -14,6 +14,7 @@ async function buildDb() {
   client?.close();
   client = createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
+  await db.run(`DROP TABLE IF EXISTS store_product_image`);
   await db.run(`DROP TABLE IF EXISTS store_product_variant`);
   await db.run(`DROP TABLE IF EXISTS store_product`);
   await db.run(`DROP TABLE IF EXISTS store_category`);
@@ -40,6 +41,13 @@ async function buildDb() {
       id TEXT PRIMARY KEY NOT NULL, product_id TEXT NOT NULL, name TEXT NOT NULL,
       name_en TEXT NOT NULL DEFAULT '', price INTEGER NOT NULL,
       stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    )`);
+  await db.run(`
+    CREATE TABLE store_product_image (
+      id TEXT PRIMARY KEY NOT NULL,
+      product_id TEXT NOT NULL,
+      url TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0
     )`);
   await db.run(`
@@ -113,6 +121,11 @@ async function buildDb() {
       },
     ])
     .returning();
+  await db.insert(schema.productImage).values({
+    productId: p.id,
+    url: "https://example.com/s.jpg",
+    sortOrder: 0,
+  });
   return { db, p, cat, variants, v1: variants.find((v) => v.name === "500 جرام")! };
 }
 
@@ -127,6 +140,7 @@ describe("store queries with variants", () => {
     const product = await getProductWithVariants(db, "sidr-egyptian");
     expect(product?.variants.map((v) => v.name)).toEqual(["500 جرام", "1 ك"]);
     expect(product?.minPrice).toBe(380_00);
+    expect(product?.images).toEqual(["https://example.com/s.jpg"]);
   });
 
   it("searches by name", async () => {

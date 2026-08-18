@@ -25,6 +25,7 @@ export interface ProductSummary {
   slug: string;
   description: string;
   image: string;
+  images: string[];
   categoryId: string;
   featured: number;
   createdAt: number;
@@ -62,24 +63,31 @@ export const PRODUCTS_PAGE_SIZE = 12;
 
 type VariantRow = typeof schema.productVariant.$inferSelect;
 type ProductRow = typeof schema.product.$inferSelect;
+type ImageRow = typeof schema.productImage.$inferSelect;
 
 const minPriceExpr = sql<number>`(SELECT MIN(${schema.productVariant.price}) FROM ${schema.productVariant} WHERE ${schema.productVariant.productId} = ${schema.product.id})`;
 
 export function withVariants(
   rows: ProductRow[],
   variantsByProduct: Map<string, VariantRow[]>,
+  imagesByProduct: Map<string, ImageRow[]> = new Map(),
   lang: Lang = "ar",
 ): ProductSummary[] {
   return rows.map((row) => {
     const variants = (variantsByProduct.get(row.id) ?? [])
       .slice()
       .sort((a, b) => a.sortOrder - b.sortOrder);
+    const images = (imagesByProduct.get(row.id) ?? [])
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((i) => i.url);
     return {
       id: row.id,
       name: localized(row.name, row.nameEn, lang),
       slug: row.slug,
       description: localized(row.description, row.descriptionEn, lang),
       image: row.image,
+      images,
       categoryId: row.categoryId,
       featured: row.featured,
       createdAt: row.createdAt,
@@ -103,6 +111,24 @@ async function loadVariantsForProducts(
     const list = map.get(v.productId) ?? [];
     list.push(v);
     map.set(v.productId, list);
+  }
+  return map;
+}
+
+async function loadImagesForProducts(
+  db: LibSQLDatabase<typeof schema>,
+  productIds: string[],
+): Promise<Map<string, ImageRow[]>> {
+  if (productIds.length === 0) return new Map();
+  const images = await db
+    .select()
+    .from(schema.productImage)
+    .where(inArray(schema.productImage.productId, productIds));
+  const map = new Map<string, ImageRow[]>();
+  for (const img of images) {
+    const list = map.get(img.productId) ?? [];
+    list.push(img);
+    map.set(img.productId, list);
   }
   return map;
 }
@@ -139,12 +165,11 @@ export async function getFeaturedProducts(
     .where(eq(schema.product.featured, 1))
     .orderBy(desc(schema.product.createdAt))
     .limit(limit);
+  const ids = rows.map((r) => r.id);
   return withVariants(
     rows,
-    await loadVariantsForProducts(
-      db,
-      rows.map((r) => r.id),
-    ),
+    await loadVariantsForProducts(db, ids),
+    await loadImagesForProducts(db, ids),
     lang,
   );
 }
@@ -214,12 +239,11 @@ export async function listProducts(
     .orderBy(orderByFor(filters.sort ?? "newest", minPriceExpr))
     .limit(filters.limit ?? 1000)
     .offset(filters.offset ?? 0);
+  const ids = rows.map((r) => r.id);
   return withVariants(
     rows,
-    await loadVariantsForProducts(
-      db,
-      rows.map((r) => r.id),
-    ),
+    await loadVariantsForProducts(db, ids),
+    await loadImagesForProducts(db, ids),
     lang,
   );
 }
@@ -252,6 +276,10 @@ export async function listProductsPage(
   const summaries = withVariants(
     rows,
     await loadVariantsForProducts(
+      db,
+      rows.map((r) => r.id),
+    ),
+    await loadImagesForProducts(
       db,
       rows.map((r) => r.id),
     ),
@@ -316,7 +344,12 @@ export async function getProductWithVariants(
 ): Promise<ProductSummary | null> {
   const row = await db.select().from(schema.product).where(eq(schema.product.slug, slug)).get();
   if (!row) return null;
-  const list = withVariants([row], await loadVariantsForProducts(db, [row.id]), lang);
+  const list = withVariants(
+    [row],
+    await loadVariantsForProducts(db, [row.id]),
+    await loadImagesForProducts(db, [row.id]),
+    lang,
+  );
   return list[0];
 }
 
@@ -334,12 +367,11 @@ export async function getRelatedProducts(
     )
     .orderBy(desc(schema.product.featured), desc(schema.product.createdAt))
     .limit(limit);
+  const ids = rows.map((r) => r.id);
   return withVariants(
     rows,
-    await loadVariantsForProducts(
-      db,
-      rows.map((r) => r.id),
-    ),
+    await loadVariantsForProducts(db, ids),
+    await loadImagesForProducts(db, ids),
     lang,
   );
 }

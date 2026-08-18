@@ -14,6 +14,7 @@
   import Price from "./Price.svelte";
   import Button from "./Button.svelte";
   import { isBlendItem, itemId, lineTotal } from "$lib/cart";
+  import { blendLineDetail } from "$lib/blends";
   import { t, type Lang } from "$lib/i18n/messages";
 
   let { lang = "ar" }: { lang?: Lang } = $props();
@@ -49,22 +50,20 @@
         <ul class="flex-1 space-y-4 overflow-y-auto p-4">
           {#each cartState.items as item (itemId(item))}
             <li class="flex gap-3 rounded-xl border border-cocoa-100 bg-paper p-3">
-              {#if isBlendItem(item)}
-                <a href="/blends" class="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100">
-                  <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
-                </a>
-              {:else}
-                <a href={`/products/${item.slug}`} class="w-16 shrink-0 self-stretch overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100">
-                  <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
-                </a>
-              {/if}
+              <a
+                href={isBlendItem(item) ? "/blends" : `/products/${item.slug}`}
+                class="w-16 shrink-0 self-stretch overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100"
+              >
+                <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
+              </a>
               <div class="flex min-w-0 flex-1 flex-col">
                 <div class="flex items-start justify-between gap-2">
-                  {#if isBlendItem(item)}
-                    <span class="line-clamp-1 text-sm font-semibold text-cocoa-800">{item.name}</span>
-                  {:else}
-                    <a href={`/products/${item.slug}`} class="line-clamp-1 text-sm font-semibold text-cocoa-800 transition-colors hover:text-honey-700">{item.name}</a>
-                  {/if}
+                  <a
+                    href={isBlendItem(item) ? "/blends" : `/products/${item.slug}`}
+                    class="line-clamp-1 text-sm font-semibold text-cocoa-800 transition-colors hover:text-honey-700"
+                  >
+                    {item.name}
+                  </a>
                   <button
                     type="button"
                     class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-cocoa-400 transition-colors hover:bg-clay-50 hover:text-clay-600"
@@ -78,24 +77,15 @@
                   </button>
                 </div>
                 {#if isBlendItem(item)}
-                  <span class="mt-0.5 text-[11px] font-bold text-honey-700">
-                    {t(lang, "blends.cartName")} · {item.variantName}
+                  <span class="mt-0.5 line-clamp-2 text-[11px] font-medium text-cocoa-500">
+                    {blendLineDetail(item.variantName, item.additives)}
                   </span>
-                  {#if item.additives.length > 0}
-                    <ul class="mt-1 flex flex-wrap gap-1">
-                      {#each item.additives as a (a.variantId)}
-                        <li class="rounded-full bg-honey-50 px-2 py-0.5 text-[10px] text-cocoa-700">
-                          {a.name} × {a.qty}
-                        </li>
-                      {/each}
-                    </ul>
-                  {/if}
                 {:else}
                   <span class="mt-0.5 text-[11px] font-medium text-cocoa-500">{item.variantName}</span>
                 {/if}
                 <div class="mt-auto flex items-center justify-between gap-2 pt-2">
                   {#if isBlendItem(item)}
-                    <span class="text-xs text-cocoa-500">{t(lang, "cart.quantity")} 1</span>
+                    <span class="text-xs text-cocoa-500">× 1</span>
                   {:else}
                     <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
                   {/if}

@@ -6,6 +6,7 @@
   --font-sans: "Cairo Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --font-amiri: "Amiri", "Cairo Variable", serif;
   --font-ruqaa: "Amiri", "Cairo Variable", serif;
+  --font-display: "Fraunces Variable", "Amiri", "Cairo Variable", serif;
 
   --color-paper: #faf9f6;
   --color-paper-deep: #f3f0e9;
@@ -91,8 +92,33 @@ body {
     letter-spacing: -0.01em;
   }
 
+  /* The English version swaps Amiri's secondary Latin glyphs for Fraunces,
+     a display serif with the same warm, artisanal character as the brand. */
+  html:lang(en) .headline {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    font-optical-sizing: auto;
+  }
+
   .eyebrow {
     @apply text-xs font-bold uppercase tracking-[0.18em] text-honey-700;
+  }
+
+  /* The brand name rendered as a wordmark: the elegant Amiri serif in Arabic
+     (no uppercase/wide tracking, which would disconnect the cursive script)
+     and the matching warm Fraunces display serif in English. */
+  .brand-wordmark {
+    @apply text-xl font-bold text-honey-700 sm:text-2xl;
+    font-family: var(--font-amiri);
+    letter-spacing: 0;
+  }
+
+  html:lang(en) .brand-wordmark {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    font-optical-sizing: auto;
   }
 
   /* ---------- buttons ---------- */
@@ -188,6 +214,12 @@ body {
     -webkit-appearance: none;
     appearance: none;
   }
+
+  img {
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
 }
 
 /* ---------- animation ---------- */
@@ -225,18 +257,16 @@ body {
   animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@utility animate-fade-in {
+  animation: fade-in 0.3s ease both;
+}
+
 @keyframes float-y {
   from {
     transform: translateY(0);
   }
   to {
     transform: translateY(-8px);
-  }
-}
-
-@keyframes spin-slow {
-  to {
-    transform: rotate(360deg);
   }
 }
 
@@ -249,17 +279,12 @@ body {
   animation-delay: 1.4s;
 }
 
-@utility animate-spin-slow {
-  animation: spin-slow 14s linear infinite;
-}
-
 /* Entrance animations run once on the initial full page load only. After the
    first client-side navigation the view transition fades the new page in, so
    replaying fade-up/float on every route change would cause a visible flicker. */
 html.has-nav .animate-fade-up,
 html.has-nav .animate-float,
-html.has-nav .animate-float-delay,
-html.has-nav .animate-spin-slow {
+html.has-nav .animate-float-delay {
   animation: none;
 }
 

@@ -41,6 +41,14 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
   expect(number).toMatch(/^HNY-\d{6}$/);
 });
 
+test("sort dropdown shows translated labels in Arabic", async ({ page }) => {
+  await page.goto("/products", { waitUntil: "domcontentloaded" });
+
+  const sortTrigger = page.getByRole("button", { name: "ترتيب المنتجات" });
+  await expect(sortTrigger).toContainText("الأحدث");
+  await expect(sortTrigger).not.toContainText("newest");
+});
+
 test("checkout shows validation errors for bad input", async ({ page }) => {
   await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();

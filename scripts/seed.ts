@@ -7,50 +7,51 @@ import * as schema from "../src/lib/server/db/schema";
 const db = drizzle(createClient({ url: process.env.DATABASE_URL ?? "file:local.db" }), { schema });
 
 const IMG = {
-  glassLight:
-    "https://images.unsplash.com/photo-1605880980331-20a711b27338?q=80&w=1200&auto=format&fit=crop",
+  glassLight: "/images/Beeking Etman/برطمان عسل البرسيم رقم 1.png",
   glassPale:
     "https://images.unsplash.com/photo-1471943311424-646960669fbc?q=80&w=1200&auto=format&fit=crop",
-  glassDark:
-    "https://images.unsplash.com/photo-1694457331480-b709d8496b1a?q=80&w=1200&auto=format&fit=crop",
+  glassDark: "/images/Beeking Etman/برطمان السدر المصرى.jpg",
   blackseed:
     "https://images.unsplash.com/photo-1735011725740-72da19fb2baf?q=80&w=1200&auto=format&fit=crop",
-  plasticJar:
-    "https://images.unsplash.com/photo-1706111584150-4cd65fe071fb?q=80&w=1200&auto=format&fit=crop",
+  plasticJar: "/images/Beeking Etman/عسل 1 كيلو برسيم بلاستيك.png",
+  plasticJar500: "/images/Beeking Etman/عسل برسيم 500 جرام بلاستيك.png",
   squeezeBottle:
     "https://images.pexels.com/photos/8049836/pexels-photo-8049836.jpeg?w=1200&h=1200&fit=crop",
-  combFrame:
-    "https://images.unsplash.com/photo-1641822888635-97d60ecd9acd?q=80&w=1200&auto=format&fit=crop",
+  combFrame: "/images/Beeking Etman/برواز البرسيم.png",
+  combFrameCitrus: "/images/Beeking Etman/برواز الموالح.png",
   combChunks:
     "https://images.unsplash.com/photo-1773957949199-bc3aa74850ea?q=80&w=1200&auto=format&fit=crop",
   nutsInHoney:
     "https://images.unsplash.com/photo-1780494092679-5978bd163184?q=80&w=1200&auto=format&fit=crop",
   nutsCan:
     "https://images.unsplash.com/photo-1701591363380-8c2f86d2b41c?q=80&w=1200&auto=format&fit=crop",
-  hazelnut:
-    "https://images.unsplash.com/photo-1626697556426-8a55a8af4999?q=80&w=1200&auto=format&fit=crop",
-  pistachio:
-    "https://images.unsplash.com/photo-1704079662049-d00890d21a69?q=80&w=1200&auto=format&fit=crop",
-  almond:
-    "https://images.unsplash.com/photo-1608797178974-15b35a64ede9?q=80&w=1200&auto=format&fit=crop",
-  cashew:
-    "https://images.unsplash.com/photo-1509912760195-4f6cfd8cce2c?q=80&w=1200&auto=format&fit=crop",
-  mixedNuts:
-    "https://images.unsplash.com/photo-1693812879904-b8161644ce5a?q=80&w=1200&auto=format&fit=crop",
-  beePollen:
-    "https://images.unsplash.com/photo-1750582467180-41558fbfea17?q=80&w=1200&auto=format&fit=crop",
+  hazelnut: "/images/Beeking Etman/كيس بندق 100 جرام.png",
+  pistachio: "/images/Beeking Etman/كيس فستق 100 جرام.png",
+  almond: "/images/Beeking Etman/كيس لوز 100 جرام.jpg",
+  cashew: "/images/Beeking Etman/كيس كاجو 100 جرام.png",
+  mixedNuts: "/images/Beeking Etman/كيس مكسرات مشكل 100 جرام.png",
+  beePollen: "/images/Beeking Etman/علبة حبوب اللقاح البرسيم 20 جرام.png",
+  beePollen125: "/images/Beeking Etman/علبة حبوب اللقاح البرسيم 125 جرام.png",
   royalJelly:
     "https://images.unsplash.com/photo-1641964946680-0002fac59a11?q=80&w=1200&auto=format&fit=crop",
-  propolis:
-    "https://images.unsplash.com/photo-1570723989345-3a537f60a9c5?q=80&w=1200&auto=format&fit=crop",
-  ginseng:
-    "https://images.unsplash.com/photo-1773304189617-0e89faa81c6e?q=80&w=1200&auto=format&fit=crop",
-  palmPollen:
-    "https://images.unsplash.com/photo-1712913929442-820c65e17dc4?q=80&w=1200&auto=format&fit=crop",
+  propolis: "/images/Beeking Etman/علبة البروبليس.jpg",
+  ginseng: "/images/Beeking Etman/علبة الجينسينج.png",
+  palmPollen: "/images/Beeking Etman/علبة طلع النخل.png",
   honeySpoons:
     "https://images.unsplash.com/photo-1641878067318-1d1f79a77785?q=80&w=1200&auto=format&fit=crop",
   dipper:
     "https://images.unsplash.com/photo-1573697610008-4c72b4e9508f?q=80&w=1200&auto=format&fit=crop",
+};
+
+// Secondary gallery shots per category — each product's gallery is its primary
+// image plus a few category-appropriate shots, deduped and capped at 4.
+const GALLERY: Record<string, (keyof typeof IMG)[]> = {
+  flowers: ["glassLight", "glassPale", "dipper"],
+  sidr: ["glassDark", "glassLight", "dipper"],
+  blends: ["blackseed", "glassLight", "nutsInHoney"],
+  comb: ["combFrame", "combFrameCitrus", "combChunks"],
+  "bee-supplements": ["royalJelly", "propolis", "beePollen", "honeySpoons"],
+  nuts: ["nutsCan", "hazelnut", "pistachio", "mixedNuts"],
 };
 
 const CATEGORIES = [
@@ -162,7 +163,7 @@ const PRODUCTS: SeedProduct[] = [
     descriptionEn:
       "Half a kilo of clover honey in an economical plastic jar — light and practical for daily use.",
     category: "flowers",
-    image: "plasticJar",
+    image: "plasticJar500",
     featured: false,
     variants: [
       {
@@ -170,7 +171,7 @@ const PRODUCTS: SeedProduct[] = [
         nameEn: "500g Plastic",
         price: 120_00,
         stock: 50,
-        image: "plasticJar",
+        image: "plasticJar500",
       },
     ],
   },
@@ -454,9 +455,11 @@ const PRODUCTS: SeedProduct[] = [
     descriptionEn:
       "A full comb frame with fresh citrus honey — 100% natural from the heart of the hive.",
     category: "comb",
-    image: "combFrame",
+    image: "combFrameCitrus",
     featured: false,
-    variants: [{ name: "موالح", nameEn: "Citrus", price: 75_00, stock: 15, image: "combFrame" }],
+    variants: [
+      { name: "موالح", nameEn: "Citrus", price: 75_00, stock: 15, image: "combFrameCitrus" },
+    ],
   },
   {
     slug: "comb-honey-250g-clover",
@@ -599,9 +602,11 @@ const PRODUCTS: SeedProduct[] = [
     description: "عبوة 125 جرام من حبوب اللقاح الخام — دعم مناعة منتظم بمقدار كافٍ.",
     descriptionEn: "A 125g jar of raw pollen — regular immunity support in a sufficient amount.",
     category: "bee-supplements",
-    image: "beePollen",
+    image: "beePollen125",
     featured: false,
-    variants: [{ name: "125 جرام", nameEn: "125g", price: 145_00, stock: 15, image: "beePollen" }],
+    variants: [
+      { name: "125 جرام", nameEn: "125g", price: 145_00, stock: 15, image: "beePollen125" },
+    ],
   },
   {
     slug: "honey-spoons-box",
@@ -759,16 +764,27 @@ async function upsertVariant(productId: string, v: SeedVariant, sortOrder: numbe
   }
 }
 
+async function upsertProductImages(p: SeedProduct, productId: string): Promise<void> {
+  const shots = (GALLERY[p.category] ?? []).map((k) => IMG[k]);
+  const urls = [...new Set([IMG[p.image], ...shots])].slice(0, 4);
+  await db.delete(schema.productImage).where(eq(schema.productImage.productId, productId));
+  await db
+    .insert(schema.productImage)
+    .values(urls.map((url, sortOrder) => ({ productId, url, sortOrder })));
+}
+
 async function seed(): Promise<void> {
   await db.delete(schema.orderItem);
   await db.delete(schema.order);
   await db.delete(schema.productVariant);
+  await db.delete(schema.productImage);
 
   const categoryIds = new Map<string, string>();
   for (const c of CATEGORIES)
     categoryIds.set(c.slug, await upsertCategory(c.slug, c.name, c.nameEn));
   for (const p of PRODUCTS) {
     const productId = await upsertProduct(p, categoryIds.get(p.category)!);
+    await upsertProductImages(p, productId);
     for (let i = 0; i < p.variants.length; i += 1) {
       await upsertVariant(productId, p.variants[i], i);
     }

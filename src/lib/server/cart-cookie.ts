@@ -38,7 +38,6 @@ function sanitizeBlendLine(entry: Record<string, unknown>): CartEntry[] {
     if (typeof qty !== "number" || !Number.isFinite(qty) || qty <= 0) return [];
     return [{ key, variantId, qty: Math.floor(qty) }];
   });
-  if (cleaned.length === 0) return [];
   return [{ kind: "blend", id, baseVariantId, jarSize, additives: cleaned }];
 }
 

@@ -112,7 +112,7 @@
           {#if isBlendItem(item)}
             <div class="flex justify-between gap-2">
               <span class="line-clamp-1">
-                {t(lang, "blends.cartName")} — {item.name} ({item.variantName}) × 1
+                {item.name} ({item.variantName}) × 1
               </span>
               <span class="font-semibold">{formatEGP(lineTotal(item), lang)}</span>
             </div>

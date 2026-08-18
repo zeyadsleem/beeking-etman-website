@@ -8,11 +8,9 @@
   import SearchSuggestions from "./SearchSuggestions.svelte";
 
   let {
-    categories,
     user,
     lang = "ar",
   }: {
-    categories: { name: string; slug: string }[];
     user?: { name?: string | null } | null;
     lang?: Lang;
   } = $props();
@@ -71,7 +69,7 @@
 </script>
 
 <header class="sticky top-0 z-30 border-b border-cocoa-100 bg-paper/85 backdrop-blur">
-  <div class="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-3">
+  <div class="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3">
     <div class="col-start-1 flex min-w-0 items-center gap-5 justify-self-start">
       <a href="/" class="flex items-center gap-2.5 transition-colors hover:opacity-80" aria-label={t(lang, "brand.tagline")}>
         <img src="/images/logo.png" alt={t(lang, "brand.tagline")} class="h-10 w-10 object-contain" />
@@ -81,14 +79,11 @@
         <a href="/" class="shrink-0 transition-colors hover:text-honey-700">{t(lang, "nav.home")}</a>
         <a href="/products" class="shrink-0 transition-colors hover:text-honey-700">{t(lang, "nav.store")}</a>
         <a href="/blends" class="shrink-0 font-bold text-honey-700 transition-colors hover:text-honey-800">{t(lang, "blends.nav")}</a>
-        {#each categories as cat}
-          <a href={`/products?category=${cat.slug}`} class="hidden shrink-0 transition-colors hover:text-honey-700 xl:inline">{cat.name}</a>
-        {/each}
       </nav>
     </div>
 
     {#if showHeaderSearch}
-      <div class="col-start-2 hidden w-full max-w-lg justify-self-center lg:block">
+      <div class="col-start-2 hidden w-full max-w-2xl justify-self-center lg:block">
         <SearchSuggestions
           lang={lang}
           initial={q}
@@ -216,9 +211,6 @@
           <a href="/" onclick={closeMobile} class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">{t(lang, "nav.home")}</a>
           <a href="/products" onclick={closeMobile} class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">{t(lang, "nav.store")}</a>
           <a href="/blends" onclick={closeMobile} class="rounded-xl px-4 py-3 text-sm font-bold text-honey-700 transition-colors hover:bg-honey-50 hover:text-honey-800">{t(lang, "blends.nav")}</a>
-          {#each categories as cat}
-            <a href={`/products?category=${cat.slug}`} onclick={closeMobile} class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">{cat.name}</a>
-          {/each}
         </nav>
 
         <div class="mt-4 space-y-1 border-t border-cocoa-200 pt-4">

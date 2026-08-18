@@ -93,7 +93,24 @@ under `docs/superpowers/plans/2026-08-14-mamlakat-alnahl.md` (spec
       Default Arabic; DB catalog content stays Arabic-only (documented follow-up).
 - [x] Removed `@tanstack/svelte-table` dependency.
 
-## Discovered
+### Blends custom blend studio (2026-08-17)
+
+- [x] `/blends` game page: 4 steps (هدف → عسل+حجم → خلط → نجاح) with step
+      indicator, native HTML5 drag-and-drop onto the jar + tap-to-add fallback,
+      live price bar, confetti success screen with the chosen honey's jar image.
+- [x] 5 goal presets (قوة وحيوية/مناعة/أطفال/معدة وأمعاء/طاقة وتركيز) auto-fill
+      recommended additive doses, editable up to `MAX_DOSE` (3).
+- [x] Blend sold as ONE cart line (`BlendLine`/`BlendCartItem` union in the cart
+      model); server re-derives every price from the DB at resolve/order time.
+- [x] `orders.ts` expands a blend into base-honey + additive order units with
+      per-variant stock decrement.
+- [x] Cart drawer, cart page, and checkout render blends with their additive
+      composition; Header/Footer gained a "الخلطات" nav link.
+- [x] i18n: ~40 `blends.*` keys in ar + en.
+- [x] Unit + e2e coverage: cart/cookie/store/orders blend tests; `blends.e2e.ts`
+      composes a blend end-to-end (goal → honey → mix → success → cart).
+
+### Discovered
 
 - [ ] Investigate dev-mode hydration: `vp dev` serves HTML without client
       entry scripts (no hydration, clicks dead) in this environment; `vp

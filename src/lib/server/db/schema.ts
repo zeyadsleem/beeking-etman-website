@@ -45,6 +45,17 @@ export const productVariant = sqliteTable("store_product_variant", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
+export const productImage = sqliteTable("store_product_image", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  productId: text("product_id")
+    .notNull()
+    .references(() => product.id),
+  url: text("url").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
 export const order = sqliteTable("store_order", {
   id: text("id")
     .primaryKey()

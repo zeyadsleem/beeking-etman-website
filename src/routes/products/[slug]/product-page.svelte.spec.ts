@@ -10,6 +10,7 @@ function product(id: string, name: string, image: string) {
     slug: `${id}-slug`,
     description: "وصف",
     image,
+    images: [image],
     categoryId: "cat",
     featured: 0,
     createdAt: 0,

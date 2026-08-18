@@ -587,3 +587,122 @@ whose variant was deleted mid-session.
 
 **Consequences:** Tabs converge on the latest cart; stale variants are removed
 from the UI immediately instead of disappearing silently at checkout.
+
+## 2026-08-17 — Blends studio: composed honey blends as one cart line
+
+**Context:** The user wanted a distinct "الخلطات" page where customers compose a
+custom honey blend like a game — pick a goal, a base honey and jar size, then
+drag-and-drop bee supplements (غذاء ملكات، بروبليس، جينسنج، طلع النخل، حبوب
+لقاح) with adjustable doses, ending in a success screen that shows the composed
+jar and lets them order it. The existing cart is variant-keyed (`CartLine
+{variantId, quantity}`) and prices are stored per variant.
+
+**Decision:**
+
+- **Composition:** A new pure module `src/lib/blends.ts` owns the game config —
+  5 goal presets, 5 base honeys with their half/full catalog slugs, 5 additives
+  with product slugs, per-additive recommended doses per jar size
+  (`DOSE_FOR`, propolis stays 1× for both sizes) and a `MAX_DOSE` of 3.
+- **Cart model union:** `CartEntry = CartLine | BlendLine` and
+  `CartItem = RegularCartItem | BlendCartItem`. A `BlendLine` carries
+  `{ kind: 'blend', id, baseVariantId, jarSize, additives: [{key, variantId,
+qty}] }`; the cookie, sanitizer, cart store, and `resolveCartItems` all
+  branch on `kind`. The client cart store persists the full item for instant
+  rendering; the signed cookie keeps only the identifiers.
+- **Prices are always DB-derived:** the page loads base-honey + additive
+  variants from the catalog, the client composes and shows a live total, but at
+  checkout/order time `resolveCartItems` re-builds the blend item from the DB
+  (base price + Σ additive price × qty), so a tampered cookie cannot change what
+  is charged.
+- **Order expansion:** `orders.ts` expands each blend into order units — one
+  base-honey unit (quantity 1) plus one unit per additive — so stock is
+  decremented per real variant and `store_order_item` rows reflect the actual
+  products. Stock guards use the unit quantity (not an aggregate `requested`
+  map) to avoid double-decrementing a variant shared by two blend lines.
+- **UI:** the game runs entirely client-side on `/blends` (goal → honey + jar
+  size → drag-and-drop mix → success), uses native HTML5 drag events plus
+  +/- buttons as a touch fallback, and adds to the cart via the existing
+  `addBlend` store path; the drawer/cart/checkout render blend lines with their
+  additive composition. No new DB tables or migrations were needed.
+
+**Consequences:** A composed blend is a first-class, one-line cart item that
+flows through the existing signed-cookie, checkout, and order pipeline with
+server-side price integrity; the game config is pure and unit-tested; and the
+catalog variants double as both standalone products and blend ingredients.
+
+## 2026-08-17: Fraunces display serif for the English version
+
+**Context:** The Arabic version renders `.headline` in Amiri (a classical Naskh
+serif) and body copy in Cairo Variable. When the site is switched to English,
+those same fonts serve Latin glyphs — Amiri's secondary Latin is dated and
+Cairo's is geometric/plain, so the English version looked generic next to the
+warm, artisanal honey-brand design.
+
+**Decision:** Add `@fontsource-variable/fraunces` (Latin subsets only, loaded
+lazily via `unicode-range`) and scope it to English with
+`html:lang(en) .headline { font-family: var(--font-display) }` (weight 600,
+`letter-spacing: -0.015em`, optical sizing on). `--font-display` falls back to
+Amiri then Cairo so any Arabic characters mixed into English strings still
+render correctly. Arabic pages are untouched and never download the Latin
+subset because `.headline` still resolves to Amiri there.
+
+**Consequences:** English headlines, prices, and hero stats render in a soft
+characterful display serif that matches the honey brand; the change is pure CSS
+scoped to `:lang(en)` and costs nothing on Arabic pages.
+
+## 2026-08-17: Image-collage cards for blend goals on `/blends`
+
+**Context:** Step 1 of the blend builder presented each goal (vitality,
+immunity, children, digestive, energy) as a text-only card — name, description,
+and recommended-additive chips. The user asked to replace the text block with an
+expressive image per goal that entices clicking the card, rather than reading a
+paragraph.
+
+**Decision:** Each goal card becomes an image-led collage. The card is a
+`<button>` with an `aspect-[4/3]` photo: the first recommended additive's
+product image as a full-bleed cover, a bottom-up dark gradient overlay for text
+legibility, the goal name rendered in `.headline` over the gradient, overlapping
+circular thumbnails of the remaining recommended additives in the bottom corner,
+and a hover-revealed arrow. The description paragraph and chips were removed, so
+the card communicates the goal's composition visually. Annotated the `$props`
+destructure (`let { data }: { data: PageData } = $props()`) to fix svelte-check
+collapsing complex `PageData` property types under the generic `$props<...>()`
+form, and typed the jar-size loop via `const JAR_SIZES: readonly JarSize[]`.
+
+**Consequences:** Goal selection reads at a glance and feels clickable; cards
+reuse the additives' existing product images (remote URLs) so no new assets are
+needed; hover states (`-translate-y-1`, `scale-105`, arrow reveal) give tactile
+feedback. Text remains as a fallback label over the gradient, preserving the
+goal names in both languages.
+
+## 2026-08-17: Blend cart lines rendered like regular product lines
+
+**Context:** The user reported that the blend builder's checkout flow "isn't
+sound" and that a blend's cart line "doesn't look like the other products'"
+lines. Inspection found two real problems: (1) the drawer's blend quantity text
+used `t(lang, "cart.quantity")`, a key that doesn't exist in `messages.ts`, so
+the literal key `cart.quantity 1` rendered in the cart; and (2) a server-side
+cookie sanitizer dropped a blend line entirely when its additive list cleaned
+to empty, so a honey-only blend (all doses removed) showed in the drawer but
+silently vanished from the server cart and checkout.
+
+**Decision:** Render blend lines through the same markup as regular products —
+image link, clickable name, muted gray sub-line, price — and fold the blend's
+composition into the muted sub-line via a new shared helper
+`blendLineDetail(variantName, additives)` (e.g. `كيلو · غذاء ملكات × 2 · جينسنج
+× 2`). The honey-colored "Custom blend" badge and additive chips were removed
+from the drawer and cart page; quantity is a fixed `× 1` since blends are
+always single units. Checkout keeps its compact line but drops the "Custom
+blend —" prefix so it matches `checkout.itemLine`. The unused `blends.cartName`
+and `blends.quantity` message keys were deleted. On the server,
+`sanitizeBlendLine` now keeps a blend whose additives were all malformed/empty
+instead of dropping the whole line; the corresponding cookie spec tests were
+updated to assert the line is retained.
+
+**Consequences:** Blend cart lines look and behave like regular product lines
+in the drawer, cart page, and checkout; the composition remains visible in the
+sub-line. A honey-only blend no longer disappears between the drawer and
+checkout. The spinner-wheel goal click is exercised in e2e via
+`click({ force: true })` because Playwright's stability check can't settle on
+the auto-rotating wheel; blend e2e expectations were updated for the new
+full-jar default (royal jelly dose starts at × 2, jar label `كيلو`).

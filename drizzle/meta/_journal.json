@@ -36,6 +36,13 @@
       "when": 1786921887128,
       "tag": "0004_yellow_gwen_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787042781663,
+      "tag": "0005_brown_sleeper",
+      "breakpoints": true
     }
   ]
 }

@@ -52,7 +52,7 @@ describe("cart-cookie", () => {
     ];
     expect(readCartFromString(headerFor(lines), SECRET)).toEqual(lines);
   });
-  it("rejects a blend line with an unknown additive key", () => {
+  it("drops an unknown additive key but keeps the blend line", () => {
     const lines: CartEntry[] = [
       {
         kind: "blend",
@@ -62,12 +62,14 @@ describe("cart-cookie", () => {
         additives: [{ key: "bogus" as never, variantId: "rj1", qty: 1 }],
       },
     ];
-    expect(readCartFromString(signCartCookie(SECRET, lines), SECRET)).toEqual([]);
+    expect(readCartFromString(signCartCookie(SECRET, lines), SECRET)).toEqual([
+      { kind: "blend", id: "blend-1", baseVariantId: "b1", jarSize: "half", additives: [] },
+    ]);
   });
-  it("rejects a blend line without additives", () => {
+  it("keeps a blend line without additives", () => {
     const lines: CartEntry[] = [
       { kind: "blend", id: "blend-1", baseVariantId: "b1", jarSize: "half", additives: [] },
     ];
-    expect(readCartFromString(signCartCookie(SECRET, lines), SECRET)).toEqual([]);
+    expect(readCartFromString(signCartCookie(SECRET, lines), SECRET)).toEqual(lines);
   });
 });

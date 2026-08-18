@@ -1,5 +1,6 @@
 <script lang="ts">
   import "@fontsource-variable/cairo";
+  import "@fontsource-variable/fraunces";
   import "@fontsource/amiri/arabic-400.css";
   import "@fontsource/amiri/arabic-700.css";
   import { beforeNavigate, onNavigate } from "$app/navigation";
@@ -48,7 +49,7 @@
 </svelte:head>
 
 <div class="flex min-h-screen flex-col">
-  <Header categories={data.categories} user={data.user} lang={data.lang} />
+  <Header user={data.user} lang={data.lang} />
   <main class="mx-auto w-full max-w-7xl flex-1 px-4">
     {@render children()}
   </main>

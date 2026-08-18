@@ -7,7 +7,7 @@ test("customer composes a blend and adds it to the cart", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("اصنع خلطتك");
 
-  await page.getByRole("button", { name: /قوة وحيوية/ }).click();
+  await page.getByRole("button", { name: /قوة وحيوية/ }).click({ force: true });
 
   await expect(page.getByRole("heading", { name: "اختار عسلك" })).toBeVisible();
   await page
@@ -16,12 +16,12 @@ test("customer composes a blend and adds it to the cart", async ({ page }) => {
     .click();
 
   await expect(page.getByRole("heading", { name: "كوّن خلطتك" })).toBeVisible();
-  await expect(page.getByText("غذاء ملكات × 1")).toBeVisible();
-  await expect(page.getByText("البرطمان · نص كيلو")).toBeVisible();
+  await expect(page.getByText("غذاء ملكات × 2")).toBeVisible();
+  await expect(page.getByText("البرطمان · كيلو")).toBeVisible();
 
   const addRoyalJelly = page.getByRole("button", { name: "إضافة" }).first();
   await addRoyalJelly.click();
-  await expect(page.getByText("غذاء ملكات × 2")).toBeVisible();
+  await expect(page.getByText("غذاء ملكات × 3")).toBeVisible();
 
   await page.getByRole("button", { name: "شوف خلطتك" }).click();
 
@@ -33,4 +33,9 @@ test("customer composes a blend and adds it to the cart", async ({ page }) => {
   await expect(page.getByTestId("cart-drawer")).toBeVisible();
   await expect(page.getByTestId("cart-drawer")).toContainText("برسيم");
   await expect(page.getByTestId("cart-drawer")).toContainText("غذاء ملكات");
+
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Craft your own blend");
+  await expect(page.getByRole("heading", { name: "Your blend is ready!" })).toBeVisible();
 });

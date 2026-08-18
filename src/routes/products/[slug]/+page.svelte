@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { AspectRatio, ToggleGroup } from "bits-ui";
+  import { ToggleGroup } from "bits-ui";
   import Breadcrumb from "$lib/components/Breadcrumb.svelte";
   import Button from "$lib/components/Button.svelte";
   import Price from "$lib/components/Price.svelte";
   import ProductCard from "$lib/components/ProductCard.svelte";
+  import ProductImageGallery from "$lib/components/ProductImageGallery.svelte";
   import QuantityPicker from "$lib/components/QuantityPicker.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { addToCart } from "$lib/cart-store.svelte";
@@ -19,6 +20,14 @@
     return data.product.variants.find((v) => v.id === id) ?? data.product.variants[0];
   });
   let quantity = $state(1);
+
+  // The gallery leads with the selected variant's photo, followed by the
+  // product-wide gallery shots, without duplicates.
+  let galleryImages = $derived(
+    [selectedVariant.image, ...data.product.images].filter(
+      (url, index, all) => all.indexOf(url) === index,
+    ),
+  );
 
   function selectVariant(id: string) {
     const v = data.product.variants.find((x) => x.id === id);
@@ -59,23 +68,13 @@
   />
 
 <div class="grid gap-8 lg:grid-cols-2">
-  <figure class="relative">
-    <div class="absolute -inset-3 rounded-3xl border border-cocoa-200/70" aria-hidden="true"></div>
-    <div class="relative overflow-hidden rounded-2xl bg-cocoa-100">
-      {#key selectedVariant.id}
-        <AspectRatio.Root ratio={1} class="motion-safe:animate-fade-up">
-          <!-- Shares the view-transition-name set by the clicked ProductCard,
-               so the card thumbnail morphs into this detail image on entry. -->
-          <img
-            src={selectedVariant.image}
-            alt={data.product.name}
-            style="view-transition-name: product-{data.product.id}; view-transition-class: product-img;"
-            class="h-full w-full object-cover"
-          />
-        </AspectRatio.Root>
-      {/key}
-    </div>
-  </figure>
+  <ProductImageGallery
+    images={galleryImages}
+    productName={data.product.name}
+    lang={lang}
+    viewTransitionName={`product-${data.product.id}`}
+    activeKey={selectedVariant.id}
+  />
 
   <div class="flex flex-col gap-5">
     <div>

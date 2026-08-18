@@ -145,6 +145,15 @@ export function isAdditiveKey(value: unknown): value is AdditiveKey {
   return typeof value === "string" && value in ADDITIVE_LABELS;
 }
 
+export function blendLineDetail(
+  variantName: string,
+  additives: readonly { name: string; qty: number }[],
+): string {
+  if (additives.length === 0) return variantName;
+  const parts = additives.map((a) => `${a.name} × ${a.qty}`);
+  return [variantName, ...parts].join(" · ");
+}
+
 export function presetDoses(goal: BlendGoal, jarSize: JarSize): Record<AdditiveKey, number> {
   const doses = Object.fromEntries(ADDITIVE_KEYS.map((k) => [k, 0])) as Record<AdditiveKey, number>;
   for (const key of goal.recommended) {

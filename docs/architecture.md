@@ -25,7 +25,14 @@ design spec: `docs/superpowers/plans/2026-08-12-honey-store.md` and
 - `src/lib/currency.ts` — `formatEGP`: formats integer qirsh (1/100 EGP) with
   the `ar-EG` currency locale.
 - `src/lib/cart.ts` — pure cart helpers (add/remove/quantity/totals); flat
-  shipping (EGP 60, free ≥ EGP 600).
+  shipping (EGP 60, free ≥ EGP 600). Cart model is a union:
+  `CartEntry = CartLine | BlendLine` and `CartItem = RegularCartItem |
+BlendCartItem`, so a composed blend rides the cart as one line
+  (`isBlendItem`, `itemId`, `lineTotal`/`blendTotal`).
+- `src/lib/blends.ts` — pure config/logic for the blends studio: 5 goal
+  presets, 5 base honeys with their half/full catalog slugs, 5 additives with
+  product slugs, per-additive recommended doses per jar size (`DOSE_FOR`),
+  `MAX_DOSE`, `isAdditiveKey`, `presetDoses`.
 - `src/lib/cart-store.svelte.ts` — Svelte 5 client cart store, syncs to the
   signed cookie via `POST /api/cart`.
 - `src/lib/server/cart-cookie.ts` — signed `honey_cart` cookie (HMAC, HttpOnly,
@@ -51,7 +58,8 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
 - `src/lib/server/orders.ts` — transactional order service with mock payment
   (`createOrder`, `generateOrderNumber` → `HNY-######`); idempotent per nonce;
   retries order-number collisions with a fresh number; messages localized per
-  `lang`.
+  `lang`. Expands each blend line into base-honey + additive order units
+  (per-variant stock decrement, per-unit `store_order_item` rows).
 - `src/lib/server/rate-limit.ts` — DB-backed fixed-window rate limiter for
   auth actions and checkout (`createDbRateLimiter`, `clientAddressKey`); busy
   retry + opportunistic global pruning of abandoned buckets.
@@ -64,6 +72,8 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `SearchSuggestions` (bits-ui `Combobox`, `dir` follows the active language),
   `SectionTitle`, `Price`, `QuantityPicker`.
 - Routes: `/` (home), `/products` + `/products/[slug]` (catalog, server-paged),
+  `/blends` (blend-composition game: goal → honey + jar size → drag-and-drop
+  mix → success; client-side, additives/base honeys loaded from the catalog),
   `/cart`, `/checkout` + `/checkout/success/[id]`, `/login`, `/register`,
   `/account/orders` (signed-in user's orders), `/api/cart`, `/api/health`,
   `/api/lang`.
@@ -92,6 +102,9 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   at order time. `POST /api/cart` sanitizes unsigned input before signing. A
   `storage` listener keeps cart state in sync across tabs; `resolveCartItems`
   reports missing variants so the checkout page prunes them from the UI.
+- Blend items (`/blends`) are composed client-side but re-priced from the DB at
+  resolve/order time (base variant price + Σ additive price × qty), so a
+  composed blend's total can't be tampered with via the cookie.
 - The catalog is server-sorted and paged (`/products`, 12/page); search goes
   through SQLite FTS5 (indexing both Arabic and English name/description).
 - Language is Arabic by default and switchable to English (`lang` cookie); all

@@ -58,7 +58,7 @@ export const load: PageServerLoad = async (event) => {
         products.map((p) => p.id),
       ),
     );
-  const productById = new Map(products.map((p) => [p.id, p]));
+  const productBySlug = new Map(products.map((p) => [p.slug, p]));
   const variantByProductId = new Map<string, typeof schema.productVariant.$inferSelect>();
   for (const v of variants) {
     if (!variantByProductId.has(v.productId)) variantByProductId.set(v.productId, v);
@@ -72,7 +72,7 @@ export const load: PageServerLoad = async (event) => {
   for (const option of BASE_HONEY_OPTIONS) {
     const entry = {} as Record<JarSize, BlendBaseHoney>;
     for (const jarSize of ["half", "full"] as const) {
-      const product = productById.get(optionToSlug(option, jarSize));
+      const product = productBySlug.get(optionToSlug(option, jarSize));
       const variant = product ? variantByProductId.get(product.id) : undefined;
       if (!product || !variant) error(500, t(lang, "products.unavailable"));
       entry[jarSize] = {
@@ -92,7 +92,7 @@ export const load: PageServerLoad = async (event) => {
   const additives = new Map<AdditiveKey, BlendAdditiveCatalog>();
   for (const key of Object.keys(ADDITIVE_PRODUCT_SLUGS) as AdditiveKey[]) {
     if (!isAdditiveKey(key)) continue;
-    const product = productById.get(ADDITIVE_PRODUCT_SLUGS[key]);
+    const product = productBySlug.get(ADDITIVE_PRODUCT_SLUGS[key]);
     const variant = product ? variantByProductId.get(product.id) : undefined;
     if (!product || !variant) error(500, t(lang, "products.unavailable"));
     additives.set(key, {
@@ -107,8 +107,12 @@ export const load: PageServerLoad = async (event) => {
     });
   }
 
+  const sidrImage = baseHoneys.get("sidr")?.full.image;
+  if (!sidrImage) error(500, t(lang, "products.unavailable"));
+
   return {
     lang,
+    blendImage: sidrImage,
     baseHoneys: [...baseHoneys.entries()],
     additives: [...additives.entries()],
   };

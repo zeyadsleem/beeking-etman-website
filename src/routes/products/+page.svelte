@@ -79,7 +79,16 @@
 
   <div class="flex items-center gap-2">
     <span class="text-sm font-medium text-cocoa-700">{t(lang, "products.sortLabel")}</span>
-    <Select.Root type="single" value={data.filters.sort} onValueChange={(v) => changeSort((v ?? "newest") as SortOrder)}>
+    <Select.Root
+      type="single"
+      value={data.filters.sort}
+      onValueChange={(v) => changeSort((v ?? "newest") as SortOrder)}
+      items={[
+        { value: "newest", label: t(lang, "products.sortNewest") },
+        { value: "price-asc", label: t(lang, "products.sortPriceAsc") },
+        { value: "price-desc", label: t(lang, "products.sortPriceDesc") },
+      ]}
+    >
       <Select.Trigger class="chip py-2" aria-label={t(lang, "products.sortAria")}>
         <Select.Value>
           {#snippet children({ selection, placeholder })}

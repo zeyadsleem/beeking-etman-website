@@ -30,9 +30,23 @@
   </div>
 
   <div class="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
-    <div class="motion-safe:animate-fade-up">
-      <p class="eyebrow flex items-center gap-2.5">
-        <span class="inline-block h-px w-8 bg-honey-600/60" aria-hidden="true"></span>
+    <div class="relative motion-safe:animate-fade-up">
+      <div
+        class="group absolute -top-6 end-0 h-32 w-32 transition-all duration-300 hover:-translate-y-1 motion-safe:animate-float lg:hidden"
+        aria-hidden="true"
+      >
+        <img
+          data-testid="hero-brand-mobile"
+          src={lang === "ar" ? "/images/etman-wax-ar.png" : "/images/etman-wax-en.png"}
+          alt=""
+          draggable="false"
+          class="h-full w-full select-none"
+        />
+      </div>
+      <p class="brand-wordmark flex items-center gap-2.5">
+        <svg class="h-6 w-6 text-honey-600/60" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M5 16 3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1Z" />
+        </svg>
         {t(lang, "hero.eyebrow")}
       </p>
 
@@ -97,21 +111,17 @@
       <div class="hex-texture absolute inset-0 rounded-[2rem] opacity-30" aria-hidden="true"></div>
 
       <div
-        class="absolute -top-4 end-0 grid h-36 w-36 place-items-center text-honey-700 motion-safe:animate-spin-slow"
+        data-testid="hero-brand"
+        class="group absolute -top-4 end-0 h-36 w-36 transition-all duration-300 hover:-translate-y-1 motion-safe:animate-float lg:h-40 lg:w-40"
         aria-hidden="true"
       >
-        <svg viewBox="0 0 100 100" class="absolute inset-0 h-full w-full">
-          <defs>
-            <path id="hero-circle" d="M50,50 m-36,0 a36,36 0 1,1 72,0 a36,36 0 1,1 -72,0" />
-          </defs>
-          <text class="fill-current text-[10px] font-bold tracking-[2.5px]">
-            <textPath href="#hero-circle">{t(lang, "hero.textPath")}</textPath>
-          </text>
-        </svg>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M12 3 20 8v8l-8 5-8-5V8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-          <path d="M12 9c1.8 2 3 3.5 3 5a3 3 0 1 1-6 0c0-1.5 1.2-3 3-5Z" fill="currentColor" opacity="0.85" />
-        </svg>
+        <img
+          data-testid="hero-brand-img"
+          src={lang === "ar" ? "/images/etman-wax-ar.png" : "/images/etman-wax-en.png"}
+          alt=""
+          draggable="false"
+          class="h-full w-full select-none"
+        />
       </div>
 
       <div class="relative mx-auto mt-20 w-[70%] max-w-sm">
