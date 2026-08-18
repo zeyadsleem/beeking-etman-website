@@ -53,6 +53,21 @@ test("clicking another link during a view transition still navigates", async ({ 
   await expect(page).toHaveURL(/\/products$/);
 });
 
+test("clicking a product inside the cart drawer closes the drawer", async ({ page }) => {
+  await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "أضف إلى السلة" }).click();
+
+  await page.getByRole("link", { name: "المتجر" }).first().click();
+  await expect(page).toHaveURL(/\/products$/);
+
+  await page.getByRole("button", { name: "فتح سلة التسوق" }).click();
+  await expect(page.getByTestId("cart-drawer")).toBeVisible();
+
+  await page.getByTestId("cart-drawer").getByRole("link", { name: "عسل سدر مصري" }).first().click();
+  await expect(page).toHaveURL(/\/products\/sidr-honey-1kg/);
+  await expect(page.getByTestId("cart-drawer")).toBeHidden();
+});
+
 test("sort dropdown shows translated labels in Arabic", async ({ page }) => {
   await page.goto("/products", { waitUntil: "domcontentloaded" });
 

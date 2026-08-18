@@ -2,7 +2,7 @@
   import QuantityPicker from "./QuantityPicker.svelte";
   import Price from "./Price.svelte";
   import { formatEGP } from "$lib/currency";
-  import { removeFromCart, setQuantity } from "$lib/cart-store.svelte";
+  import { closeDrawer, removeFromCart, setQuantity } from "$lib/cart-store.svelte";
   import { isBlendItem, itemId, lineTotal } from "$lib/cart";
   import { blendLineDetail } from "$lib/blends";
   import { t, type Lang } from "$lib/i18n/messages";
@@ -27,6 +27,7 @@
 >
   <a
     href={itemHref}
+    onclick={isDrawer ? closeDrawer : undefined}
     class={isDrawer
       ? "w-16 shrink-0 self-stretch overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100"
       : "w-20 shrink-0 self-stretch overflow-hidden rounded-xl border border-cocoa-100 bg-cocoa-100 sm:w-24"}
@@ -37,6 +38,7 @@
     <div class="flex items-start justify-between gap-2">
       <a
         href={itemHref}
+        onclick={isDrawer ? closeDrawer : undefined}
         class={isDrawer
           ? "line-clamp-1 text-sm font-semibold text-cocoa-800 transition-colors hover:text-honey-700"
           : "headline text-base leading-snug text-cocoa-900 hover:text-honey-700"}
