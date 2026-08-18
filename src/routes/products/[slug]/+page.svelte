@@ -8,6 +8,7 @@
   import QuantityPicker from "$lib/components/QuantityPicker.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { addToCart } from "$lib/cart-store.svelte";
+  import { regularItemPayload } from "$lib/cart";
   import { formatEGP } from "$lib/currency";
   import { t } from "$lib/i18n/messages";
   import type { PageData } from "./$types";
@@ -38,19 +39,7 @@
   }
 
   function handleAdd() {
-    addToCart(
-      {
-        variantId: selectedVariant.id,
-        productId: data.product.id,
-        name: data.product.name,
-        variantName: selectedVariant.name,
-        slug: data.product.slug,
-        image: selectedVariant.image,
-        price: selectedVariant.price,
-        stock: selectedVariant.stock,
-      },
-      quantity,
-    );
+    addToCart(regularItemPayload(data.product, selectedVariant), quantity);
   }
 </script>
 

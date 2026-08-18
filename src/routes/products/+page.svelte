@@ -2,6 +2,7 @@
   import { Select, ToggleGroup } from "bits-ui";
   import Button from "$lib/components/Button.svelte";
   import Breadcrumb from "$lib/components/Breadcrumb.svelte";
+  import HoneycombIcon from "$lib/components/HoneycombIcon.svelte";
   import ProductCard from "$lib/components/ProductCard.svelte";
   import SearchSuggestions from "$lib/components/SearchSuggestions.svelte";
   import { goto } from "$app/navigation";
@@ -133,9 +134,7 @@
 
 {#if data.products.length === 0}
   <div class="mt-14 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-cocoa-200 bg-parchment p-14 text-center">
-    <svg width="52" height="58" viewBox="0 0 26 30" fill="none" aria-hidden="true">
-      <path d="M13 1l11 6.5v13L13 27 2 20.5v-13L13 1Z" fill="none" stroke="#dcd8d0" stroke-width="1.6" />
-    </svg>
+    <HoneycombIcon size={52} stroke="#dcd8d0" />
     <p class="text-lg font-semibold text-cocoa-600">{t(lang, "products.empty")}</p>
     <Button variant="outline" type="button" onclick={() => selectCategory(null)} class="mt-1 text-sm">{t(lang, "products.showAll")}</Button>
   </div>

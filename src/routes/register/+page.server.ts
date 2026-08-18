@@ -3,11 +3,11 @@ import { APIError } from "better-auth/api";
 import { auth } from "$lib/server/auth";
 import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
-import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
+import { AUTH_RATE_LIMITS, clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
 import { t } from "$lib/i18n/messages";
 import type { Actions, PageServerLoad } from "./$types";
 
-const registerLimiter = createDbRateLimiter(db, { windowMs: 3_600_000, max: 5 });
+const registerLimiter = createDbRateLimiter(db, AUTH_RATE_LIMITS.register);
 
 export const load: PageServerLoad = (event) => {
   if (event.locals.user) redirect(302, "/account/orders");

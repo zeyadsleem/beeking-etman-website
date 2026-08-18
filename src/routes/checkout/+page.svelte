@@ -4,6 +4,7 @@
   import { formatEGP } from "$lib/currency";
   import { isBlendItem, itemId, lineTotal } from "$lib/cart";
   import Button from "$lib/components/Button.svelte";
+  import CartTotals from "$lib/components/CartTotals.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { t } from "$lib/i18n/messages";
   import type { ActionData, PageData } from "./$types";
@@ -134,11 +135,7 @@
         </li>
       {/each}
     </ul>
-    <dl class="mt-4 space-y-1 border-t border-cocoa-100 pt-3 text-sm text-cocoa-700">
-      <div class="flex justify-between"><dt>{t(lang, "cart.subtotal")}</dt><dd class="font-semibold">{formatEGP(data.totals.subtotal, lang)}</dd></div>
-      <div class="flex justify-between"><dt>{t(lang, "cart.shipping")}</dt><dd class="font-semibold">{data.totals.shipping === 0 ? t(lang, "cart.free") : formatEGP(data.totals.shipping, lang)}</dd></div>
-      <div class="flex justify-between text-base font-extrabold text-cocoa-900"><dt>{t(lang, "cart.total")}</dt><dd>{formatEGP(data.totals.total, lang)}</dd></div>
-    </dl>
+    <CartTotals totals={data.totals} {lang} />
     <p class="mt-4 text-xs text-cocoa-400">{t(lang, "checkout.agree")}</p>
   </aside>
 </div>

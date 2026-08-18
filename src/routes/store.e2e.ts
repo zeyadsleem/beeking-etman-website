@@ -41,6 +41,18 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
   expect(number).toMatch(/^HNY-\d{6}$/);
 });
 
+test("clicking another link during a view transition still navigates", async ({ page }) => {
+  await page.goto("/products", { waitUntil: "domcontentloaded" });
+
+  await page.getByRole("link", { name: "عسل سدر مصري" }).first().click();
+  await page.waitForURL(/\/products\/sidr-honey-1kg/);
+
+  // The previous navigation's view transition is still cross-fading here;
+  // this click must not be silently swallowed (see the onNavigate guard).
+  await page.getByRole("link", { name: "المتجر" }).first().click();
+  await expect(page).toHaveURL(/\/products$/);
+});
+
 test("sort dropdown shows translated labels in Arabic", async ({ page }) => {
   await page.goto("/products", { waitUntil: "domcontentloaded" });
 

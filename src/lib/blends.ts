@@ -1,4 +1,8 @@
+import { t, type Lang } from "$lib/i18n/messages";
+
 export type JarSize = "half" | "full";
+
+export const JAR_SIZES: readonly JarSize[] = ["half", "full"];
 
 export type AdditiveKey = "royalJelly" | "propolis" | "ginseng" | "palmPollen" | "beePollen";
 
@@ -141,6 +145,14 @@ export const DOSE_FOR: Record<AdditiveKey, Record<JarSize, number>> = {
 
 export const MAX_DOSE = 3;
 
+export function zeroDoses(): Record<AdditiveKey, number> {
+  return Object.fromEntries(ADDITIVE_KEYS.map((k) => [k, 0])) as Record<AdditiveKey, number>;
+}
+
+export function jarLabel(lang: Lang, jarSize: JarSize): string {
+  return t(lang, jarSize === "full" ? "blends.jarFull" : "blends.jarHalf");
+}
+
 export function isAdditiveKey(value: unknown): value is AdditiveKey {
   return typeof value === "string" && value in ADDITIVE_LABELS;
 }
@@ -155,7 +167,7 @@ export function blendLineDetail(
 }
 
 export function presetDoses(goal: BlendGoal, jarSize: JarSize): Record<AdditiveKey, number> {
-  const doses = Object.fromEntries(ADDITIVE_KEYS.map((k) => [k, 0])) as Record<AdditiveKey, number>;
+  const doses = zeroDoses();
   for (const key of goal.recommended) {
     doses[key] = DOSE_FOR[key][jarSize];
   }

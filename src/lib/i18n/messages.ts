@@ -16,6 +16,26 @@ export function getLocale(lang: Lang): string {
   return lang === "ar" ? "ar-EG" : "en-US";
 }
 
+export function localized(ar: string, en: string, lang: Lang): string {
+  return lang === "en" ? en : ar;
+}
+
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+export function formatDate(
+  lang: Lang,
+  timestamp: number | Date,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const key = `${lang}:${JSON.stringify(options ?? null)}`;
+  let formatter = dateFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(getLocale(lang), options ?? { dateStyle: "long" });
+    dateFormatters.set(key, formatter);
+  }
+  return formatter.format(timestamp);
+}
+
 const ar = {
   "brand.tagline": "مملكة النحل | عتمان الأصلي",
   "brand.name": "مملكة النحل",
@@ -330,7 +350,7 @@ const en: Record<MessageKey, string> = {
   "footer.aboutBody":
     "Demo platform — payment is simulated and no real charges are made. The honey is real, and the taste is legendary.",
   "footer.copyright": "© {year} Kingdom of Honey — every drop measured with love.",
-  "hero.eyebrow": "Kingdom of Honey",
+  "hero.eyebrow": "Bee King",
   "hero.titleA": "Pure honey",
   "hero.titleB": "From the heart of the apiaries",
   "hero.subtitle":

@@ -1,6 +1,7 @@
 <script lang="ts">
   import "@fontsource-variable/cairo";
-  import "@fontsource-variable/fraunces";
+  import "@fontsource-variable/manrope";
+  import "@fontsource-variable/newsreader";
   import "@fontsource/amiri/arabic-400.css";
   import "@fontsource/amiri/arabic-700.css";
   import { beforeNavigate, onNavigate } from "$app/navigation";
@@ -34,11 +35,24 @@
 
   onNavigate((navigation) => {
     if (!document.startViewTransition) return;
-    return new Promise((resolve) => {
-      document.startViewTransition(async () => {
-        resolve();
-        await navigation.complete;
-      });
+    (window as any).__vtCalls = ((window as any).__vtCalls ?? 0) + 1;
+    return new Promise((resolve, reject) => {
+      try {
+        const vt = document.startViewTransition(async () => {
+          try {
+            resolve();
+            await navigation.complete;
+          } catch (e) {
+            (window as any).__vtNavCompleteRej = ((window as any).__vtNavCompleteRej ?? 0) + 1;
+          }
+        });
+        vt.finished.catch(() => {
+          (window as any).__vtFinishedRej = ((window as any).__vtFinishedRej ?? 0) + 1;
+        });
+      } catch (e) {
+        (window as any).__vtSyncThrow = `${e}`;
+        reject(e);
+      }
     });
   });
 </script>

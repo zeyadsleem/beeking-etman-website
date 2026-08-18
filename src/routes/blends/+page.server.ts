@@ -4,8 +4,7 @@ import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
 import { getLang } from "$lib/server/lang";
-import { localized } from "$lib/server/store";
-import { t } from "$lib/i18n/messages";
+import { localized, t } from "$lib/i18n/messages";
 import {
   ADDITIVE_LABELS,
   ADDITIVE_PRODUCT_SLUGS,

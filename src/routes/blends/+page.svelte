@@ -7,8 +7,11 @@
     BASE_HONEY_OPTIONS,
     BLEND_GOALS,
     isAdditiveKey,
+    JAR_SIZES,
+    jarLabel,
     MAX_DOSE,
     presetDoses,
+    zeroDoses,
     type AdditiveKey,
     type BaseHoneyOption,
     type BlendGoal,
@@ -16,7 +19,7 @@
   } from "$lib/blends";
   import { addBlend, openDrawer } from "$lib/cart-store.svelte";
   import { formatEGP } from "$lib/currency";
-  import { t } from "$lib/i18n/messages";
+  import { localized, t } from "$lib/i18n/messages";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -28,12 +31,6 @@
   type Step = "goal" | "base" | "mix" | "done";
 
   const stepKeys = ["goal", "base", "mix", "done"] as const;
-
-  const JAR_SIZES: readonly JarSize[] = ["half", "full"];
-
-  function zeroDoses(): Record<AdditiveKey, number> {
-    return Object.fromEntries(ADDITIVE_KEYS.map((k) => [k, 0])) as Record<AdditiveKey, number>;
-  }
 
   let step = $state<Step>("goal");
   let goal = $state<BlendGoal | null>(null);
@@ -296,7 +293,7 @@
       baseVariantId: base.variantId,
       productId: base.productId,
       name: base.name,
-      variantName: jarSize === "full" ? t(lang, "blends.jarFull") : t(lang, "blends.jarHalf"),
+      variantName: jarLabel(lang, jarSize),
       image: base.image,
       jarSize,
       basePrice: base.price,
@@ -320,31 +317,12 @@
     openDrawer();
   }
 
-  function currentStepLabel(): string {
-    if (step === "goal") return t(lang, "blends.stepGoal");
-    if (step === "base") return t(lang, "blends.stepBase");
-    if (step === "mix") return t(lang, "blends.stepMix");
-    return t(lang, "blends.stepDone");
-  }
-
-  function goalName(g: BlendGoal): string {
-    return lang === "en" ? g.nameEn : g.nameAr;
-  }
-
-  function honeyName(o: BaseHoneyOption): string {
-    return lang === "en" ? o.nameEn : o.nameAr;
-  }
-
   function stepLabel(key: (typeof stepKeys)[number]): string {
     if (key === "goal") return t(lang, "blends.stepGoal");
     if (key === "base") return t(lang, "blends.stepBase");
     if (key === "mix") return t(lang, "blends.stepMix");
     return t(lang, "blends.stepDone");
   }
-
-  const jarLabel = $derived(
-    jarSize === "full" ? t(lang, "blends.jarFull") : t(lang, "blends.jarHalf"),
-  );
 </script>
 
 <svelte:head>
@@ -442,7 +420,7 @@
                     <div class="aspect-[4/3] w-full overflow-hidden bg-cocoa-100">
                       <img
                         src={mainGoalImg}
-                        alt={goalName(g)}
+                        alt={localized(g.nameAr, g.nameEn, lang)}
                         class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>
@@ -453,7 +431,7 @@
                     <span
                       class="headline absolute inset-x-0 top-1/2 -translate-y-1/2 px-3 text-center text-2xl leading-tight text-parchment drop-shadow-[0_2px_8px_rgba(61,40,10,0.85)] sm:text-3xl"
                     >
-                      {goalName(g)}
+                      {localized(g.nameAr, g.nameEn, lang)}
                     </span>
                   </button>
                 </div>
@@ -482,7 +460,7 @@
                 class:chip-active={jarSize === size}
                 onclick={() => setJarSize(size)}
               >
-                {size === "half" ? t(lang, "blends.jarHalf") : t(lang, "blends.jarFull")}
+                {jarLabel(lang, size)}
               </button>
             {/each}
           </div>
@@ -497,11 +475,11 @@
               <div class="relative">
                 <img
                   src={opt?.image ?? ""}
-                  alt={honeyName(o)}
+                  alt={localized(o.nameAr, o.nameEn, lang)}
                   class="size-28 rounded-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
-              <span class="font-bold text-ink-950">{honeyName(o)}</span>
+              <span class="font-bold text-ink-950">{localized(o.nameAr, o.nameEn, lang)}</span>
               <span class="text-sm font-semibold text-honey-700">
                 {formatEGP(opt?.price ?? 0, lang)}
               </span>
@@ -586,7 +564,7 @@
             ondrop={onDrop}
           >
             <span class="mb-3 text-sm font-semibold text-cocoa-500">
-              {t(lang, "blends.jar")} · {jarLabel}
+              {t(lang, "blends.jar")} · {jarLabel(lang, jarSize)}
             </span>
             {#key dropCount}
               <div class="blend-splash relative">
@@ -621,7 +599,7 @@
         <div class="mt-8 flex flex-col items-center gap-4 rounded-3xl bg-ink-950 p-6 text-parchment sm:flex-row sm:justify-between">
           <div class="text-sm text-cocoa-200">
             <p>
-              {base.name} · {jarLabel} — {formatEGP(base.price, lang)}
+              {base.name} · {jarLabel(lang, jarSize)} — {formatEGP(base.price, lang)}
             </p>
             {#if selectedAdditives.length > 0}
               <p class="mt-1">
@@ -668,7 +646,7 @@
             <h3 class="mb-3 font-bold text-ink-950">{t(lang, "blends.composition")}</h3>
             <ul class="flex flex-col gap-2 text-sm">
               <li class="flex items-center justify-between gap-3">
-                <span class="text-cocoa-700">{base.name} · {jarLabel}</span>
+                <span class="text-cocoa-700">{base.name} · {jarLabel(lang, jarSize)}</span>
                 <span class="font-semibold text-ink-950">{formatEGP(base.price, lang)}</span>
               </li>
               {#each selectedAdditives as key (key)}
@@ -702,7 +680,7 @@
       </div>
     {/if}
 
-    <p class="mt-10 text-center text-sm text-cocoa-600">{currentStepLabel()}</p>
+    <p class="mt-10 text-center text-sm text-cocoa-600">{stepLabel(step)}</p>
   </div>
 </section>
 

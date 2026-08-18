@@ -8,10 +8,13 @@ import {
   isBlendItem,
   removeById,
 } from "./cart";
+import { ADDITIVE_KEYS, JAR_SIZES, type AdditiveKey } from "./blends";
 import type { BlendCartItem, CartEntry, CartItem, CartTotals, RegularCartItem } from "./cart";
-import type { JarSize } from "./blends";
 
 const STORAGE_KEY = "honey_cart_v2";
+
+const AdditiveKeySchema = z.enum([...ADDITIVE_KEYS] as [AdditiveKey, ...AdditiveKey[]]);
+const JarSizeSchema = z.enum(JAR_SIZES);
 
 const RegularItemSchema = z.object({
   variantId: z.string(),
@@ -26,7 +29,7 @@ const RegularItemSchema = z.object({
 });
 
 const BlendAdditiveSchema = z.object({
-  key: z.enum(["royalJelly", "propolis", "ginseng", "palmPollen", "beePollen"]),
+  key: AdditiveKeySchema,
   variantId: z.string(),
   productId: z.string(),
   name: z.string(),
@@ -44,7 +47,7 @@ const BlendItemSchema = z.object({
   name: z.string(),
   variantName: z.string(),
   image: z.string(),
-  jarSize: z.enum(["half", "full"]),
+  jarSize: JarSizeSchema,
   basePrice: z.number(),
   stock: z.number(),
   quantity: z.literal(1),
@@ -67,7 +70,7 @@ function toEntries(items: CartItem[]): CartEntry[] {
           kind: "blend" as const,
           id: i.id,
           baseVariantId: i.baseVariantId,
-          jarSize: i.jarSize as JarSize,
+          jarSize: i.jarSize,
           additives: i.additives.map((a) => ({ key: a.key, variantId: a.variantId, qty: a.qty })),
         }
       : { variantId: i.variantId, quantity: i.quantity },

@@ -3,7 +3,7 @@ import { building } from "$app/environment";
 import { auth } from "$lib/server/auth";
 import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
-import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
+import { clientAddressKey, createDbRateLimiter, AUTH_RATE_LIMITS } from "$lib/server/rate-limit";
 import { t } from "$lib/i18n/messages";
 import { svelteKitHandler } from "better-auth/svelte-kit";
 
@@ -12,8 +12,8 @@ import { svelteKitHandler } from "better-auth/svelte-kit";
 // rate limiter that guards the form actions. Limit the same paths here, with
 // the same windows/keys as the matching form actions so both entry points
 // share one bucket per endpoint (login 10/60s, register 5/1h).
-const loginLimiter = createDbRateLimiter(db, { windowMs: 60_000, max: 10 });
-const registerLimiter = createDbRateLimiter(db, { windowMs: 3_600_000, max: 5 });
+const loginLimiter = createDbRateLimiter(db, AUTH_RATE_LIMITS.login);
+const registerLimiter = createDbRateLimiter(db, AUTH_RATE_LIMITS.register);
 
 const AUTH_RATE_LIMITED_PATHS = new Map<string, (ip: string) => Promise<boolean>>([
   ["/sign-in/email", (ip) => loginLimiter.allow(`login:${ip}`)],

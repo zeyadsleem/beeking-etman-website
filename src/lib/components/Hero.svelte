@@ -4,7 +4,6 @@
   import { t, type Lang } from "$lib/i18n/messages";
   import type { ProductSummary } from "$lib/server/store";
   import Button from "./Button.svelte";
-  import Price from "./Price.svelte";
 
   let {
     lang = "ar",
@@ -21,12 +20,97 @@
   const secondaryImage = $derived(secondary?.variants[0]?.image ?? secondary?.image);
 
   const stars = [1, 2, 3, 4, 5];
+
+  const heroIconSources = [
+    "/images/hero-assets/2.png",
+    "/images/hero-assets/3.png",
+    "/images/hero-assets/4.png",
+    "/images/hero-assets/5.png",
+    "/images/hero-assets/6.png",
+    "/images/hero-assets/7.png",
+    "/images/hero-assets/8.png",
+    "/images/hero-assets/9.png",
+    "/images/hero-assets/10.png",
+    "/images/hero-assets/11.png",
+    "/images/hero-assets/12.png",
+    "/images/hero-assets/13.png",
+    "/images/hero-assets/14.png",
+  ];
+
+  interface DecorativeIcon {
+    src: string;
+    style: string;
+    anim: string;
+    align: string;
+  }
+
+  function mulberry32(seed: number) {
+    let a = seed >>> 0;
+    return () => {
+      a |= 0;
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // Seeded deterministic scatter (no Math.random) so server render and client
+  // hydration produce the same hero. Icons sit on a 14x10 grid and are kept
+  // to the top band only (rows 1-4), so nothing appears below the headline
+  // over the subtitle, CTAs and stats. One icon per cell, so nothing overlaps
+  // and every icon can reach the edges and corners. Density is biased toward
+  // the top corner of the image side (end side) and the middle band (gap
+  // between text and image); size and in-cell alignment vary for an organic
+  // look. The .hero-decor mask fades them toward the center.
+  const decorativeIcons: DecorativeIcon[] = (() => {
+    const rand = mulberry32(20260818);
+    const out: DecorativeIcon[] = [];
+    const pick = () => heroIconSources[Math.floor(rand() * heroIconSources.length)];
+    const aligns = [
+      "justify-self-start self-start",
+      "justify-self-center self-start",
+      "justify-self-end self-start",
+      "justify-self-start self-center",
+      "justify-self-center self-center",
+      "justify-self-end self-center",
+      "justify-self-start self-end",
+      "justify-self-center self-end",
+      "justify-self-end self-end",
+    ];
+    const COLS = 14;
+    for (let r = 1; r <= 4; r++) {
+      for (let c = 1; c <= COLS; c++) {
+        const topCorner = r <= 3 && c >= 11;
+        const topNear = r <= 4 && c >= 8;
+        const keep = topCorner ? 1 : topNear ? 0.95 : 0.7;
+        if (rand() > keep) continue;
+        const size = topCorner || topNear ? 40 + rand() * 44 : 28 + rand() * 52;
+        out.push({
+          src: pick(),
+          style:
+            `grid-column:${c};grid-row:${r};` +
+            `width:${size.toFixed(0)}%;` +
+            `animation-delay:${(rand() * 8).toFixed(2)}s`,
+          anim: rand() > 0.5 ? "motion-safe:animate-float" : "motion-safe:animate-float-delay",
+          align: aligns[Math.floor(rand() * aligns.length)],
+        });
+      }
+    }
+    return out;
+  })();
 </script>
 
 <section class="relative overflow-x-clip pt-10 pb-16 lg:pt-14">
   <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
     <div class="absolute -top-40 end-[-8rem] h-[30rem] w-[30rem] rounded-full bg-honey-100/60 blur-3xl"></div>
     <div class="absolute bottom-[-10rem] start-[-8rem] h-[26rem] w-[26rem] rounded-full bg-clay-100/50 blur-3xl"></div>
+  </div>
+
+  <div class="hero-decor pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+    {#each decorativeIcons as icon}
+      <img src={icon.src} alt="" draggable="false" style={icon.style} class={`aspect-square ${icon.anim} ${icon.align} select-none`} />
+    {/each}
   </div>
 
   <div class="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
@@ -43,9 +127,28 @@
           class="h-full w-full select-none"
         />
       </div>
+      <div
+        data-testid="hero-brand"
+        class="group absolute -top-4 end-0 hidden h-36 w-36 transition-all duration-300 hover:-translate-y-1 motion-safe:animate-float lg:block lg:h-40 lg:w-40"
+        aria-hidden="true"
+      >
+        <img
+          data-testid="hero-brand-img"
+          src={lang === "ar" ? "/images/etman-wax-ar.png" : "/images/etman-wax-en.png"}
+          alt=""
+          draggable="false"
+          class="h-full w-full select-none"
+        />
+      </div>
       <p class="brand-wordmark flex items-center gap-2.5">
-        <svg class="h-6 w-6 text-honey-600/60" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M5 16 3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1Z" />
+        <svg class="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">
+          <defs>
+            <linearGradient id="crown-gradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="var(--color-honey-500)" />
+              <stop offset="100%" stop-color="var(--color-honey-700)" />
+            </linearGradient>
+          </defs>
+          <path d="M5 16 3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1Z" fill="url(#crown-gradient)" />
         </svg>
         {t(lang, "hero.eyebrow")}
       </p>
@@ -110,21 +213,7 @@
     <div class="relative hidden lg:block motion-safe:animate-fade-up" style="animation-delay: 120ms">
       <div class="hex-texture absolute inset-0 rounded-[2rem] opacity-30" aria-hidden="true"></div>
 
-      <div
-        data-testid="hero-brand"
-        class="group absolute -top-4 end-0 h-36 w-36 transition-all duration-300 hover:-translate-y-1 motion-safe:animate-float lg:h-40 lg:w-40"
-        aria-hidden="true"
-      >
-        <img
-          data-testid="hero-brand-img"
-          src={lang === "ar" ? "/images/etman-wax-ar.png" : "/images/etman-wax-en.png"}
-          alt=""
-          draggable="false"
-          class="h-full w-full select-none"
-        />
-      </div>
-
-      <div class="relative mx-auto mt-20 w-[70%] max-w-sm">
+      <div class="relative mx-auto w-[85%] max-w-md">
         <figure class="group relative">
           <div class="absolute inset-0 -z-10 rounded-full bg-honey-100/70 blur-2xl" aria-hidden="true"></div>
           <div class="relative overflow-hidden rounded-t-full rounded-b-[1.5rem] border border-honey-200 bg-parchment shadow-warm-lg">
@@ -142,23 +231,15 @@
               aria-hidden="true"
             ></div>
           </div>
-          <figcaption class="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-xl border border-cocoa-100 bg-parchment/95 px-4 py-3 shadow-warm-sm backdrop-blur">
-            <span class="truncate text-sm font-semibold text-cocoa-900">{main?.name}</span>
-            <Price amount={main?.minPrice ?? 0} lang={lang} className="headline shrink-0 text-lg text-honey-700" />
-          </figcaption>
         </figure>
 
         {#if secondary}
-          <figure class="absolute -bottom-4 -end-10 w-44 overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment shadow-warm motion-safe:animate-float">
+          <figure class="absolute -bottom-4 -end-10 w-56 overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment shadow-warm motion-safe:animate-float">
             {#if secondaryImage}
               <AspectRatio.Root ratio={1}>
                 <img src={secondaryImage} alt={secondary.name} class="h-full w-full object-cover" />
               </AspectRatio.Root>
             {/if}
-            <figcaption class="px-3 py-2">
-              <p class="truncate text-xs font-semibold text-cocoa-900">{secondary.name}</p>
-              <Price amount={secondary.minPrice} lang={lang} className="text-xs font-bold text-honey-700" />
-            </figcaption>
           </figure>
         {/if}
 
@@ -184,7 +265,7 @@
       </div>
     </div>
 
-    <div class="relative mx-auto mt-14 max-w-xs motion-safe:animate-fade-up lg:hidden" style="animation-delay: 120ms">
+    <div class="relative mx-auto mt-14 max-w-sm motion-safe:animate-fade-up lg:hidden" style="animation-delay: 120ms">
       <div class="absolute inset-0 -z-10 rounded-full bg-honey-100/60 blur-2xl" aria-hidden="true"></div>
       <figure class="relative overflow-hidden rounded-t-full rounded-b-2xl border border-honey-200 bg-parchment shadow-warm-lg">
         <div class="relative">
@@ -199,10 +280,6 @@
           {/if}
           <div class="pointer-events-none absolute inset-3 rounded-t-full rounded-b-2xl ring-1 ring-inset ring-parchment/70" aria-hidden="true"></div>
         </div>
-        <figcaption class="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-xl border border-cocoa-100 bg-parchment/95 px-4 py-3 shadow-warm-sm backdrop-blur">
-          <span class="truncate text-sm font-semibold text-cocoa-900">{main?.name}</span>
-          <Price amount={main?.minPrice ?? 0} lang={lang} className="headline shrink-0 text-lg text-honey-700" />
-        </figcaption>
       </figure>
 
       <div class="absolute top-4 -start-2 rounded-2xl border border-cocoa-100 bg-parchment px-3.5 py-2.5 shadow-warm motion-safe:animate-float">

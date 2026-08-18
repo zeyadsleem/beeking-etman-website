@@ -5,7 +5,15 @@
   import { cartCount, openDrawer } from "$lib/cart-store.svelte";
   import { getDir, t, type Lang } from "$lib/i18n/messages";
   import Button from "./Button.svelte";
+  import GlobeIcon from "./GlobeIcon.svelte";
   import SearchSuggestions from "./SearchSuggestions.svelte";
+  import UserIcon from "./UserIcon.svelte";
+
+  const NAV_ITEMS = [
+    { href: "/", labelKey: "nav.home", highlight: false },
+    { href: "/products", labelKey: "nav.store", highlight: false },
+    { href: "/blends", labelKey: "blends.nav", highlight: true },
+  ] as const;
 
   let {
     user,
@@ -51,14 +59,20 @@
     const target = lang === "ar" ? "en" : "ar";
     try {
       await fetch(`/api/lang?lang=${target}`, { method: "POST" });
-      if (document.startViewTransition) {
-        const transition = document.startViewTransition(() => invalidateAll());
-        await transition.finished;
-      } else {
-        await invalidateAll();
-      }
     } catch {
       // keep the current language on failure; nothing to undo
+      return;
+    }
+    if (document.startViewTransition) {
+      try {
+        const transition = document.startViewTransition(() => invalidateAll());
+        await transition.finished;
+      } catch {
+        // a transition is already running; re-render without it
+        await invalidateAll();
+      }
+    } else {
+      await invalidateAll();
     }
   }
 
@@ -76,9 +90,12 @@
       </a>
 
       <nav class="hidden items-center gap-5 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>
-        <a href="/" class="shrink-0 transition-colors hover:text-honey-700">{t(lang, "nav.home")}</a>
-        <a href="/products" class="shrink-0 transition-colors hover:text-honey-700">{t(lang, "nav.store")}</a>
-        <a href="/blends" class="shrink-0 font-bold text-honey-700 transition-colors hover:text-honey-800">{t(lang, "blends.nav")}</a>
+        {#each NAV_ITEMS as item (item.href)}
+          <a
+            href={item.href}
+            class="shrink-0 transition-colors hover:text-honey-700 {item.highlight ? "font-bold text-honey-700 hover:text-honey-800" : ""}"
+          >{t(lang, item.labelKey)}</a>
+        {/each}
       </nav>
     </div>
 
@@ -105,10 +122,7 @@
         class="hidden shrink-0 items-center gap-2 px-4 py-2.5 lg:inline-flex"
         aria-label={t(lang, "lang.switchTo")}
       >
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-          <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </svg>
+        <GlobeIcon size={17} />
         <span class="text-sm font-semibold">{t(lang, "lang.short")}</span>
       </Button>
 
@@ -119,10 +133,7 @@
           class="hidden shrink-0 items-center gap-2 px-4 py-2.5 lg:inline-flex"
           aria-label={t(lang, "nav.account")}
         >
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8" />
-            <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-          </svg>
+          <UserIcon size={17} />
           <span class="max-w-28 truncate text-sm font-semibold">{user.name ?? t(lang, "nav.account")}</span>
         </Button>
       {:else}
@@ -131,10 +142,7 @@
           href="/login"
           class="hidden shrink-0 items-center gap-2 px-4 py-2.5 lg:inline-flex"
         >
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8" />
-            <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-          </svg>
+          <UserIcon size={17} />
           <span class="text-sm font-semibold">{t(lang, "nav.login")}</span>
         </Button>
       {/if}
@@ -208,9 +216,13 @@
         />
 
         <nav class="mt-4 flex flex-col" aria-label={t(lang, "nav.main")}>
-          <a href="/" onclick={closeMobile} class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">{t(lang, "nav.home")}</a>
-          <a href="/products" onclick={closeMobile} class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">{t(lang, "nav.store")}</a>
-          <a href="/blends" onclick={closeMobile} class="rounded-xl px-4 py-3 text-sm font-bold text-honey-700 transition-colors hover:bg-honey-50 hover:text-honey-800">{t(lang, "blends.nav")}</a>
+          {#each NAV_ITEMS as item (item.href)}
+            <a
+              href={item.href}
+              onclick={closeMobile}
+              class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800 {item.highlight ? "font-bold text-honey-700" : ""}"
+            >{t(lang, item.labelKey)}</a>
+          {/each}
         </nav>
 
         <div class="mt-4 space-y-1 border-t border-cocoa-200 pt-4">
@@ -219,26 +231,17 @@
             onclick={switchLanguageFromMenu}
             class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-              <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
+            <GlobeIcon size={18} />
             {t(lang, "lang.switchTo")}
           </button>
           {#if user}
             <a href="/account/orders" onclick={closeMobile} class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8" />
-                <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-              </svg>
+              <UserIcon size={18} />
               {user.name ?? t(lang, "nav.account")}
             </a>
           {:else}
             <a href="/login" onclick={closeMobile} class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8" />
-                <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-              </svg>
+              <UserIcon size={18} />
               {t(lang, "nav.login")}
             </a>
           {/if}

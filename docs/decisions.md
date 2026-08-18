@@ -706,3 +706,43 @@ checkout. The spinner-wheel goal click is exercised in e2e via
 `click({ force: true })` because Playwright's stability check can't settle on
 the auto-rotating wheel; blend e2e expectations were updated for the new
 full-jar default (royal jelly dose starts at × 2, jar label `كيلو`).
+
+## 2026-08-18: DRY refactor — extract shared cart/icon/logic helpers
+
+**Context:** The user asked to remove all repeated code and make the project DRY.
+Audit found the cart line-item markup duplicated across CartDrawer/cart page
+(and its totals block again in checkout), the honeycomb empty-state SVG in three
+places, blended/duplicated logic in the blend wizard, hardcoded zod enums in
+cart-store, the auth rate-limit config in three files, near-identical
+desktop/mobile nav markup in Header, and six leftover root-level scratch
+e2e/config files.
+
+**Decision:**
+
+- **`CartLineItem.svelte`** owns cart line rendering (`size="drawer"|"page"`
+  switches layout density); **`CartTotals.svelte`** owns the subtotal/shipping/
+  total block; **`HoneycombIcon.svelte`** owns the empty-state hexagon. Wired
+  into CartDrawer, cart, checkout and products pages.
+- **`messages.ts`** now exports `localized(ar,en,lang)` (moved from
+  `server/store.ts`) and a cached `formatDate(lang, ts, options?)`; the two
+  `Intl.DateTimeFormat` call sites (orders + checkout success) use it.
+- **`blends.ts`** exports `zeroDoses()`, `jarLabel(lang, jarSize)` and
+  `JAR_SIZES`; the wizard's private `zeroDoses`/`JAR_SIZES`/`goalName`/
+  `honeyName`/jar ternaries were removed and `currentStepLabel` was merged into
+  `stepLabel`.
+- **`cart.ts`** adds `regularItemPayload(product, variant)`; ProductCard and
+  the product detail page build their add-to-cart payload through it.
+- **`rate-limit.ts`** exports `AUTH_RATE_LIMITS` (login 10/60s, register 5/1h);
+  hooks.server.ts and the login/register actions share it.
+- **Header** nav links are a single `NAV_ITEMS` array rendered by both desktop
+  and mobile navs; the duplicated globe/user SVGs became `GlobeIcon`/
+  `UserIcon`. `cart-store` zod enums derive from `ADDITIVE_KEYS`/`JAR_SIZES`
+  instead of hardcoded literals.
+- **`store.ts`** shares `minPriceOf`, `categoryNameCondition` and `groupBy`
+  (the two identical map-grouping loaders collapsed into one helper).
+- Deleted scratch files: `dup.e2e.ts`, `dup-vt.config.ts`, `dup-vt.spec.ts`,
+  `repro.e2e.ts`, `store.check.config.ts`, `verify.playwright.config.ts`.
+
+**Consequences:** The cart UI, empty states, nav, icons, blend labels, rate-limit
+config and add-to-cart payload each have exactly one source of truth. Behavior
+is unchanged — `pnpm run check`, all 93 unit tests and all 9 e2e tests pass.

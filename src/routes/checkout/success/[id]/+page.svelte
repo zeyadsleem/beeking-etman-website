@@ -1,13 +1,12 @@
 <script lang="ts">
   import { formatEGP } from "$lib/currency";
   import Button from "$lib/components/Button.svelte";
-  import { getLocale, t } from "$lib/i18n/messages";
+  import { formatDate, t } from "$lib/i18n/messages";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
 
   const lang = $derived(data.lang);
-  const localized = $derived(new Intl.DateTimeFormat(getLocale(lang), { dateStyle: "long", timeStyle: "short" }));
 </script>
 
 <svelte:head><title>{t(lang, "success.title")}</title></svelte:head>
@@ -41,7 +40,7 @@
   <section class="mt-4 rounded-2xl border border-cocoa-100 bg-parchment p-6 text-start text-sm text-cocoa-600 shadow-warm-sm">
     <p><span class="font-bold text-cocoa-900">{t(lang, "success.deliverTo")}</span> {data.order.address}، {data.order.city}</p>
     <p><span class="font-bold text-cocoa-900">{t(lang, "success.customer")}</span> {data.order.name} — {data.order.phone}</p>
-    <p><span class="font-bold text-cocoa-900">{t(lang, "success.date")}</span> {localized.format(data.order.createdAt)}</p>
+    <p><span class="font-bold text-cocoa-900">{t(lang, "success.date")}</span> {formatDate(lang, data.order.createdAt, { dateStyle: "long", timeStyle: "short" })}</p>
   </section>
 
   <Button variant="primary" href="/products" class="mt-8">{t(lang, "success.continue")}</Button>

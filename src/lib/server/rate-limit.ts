@@ -6,6 +6,11 @@ import * as schema from "$lib/server/db/schema";
 const GLOBAL_PRUNE_PROBABILITY = 0.01;
 const GLOBAL_PRUNE_WINDOW_MS = 2 * 60 * 60 * 1000;
 
+export const AUTH_RATE_LIMITS = {
+  login: { windowMs: 60_000, max: 10 },
+  register: { windowMs: 3_600_000, max: 5 },
+} as const;
+
 export interface DbRateLimiter {
   allow(key: string): Promise<boolean>;
 }

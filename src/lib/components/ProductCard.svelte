@@ -1,6 +1,7 @@
 <script lang="ts">
   import { AspectRatio } from "bits-ui";
   import { addToCart } from "$lib/cart-store.svelte";
+  import { regularItemPayload } from "$lib/cart";
   import Price from "./Price.svelte";
   import { formatEGP } from "$lib/currency";
   import { t, type Lang } from "$lib/i18n/messages";
@@ -26,16 +27,7 @@
     if (product.variants.length === 0) return;
     const v = product.variants[0];
     if (v.stock <= 0) return;
-    addToCart({
-      variantId: v.id,
-      productId: product.id,
-      name: product.name,
-      variantName: v.name,
-      slug: product.slug,
-      image: v.image,
-      price: v.price,
-      stock: v.stock,
-    });
+    addToCart(regularItemPayload(product, v));
   }
 </script>
 

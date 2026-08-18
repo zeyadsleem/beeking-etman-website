@@ -1,14 +1,10 @@
 import { and, asc, desc, eq, inArray, like, ne, or, sql, type SQL } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { ADDITIVE_LABELS, isAdditiveKey } from "$lib/blends";
+import { jarLabel, ADDITIVE_LABELS, isAdditiveKey } from "$lib/blends";
 import type { BlendCartItem, CartEntry, CartItem, CartLine } from "$lib/cart";
 import { isBlendEntry } from "$lib/cart";
-import { t, type Lang } from "$lib/i18n/messages";
+import { localized, type Lang } from "$lib/i18n/messages";
 import * as schema from "$lib/server/db/schema";
-
-export function localized(ar: string, en: string, lang: Lang): string {
-  return lang === "en" ? en : ar;
-}
 
 export interface ProductVariantSummary {
   id: string;
@@ -67,6 +63,28 @@ type ImageRow = typeof schema.productImage.$inferSelect;
 
 const minPriceExpr = sql<number>`(SELECT MIN(${schema.productVariant.price}) FROM ${schema.productVariant} WHERE ${schema.productVariant.productId} = ${schema.product.id})`;
 
+function minPriceOf(rows: readonly { price: number }[], fallback: number): number {
+  return rows.length ? Math.min(...rows.map((v) => v.price)) : fallback;
+}
+
+function categoryNameCondition(q: string): SQL {
+  const condition = or(like(schema.category.name, q), like(schema.category.nameEn, q));
+  if (condition === undefined) {
+    throw new Error("category name condition unexpectedly empty");
+  }
+  return condition;
+}
+
+function groupBy<T, K>(rows: readonly T[], key: (row: T) => K): Map<K, T[]> {
+  const map = new Map<K, T[]>();
+  for (const row of rows) {
+    const list = map.get(key(row)) ?? [];
+    list.push(row);
+    map.set(key(row), list);
+  }
+  return map;
+}
+
 export function withVariants(
   rows: ProductRow[],
   variantsByProduct: Map<string, VariantRow[]>,
@@ -92,7 +110,7 @@ export function withVariants(
       featured: row.featured,
       createdAt: row.createdAt,
       variants: variants.map((v) => ({ ...v, name: localized(v.name, v.nameEn, lang) })),
-      minPrice: variants.length ? Math.min(...variants.map((v) => v.price)) : 0,
+      minPrice: minPriceOf(variants, 0),
     };
   });
 }
@@ -106,13 +124,7 @@ async function loadVariantsForProducts(
     .select()
     .from(schema.productVariant)
     .where(inArray(schema.productVariant.productId, productIds));
-  const map = new Map<string, VariantRow[]>();
-  for (const v of variants) {
-    const list = map.get(v.productId) ?? [];
-    list.push(v);
-    map.set(v.productId, list);
-  }
-  return map;
+  return groupBy(variants, (v) => v.productId);
 }
 
 async function loadImagesForProducts(
@@ -124,13 +136,7 @@ async function loadImagesForProducts(
     .select()
     .from(schema.productImage)
     .where(inArray(schema.productImage.productId, productIds));
-  const map = new Map<string, ImageRow[]>();
-  for (const img of images) {
-    const list = map.get(img.productId) ?? [];
-    list.push(img);
-    map.set(img.productId, list);
-  }
-  return map;
+  return groupBy(images, (i) => i.productId);
 }
 
 export async function getCategories(
@@ -146,11 +152,7 @@ export async function findCategoryByQuery(
   query: string,
 ): Promise<{ id: string; slug: string } | null> {
   const q = `%${query.trim()}%`;
-  const row = await db
-    .select()
-    .from(schema.category)
-    .where(or(like(schema.category.name, q), like(schema.category.nameEn, q)))
-    .get();
+  const row = await db.select().from(schema.category).where(categoryNameCondition(q)).get();
   return row ? { id: row.id, slug: row.slug } : null;
 }
 
@@ -307,11 +309,7 @@ export async function getSearchSuggestions(
   const q = `%${trimmed}%`;
   const [ids, categoryRows] = await Promise.all([
     searchProductIds(db, trimmed, 6),
-    db
-      .select()
-      .from(schema.category)
-      .where(or(like(schema.category.name, q), like(schema.category.nameEn, q)))
-      .limit(3),
+    db.select().from(schema.category).where(categoryNameCondition(q)).limit(3),
   ]);
   const categories = categoryRows.map((c) => ({
     id: c.id,
@@ -331,7 +329,7 @@ export async function getSearchSuggestions(
       name: localized(row.name, row.nameEn, lang),
       slug: row.slug,
       image: row.image,
-      minPrice: vs.length ? Math.min(...vs.map((v) => v.price)) : row.price,
+      minPrice: minPriceOf(vs, row.price),
     };
   });
   return { products, categories };
@@ -484,8 +482,7 @@ export async function resolveCartItems(
         baseVariantId: base.id,
         productId: baseProduct.id,
         name: localized(baseProduct.name, baseProduct.nameEn, lang),
-        variantName:
-          line.jarSize === "full" ? t(lang, "blends.jarFull") : t(lang, "blends.jarHalf"),
+        variantName: jarLabel(lang, line.jarSize),
         image: base.image,
         jarSize: line.jarSize,
         basePrice: base.price,

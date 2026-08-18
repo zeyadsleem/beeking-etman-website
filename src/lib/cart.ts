@@ -71,6 +71,36 @@ export function itemId(item: CartItem): string {
   return isBlendItem(item) ? item.id : item.variantId;
 }
 
+export interface AddableProduct {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface AddableVariant {
+  id: string;
+  name: string;
+  image: string;
+  price: number;
+  stock: number;
+}
+
+export function regularItemPayload(
+  product: AddableProduct,
+  variant: AddableVariant,
+): Omit<RegularCartItem, "quantity"> {
+  return {
+    variantId: variant.id,
+    productId: product.id,
+    name: product.name,
+    variantName: variant.name,
+    slug: product.slug,
+    image: variant.image,
+    price: variant.price,
+    stock: variant.stock,
+  };
+}
+
 export function blendTotal(item: BlendCartItem): number {
   return item.basePrice + item.additives.reduce((sum, a) => sum + a.price * a.qty, 0);
 }
