@@ -12,8 +12,8 @@ design spec: `docs/superpowers/plans/2026-08-12-honey-store.md` and
 - Better Auth (`auth` package) with password provider; tables in
   `src/lib/server/db/auth.schema.ts`
 - Package manager: pnpm (npm refuses scripts via `devEngines` pin); toolchain:
-  Vite+ (`vp dev`, `vp build`, `vp test`, `vp check`); adapter-node for
-  production (preview via `vp preview`)
+  Vite+ (`vp dev`, `vp build`, `vp test`, `vp check`); adapter-cloudflare for
+  production (Cloudflare Pages, D1 database, preview via `wrangler pages dev`)
 - Testing: Vitest (unit, `*.spec.ts`) and Playwright (E2E, `*.e2e.ts`) against
   the seeded preview server
 - UI primitives: `bits-ui` v2 (Dialog, ToggleGroup, Combobox, AspectRatio,
@@ -136,17 +136,21 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
 
 ## Deployment
 
-- Containerized with a multi-stage `Dockerfile` (node:22-alpine, non-root
-  runtime, `HEALTHCHECK` against `/api/health`); `.dockerignore` keeps the
-  build context lean. The runtime image runs `scripts/migrate.mjs`
-  (drizzle-orm migrator, plain ESM) before boot so a fresh container never
-  starts with an empty schema, and `/api/health` probes the DB (`select 1`) so
-  a broken database fails the healthcheck. CI (`.github/workflows/ci.yml`)
-  runs check + unit + build, then a gated e2e job against the preview server.
+- **Cloudflare Pages** with `adapter-cloudflare`; build output `.svelte-kit/cloudflare`
+  compiled to a single `_worker.js`; `wrangler pages dev` for local testing.
+- **Cloudflare D1** (SQLite) as the production database; lazy driver in
+  `src/lib/server/db/index.ts` resolves `platform.env.DB` (D1) in Cloudflare or
+  falls back to libsql (`file:local.db`) for local dev/tests. FTS5 search works
+  on D1; virtual-table DDL is in `drizzle/` migrations (applied via
+  `wrangler d1 migrations apply`).
+- Migrations applied via `wrangler d1 migrations apply beeking` (remote) or
+  `--local` (dev). Seed via `wrangler d1 execute beeking --file=d1-seed.sql`.
+- Compatibility flags: `nodejs_als` (required) + `nodejs_compat` (HMAC crypto).
+- CI (`.github/workflows/ci.yml`) runs check + unit + build, then gated e2e
+  against `wrangler pages dev`. Deploy job uses `cloudflare/wrangler-action@v3`
+  to push to Pages on merge to `main`.
 - Production boot validates `BETTER_AUTH_SECRET` (length ≥ 32) and `ORIGIN`
   via `src/lib/server/env.ts`; dev stays lenient.
-- Persistence note: the container must mount a volume at the SQLite path (or
-  use a libsql remote) so orders survive a redeploy; see `docs/todo.md`.
 
 ## Known environment quirk (pre-existing)
 

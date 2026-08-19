@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
-    "preview": "vp preview",
-    "start": "node build/index.js",
+    "preview": "wrangler pages dev .svelte-kit/cloudflare",
+    "start": "pnpm run preview",
     "prepare": "vp config && svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -20,6 +20,10 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:reset": "pnpm run db:migrate && pnpm run db:seed",
+    "db:seed:d1": "tsx scripts/export-d1-seed.ts",
+    "d1:migrate": "wrangler d1 migrations apply beeking --local",
+    "d1:seed": "wrangler d1 execute beeking --local --file=d1-seed.sql",
+    "d1:reset": "pnpm run db:reset && pnpm run db:seed:d1 && pnpm run d1:migrate && pnpm run d1:seed",
     "auth:schema": "auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
   },
   "dependencies": {
@@ -30,13 +34,14 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260817.1",
     "@fontsource-variable/cairo": "^5.3.0",
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource/amiri": "^5.3.0",
     "@fontsource/aref-ruqaa": "^5.3.0",
     "@playwright/test": "^1.60.0",
-    "@sveltejs/adapter-node": "^5.5.4",
+    "@sveltejs/adapter-cloudflare": "^7.2.9",
     "@sveltejs/kit": "^2.63.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tailwindcss/forms": "^0.5.11",
@@ -56,7 +61,8 @@
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "catalog:",
-    "vitest-browser-svelte": "^2.1.1"
+    "vitest-browser-svelte": "^2.1.1",
+    "wrangler": "^4.123.0"
   },
   "devEngines": {
     "packageManager": {

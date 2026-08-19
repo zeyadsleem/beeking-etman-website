@@ -746,3 +746,43 @@ e2e/config files.
 **Consequences:** The cart UI, empty states, nav, icons, blend labels, rate-limit
 config and add-to-cart payload each have exactly one source of truth. Behavior
 is unchanged — `pnpm run check`, all 93 unit tests and all 9 e2e tests pass.
+
+## 2026-08-19: Migrate from adapter-node + Docker to Cloudflare Pages + D1
+
+**Context:** The project ran on adapter-node with a Dockerfile for containerized
+deployment. The user wanted to run the whole project on Cloudflare. The original
+premise that "D1 does not support FTS5" was outdated — D1 now supports FTS5
+(including fts5vocab). drizzle-kit works with D1 via the `d1-http` driver. D1
+batches replace interactive transactions for rate-limiting and order creation.
+
+**Decision:**
+
+- **Adapter swap:** `@sveltejs/adapter-node` → `@sveltejs/adapter-cloudflare`
+  (7.2.9); build output `.svelte-kit/cloudflare` compiled to a single
+  `_worker.js` on Pages.
+- **Lazy driver:** `src/lib/server/db/index.ts` exports a Proxy `db` that
+  resolves lazily via `getRequestEvent()` — if `platform.env.DB` exists (D1 on
+  Cloudflare), uses `drizzleD1`; otherwise falls back to libsql for local dev
+  and tests. `getDb()` exported for explicit calls.
+- **auth.ts:** `drizzleAdapter(db, { provider: "sqlite", schema })` — passing
+  `schema` explicitly avoids touching the db at construction (better-auth line 90).
+- **app.d.ts:** minimal `D1Database` structural interface (avoids global
+  `@cloudflare/workers-types` pollution that breaks `Response.json()` types).
+- **wrangler.jsonc:** `d1_databases` with binding "DB", `preview_database_id`
+  "DB", `nodejs_als` + `nodejs_compat` compatibility flags, `pages_build_output_dir`.
+- **Seed:** `scripts/export-d1-seed.ts` reads local.db and emits
+  `d1-seed.sql` (INSERT OR IGNORE); applied via `wrangler d1 execute --file`.
+- **Playwright:** webServer runs full db:reset → d1:seed → build → d1:migrate →
+  d1:seed → preview flow.
+- **CI:** deploy job uses `cloudflare/wrangler-action@v3 pages deploy` on push to
+  main; e2e uses wrangler pages dev.
+- **.dev.vars:** secrets for local Pages dev (`.env` is ignored when
+  `.dev.vars` exists). `.dev.vars.example` committed.
+- **Removed:** `Dockerfile`, `.dockerignore`, `@sveltejs/adapter-node` dependency.
+
+**Consequences:** The project runs entirely on Cloudflare Pages + D1. Local dev
+uses `wrangler pages dev` with D1 local persistence. Tests continue to use libsql
+`file:local.db` unchanged (the lazy driver resolves libsql outside Cloudflare).
+Migrations apply via `wrangler d1 migrations apply` — drizzle's
+`--> statement-breakpoint` comments are handled correctly by wrangler. The Docker
+deployment path is removed.

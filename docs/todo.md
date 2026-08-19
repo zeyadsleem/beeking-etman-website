@@ -125,10 +125,9 @@ preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
       so a replayed submit returns the existing order instead of duplicating.
 - [x] Card expiry past-date check: `checkoutSchema` refines `MM/YY` to reject
       dates before the end of the expiry month.
-- [x] Docker + CI: multi-stage `Dockerfile` with migrate-at-boot
-      (`scripts/migrate.mjs`), `.dockerignore`, `/api/health` (DB-probing),
-      `start` script, and `.github/workflows/ci.yml` (check + unit + build,
-      then gated e2e).
+- [x] Cloudflare Pages + D1: adapter-cloudflare, lazy D1/libsql driver,
+      wrangler.jsonc, d1 migrations/seed, CI deploy via wrangler-action,
+      `.dev.vars` for local Pages dev (2026-08-19).
 - [x] Env boot validation: `src/lib/server/env.ts` fails fast in production on
       missing/short `BETTER_AUTH_SECRET` or missing `ORIGIN`.
 - [x] Auth JSON-API rate limiting: `src/hooks.server.ts` limits
@@ -154,6 +153,6 @@ preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
       category/product/variant, rebuilt FTS for English search, `lang`-aware
       store queries, and cart-name refresh — English mode is now fully
       translated (2026-08-17).
-- [ ] Container data persistence: `DATABASE_URL=file:/data/local.db` + a
-      mounted volume (or a libsql remote) is required so orders survive a
-      redeploy; document in the README deploy section.
+- [x] Container data persistence resolved: D1 is a managed Cloudflare
+      database; no volume mounts needed. Local dev uses `.wrangler/state`
+      persistence.

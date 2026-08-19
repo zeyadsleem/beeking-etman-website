@@ -1,0 +1,5 @@
+# Local-only secrets for `wrangler pages dev` and the Playwright web server.
+# Copied to `.dev.vars` by the playwright/webServer command; never commit
+# `.dev.vars` itself. These placeholders satisfy src/lib/server/env.ts.
+BETTER_AUTH_SECRET=dev-only-secret-0123456789abcdef
+ORIGIN=http://localhost:4173
