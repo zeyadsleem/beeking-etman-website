@@ -6,6 +6,7 @@
   import { getDir, t, type Lang } from "$lib/i18n/messages";
   import Button from "./Button.svelte";
   import GlobeIcon from "./GlobeIcon.svelte";
+  import Logo from "./Logo.svelte";
   import SearchSuggestions from "./SearchSuggestions.svelte";
   import UserIcon from "./UserIcon.svelte";
 
@@ -86,7 +87,7 @@
   <div class="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3">
     <div class="col-start-1 flex min-w-0 items-center gap-5 justify-self-start">
       <a href="/" class="flex items-center gap-2.5 transition-colors hover:opacity-80" aria-label={t(lang, "brand.tagline")}>
-        <img src="/images/logo.png" alt={t(lang, "brand.tagline")} class="h-10 w-10 object-contain" />
+        <Logo alt={t(lang, "brand.tagline")} class="h-14 w-14" />
       </a>
 
       <nav class="hidden items-center gap-5 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>
@@ -195,7 +196,7 @@
       <Dialog.Title class="sr-only">{t(lang, "nav.main")}</Dialog.Title>
       <header class="flex items-center justify-between border-b border-cocoa-200 px-4 py-3">
         <a href="/" class="flex items-center gap-2.5" onclick={closeMobile}>
-          <img src="/images/logo.png" alt={t(lang, "brand.tagline")} class="h-9 w-9 object-contain" />
+          <Logo alt={t(lang, "brand.tagline")} class="h-11 w-11" />
         </a>
         <Dialog.Close
           class="grid h-9 w-9 place-items-center rounded-full text-cocoa-400 transition-colors hover:bg-cocoa-100 hover:text-cocoa-900"

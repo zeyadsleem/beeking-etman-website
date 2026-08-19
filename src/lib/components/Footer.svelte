@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t, type Lang } from "$lib/i18n/messages";
+  import Logo from "./Logo.svelte";
 
   let { lang = "ar" }: { lang?: Lang } = $props();
 
@@ -10,7 +11,7 @@
   <div class="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-12 sm:flex-row sm:items-start sm:justify-between">
     <div>
       <a href="/" class="flex items-center gap-2.5 transition-colors hover:opacity-80">
-        <img src="/images/logo.png" alt={t(lang, "brand.tagline")} class="h-10 w-10 object-contain" />
+        <Logo alt={t(lang, "brand.tagline")} class="h-12 w-12" />
         <span class="sr-only">{t(lang, "brand.tagline")}</span>
       </a>
       <p class="mt-3 max-w-xs text-sm text-cocoa-600">{t(lang, "footer.tagline")}</p>

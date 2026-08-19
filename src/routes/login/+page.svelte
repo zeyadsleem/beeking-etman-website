@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import Button from "$lib/components/Button.svelte";
+  import Logo from "$lib/components/Logo.svelte";
   import { t } from "$lib/i18n/messages";
 
   import type { ActionData, PageData } from "./$types";
@@ -13,7 +14,7 @@
 
 <div class="mx-auto mt-14 max-w-md motion-safe:animate-fade-up">
   <div class="mb-8 flex flex-col items-center text-center">
-    <img src="/images/logo.png" alt={t(lang, "brand.name")} class="h-9 w-9 object-contain" />
+    <Logo alt={t(lang, "brand.name")} class="h-11 w-11" />
     <h1 class="headline mt-3 text-3xl text-cocoa-900">{t(lang, "login.heading")}</h1>
     <p class="mt-1 text-sm text-cocoa-500">{t(lang, "login.helper")}</p>
   </div>
