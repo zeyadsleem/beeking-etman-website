@@ -35,8 +35,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test
 
   deploy:
     if: github.ref == 'refs/heads/main'
