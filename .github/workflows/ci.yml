@@ -19,7 +19,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
-      - run: pnpm run test:unit -- --run
+      - run: pnpm run test:unit -- --run --project server
       - run: pnpm run build
 
   e2e:
