@@ -8,7 +8,7 @@
     {
       "binding": "DB",
       "database_name": "beeking",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "ba736038-a74b-4a94-b43f-1ff088e0d675",
       "preview_database_id": "DB",
       "migrations_dir": "drizzle",
     },
