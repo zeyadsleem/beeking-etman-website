@@ -7,7 +7,6 @@
   import { beforeNavigate, onNavigate } from "$app/navigation";
   import { getDir, t } from "$lib/i18n/messages";
   import "./layout.css";
-  import favicon from "$lib/assets/favicon.svg";
   import Header from "$lib/components/Header.svelte";
   import Footer from "$lib/components/Footer.svelte";
   import CartDrawer from "$lib/components/CartDrawer.svelte";
@@ -58,7 +57,7 @@
 </script>
 
 <svelte:head>
-  <link rel="icon" href={favicon} />
+  <link rel="icon" href="/images/logo.png" type="image/png" />
   <title>{t(data.lang, "brand.tagline")}</title>
 </svelte:head>
 
