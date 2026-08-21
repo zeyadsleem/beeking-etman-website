@@ -152,6 +152,30 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
 - Production boot validates `BETTER_AUTH_SECRET` (length ≥ 32) and `ORIGIN`
   via `src/lib/server/env.ts`; dev stays lenient.
 
+## Cost posture (Cloudflare Free tier)
+
+The site runs entirely on Cloudflare's Free plan at $0/month:
+
+- **Pages** (`beeking-etman-website.pages.dev`): static asset requests and
+  bandwidth are unmetered on Free. Functions/Worker invocations are capped at
+  100K requests/day (shared Workers Free limit).
+- **D1** (`beeking`, ~300 KB): Free tier allows 5M rows read/day,
+  100K rows written/day, 5 GB total storage. Current catalog traffic is orders
+  of magnitude below these limits.
+- **Deploys**: GitHub Actions builds and direct-uploads via
+  `wrangler pages deploy`, so the Pages 500-builds/month quota is not consumed;
+  Actions minutes come from the GitHub Free allowance.
+- **Assets**: all catalog images are first-party under
+  `static/images/Beeking Etman/` (no Unsplash/Pexels CDN dependence); fonts are
+  self-hosted under `static/fonts/`.
+- **Monitoring**: dashboard → Workers & Pages → project for request counts;
+  D1 → `beeking` → Metrics → Row Metrics for rows read/written. If daily D1
+  reads approach the limit, the next lever is edge-caching catalog pages —
+  deliberately not implemented now to keep checkout/stock behavior simple.
+- After changing catalog data locally, re-apply the regenerated seed remotely:
+  `wrangler d1 execute beeking --remote --file=d1-seed.sql` (idempotent,
+  FK-safe upserts).
+
 ## Known environment quirk (pre-existing)
 
 - `vp dev` serves HTML without client entry scripts in this environment, so

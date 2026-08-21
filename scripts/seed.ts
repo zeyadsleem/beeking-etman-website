@@ -8,23 +8,17 @@ const db = drizzle(createClient({ url: process.env.DATABASE_URL ?? "file:local.d
 
 const IMG = {
   glassLight: "/images/Beeking Etman/برطمان عسل البرسيم رقم 1.png",
-  glassPale:
-    "https://images.unsplash.com/photo-1471943311424-646960669fbc?q=80&w=1200&auto=format&fit=crop",
+  glassPale: "/images/Beeking Etman/برطمان عسل فاتح.jpg",
   glassDark: "/images/Beeking Etman/برطمان السدر المصرى.jpg",
-  blackseed:
-    "https://images.unsplash.com/photo-1735011725740-72da19fb2baf?q=80&w=1200&auto=format&fit=crop",
+  blackseed: "/images/Beeking Etman/عسل حبة البركة.jpg",
   plasticJar: "/images/Beeking Etman/عسل 1 كيلو برسيم بلاستيك.png",
   plasticJar500: "/images/Beeking Etman/عسل برسيم 500 جرام بلاستيك.png",
-  squeezeBottle:
-    "https://images.pexels.com/photos/8049836/pexels-photo-8049836.jpeg?w=1200&h=1200&fit=crop",
+  squeezeBottle: "/images/Beeking Etman/زجاجة عسل مضغوطة.jpg",
   combFrame: "/images/Beeking Etman/برواز البرسيم.png",
   combFrameCitrus: "/images/Beeking Etman/برواز الموالح.png",
-  combChunks:
-    "https://images.unsplash.com/photo-1773957949199-bc3aa74850ea?q=80&w=1200&auto=format&fit=crop",
-  nutsInHoney:
-    "https://images.unsplash.com/photo-1780494092679-5978bd163184?q=80&w=1200&auto=format&fit=crop",
-  nutsCan:
-    "https://images.unsplash.com/photo-1701591363380-8c2f86d2b41c?q=80&w=1200&auto=format&fit=crop",
+  combChunks: "/images/Beeking Etman/قطع شمع العسل.jpg",
+  nutsInHoney: "/images/Beeking Etman/مكسرات في العسل.jpg",
+  nutsCan: "/images/Beeking Etman/علبة مكسرات بالعسل.jpg",
   hazelnut: "/images/Beeking Etman/كيس بندق 100 جرام.png",
   pistachio: "/images/Beeking Etman/كيس فستق 100 جرام.png",
   almond: "/images/Beeking Etman/كيس لوز 100 جرام.jpg",
@@ -32,15 +26,12 @@ const IMG = {
   mixedNuts: "/images/Beeking Etman/كيس مكسرات مشكل 100 جرام.png",
   beePollen: "/images/Beeking Etman/علبة حبوب اللقاح البرسيم 20 جرام.png",
   beePollen125: "/images/Beeking Etman/علبة حبوب اللقاح البرسيم 125 جرام.png",
-  royalJelly:
-    "https://images.unsplash.com/photo-1641964946680-0002fac59a11?q=80&w=1200&auto=format&fit=crop",
+  royalJelly: "/images/Beeking Etman/غذاء ملكات النحل.jpg",
   propolis: "/images/Beeking Etman/علبة البروبليس.jpg",
   ginseng: "/images/Beeking Etman/علبة الجينسينج.png",
   palmPollen: "/images/Beeking Etman/علبة طلع النخل.png",
-  honeySpoons:
-    "https://images.unsplash.com/photo-1641878067318-1d1f79a77785?q=80&w=1200&auto=format&fit=crop",
-  dipper:
-    "https://images.unsplash.com/photo-1573697610008-4c72b4e9508f?q=80&w=1200&auto=format&fit=crop",
+  honeySpoons: "/images/Beeking Etman/ملاعق العسل.jpg",
+  dipper: "/images/Beeking Etman/مغرفة العسل.jpg",
 };
 
 // Secondary gallery shots per category — each product's gallery is its primary

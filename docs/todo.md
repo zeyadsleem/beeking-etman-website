@@ -139,9 +139,9 @@ preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
 - [ ] E2E/unit gap noted in review: e2e covers the guest happy path and
       validation errors; unit coverage exists for cart/cookie/orders/currency
       helpers but not for page components (e.g. checkout form behavior).
-- [ ] Third-party product imagery: catalog photos are verified Unsplash CDN
-      URLs; consider migrating to first-party/static hosting to remove remote
-      dependence.
+- [x] Third-party product imagery: all catalog photos now self-hosted under
+      `static/images/Beeking Etman/` and served from Pages' unmetered CDN;
+      seed updated locally, live D1 flip pending deploy (see runbook below).
 - [ ] `pnpm audit` flags 5 vulnerabilities (lodash ×3, esbuild) in transitive
       dev tooling (drizzle-kit/tsx/vite); pre-existing, dev-only — revisit
       when updating the toolchain. `pnpm audit --prod` is clean.
@@ -156,3 +156,28 @@ preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
 - [x] Container data persistence resolved: D1 is a managed Cloudflare
       database; no volume mounts needed. Local dev uses `.wrangler/state`
       persistence.
+
+## Pending: free-tier image cutover (2026-08-21, awaiting approval)
+
+All local work is done and verified (`vp check`, unit 84/84, e2e 10/10,
+build contains all 27 images; new asset files pre-uploaded to the Pages
+asset store). The remaining steps mutate production and were left gated on
+explicit approval. Execute in this exact order — flipping D1 before the
+deploy breaks live product images (new paths 404 until deployed):
+
+1. Commit + push to `main` (working tree holds: 9 new images under
+   `static/images/Beeking Etman/`, updated `scripts/seed.ts`,
+   `docs/architecture.md` cost-posture section, `docs/todo.md`).
+2. Wait for CI (`.github/workflows/ci.yml`) deploy job to finish, then
+   confirm a new-image URL returns 200, e.g.
+   `curl -o /dev/null -w "%{http_code}" "https://beeking-etman-website.pages.dev/images/Beeking%20Etman/%D9%85%D8%BA%D8%B1%D9%81%D8%A9%20%D8%A7%D9%84%D8%B9%D8%B3%D9%84.jpg"`.
+3. Regenerate + apply the seed remotely. Production had 0 orders/users at
+   audit time, so a full re-seed is safe (upserts keyed by stable UUIDs):
+   regenerate with `pnpm run db:reset && pnpm run db:seed:d1`, then either
+   `pnpm exec wrangler d1 execute beeking --remote --file=d1-seed.sql`
+   (needs `wrangler login`) or run the statements through the Cloudflare API
+   against database `ba736038-a74b-4a94-b43f-1ff088e0d675`.
+4. Verify zero external URLs remain:
+   `SELECT COUNT(*) FROM store_product WHERE image LIKE '%unsplash%' OR image LIKE '%pexels%'`
+   → expect 0 (also check `store_product_variant.image` and
+   `store_product_image.url`).
