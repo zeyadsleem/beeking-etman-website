@@ -44,16 +44,18 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
 });
 
 test("clicking another link during a view transition still navigates", async ({ page }) => {
-  await page.goto("/products", { waitUntil: "domcontentloaded" });
+  await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 
-  await page.getByRole("link", { name: "عسل سدر مصري" }).first().click();
-  await page.waitForURL(/\/products\/sidr-honey-1kg/);
+  await page.getByRole("link", { name: "المتجر" }).first().click();
+  await page.waitForURL(/\/products$/);
 
   // The previous navigation's view transition is still cross-fading here;
   // this click must not be silently swallowed (see the onNavigate guard).
-  await page.getByRole("link", { name: "المتجر" }).first().click();
-  await expect(page).toHaveURL(/\/products$/);
+  // Header nav links are used instead of grid cards so the assertion does
+  // not depend on catalog pagination or card render timing in CI.
+  await page.getByRole("link", { name: "الخلطات" }).first().click();
+  await expect(page).toHaveURL(/\/blends$/);
 });
 
 test("clicking a product inside the cart drawer closes the drawer", async ({ page }) => {
