@@ -20,6 +20,9 @@ minimumReleaseAgeExclude:
 overrides:
   vite: "catalog:"
   vitest: "catalog:"
+  "@sveltejs/kit>cookie": "^0.7.2"
+  lodash: "^4.17.24"
+  esbuild: "^0.25.0"
 peerDependencyRules:
   allowAny:
     - vite

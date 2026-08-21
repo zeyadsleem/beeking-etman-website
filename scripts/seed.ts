@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import * as schema from "../src/lib/server/db/schema";
 
 const db = drizzle(createClient({ url: process.env.DATABASE_URL ?? "file:local.db" }), { schema });
@@ -698,104 +698,101 @@ const PRODUCTS: SeedProduct[] = [
   },
 ];
 
-async function upsertCategory(slug: string, name: string, nameEn: string): Promise<string> {
-  const existing = await db
-    .select()
-    .from(schema.category)
-    .where(eq(schema.category.slug, slug))
-    .get();
-  if (existing) {
-    await db.update(schema.category).set({ name, nameEn }).where(eq(schema.category.slug, slug));
-    return existing.id;
-  }
-  const rows = await db
-    .insert(schema.category)
-    .values({ name, nameEn, slug })
-    .returning({ id: schema.category.id });
-  return rows[0].id;
+// Rows per multi-value INSERT — keeps bound parameters well under SQLite's
+// variable limit for the widest table (variants: 7 columns → 700 params).
+const INSERT_CHUNK_SIZE = 100;
+
+function chunk<T>(rows: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < rows.length; i += size) chunks.push(rows.slice(i, i + size));
+  return chunks;
 }
 
-async function upsertProduct(p: SeedProduct, categoryId: string): Promise<string> {
-  const minPrice = p.variants.length ? Math.min(...p.variants.map((v) => v.price)) : 0;
-  const values = {
-    name: p.name,
-    nameEn: p.nameEn,
-    description: p.description,
-    descriptionEn: p.descriptionEn,
-    price: minPrice,
-    stock: 0,
-    image: IMG[p.image],
-    categoryId,
-    featured: p.featured ? 1 : 0,
-  };
-  const existing = await db
-    .select()
-    .from(schema.product)
-    .where(eq(schema.product.slug, p.slug))
-    .get();
-  if (existing) {
-    await db.update(schema.product).set(values).where(eq(schema.product.slug, p.slug));
-    return existing.id;
-  }
-  const rows = await db
-    .insert(schema.product)
-    .values({ ...values, slug: p.slug })
-    .returning({ id: schema.product.id });
-  return rows[0].id;
-}
-
-async function upsertVariant(productId: string, v: SeedVariant, sortOrder: number): Promise<void> {
-  const values = {
-    productId,
-    name: v.name,
-    nameEn: v.nameEn,
-    price: v.price,
-    stock: v.stock,
-    image: IMG[v.image],
-    sortOrder,
-  };
-  const existing = await db
-    .select()
-    .from(schema.productVariant)
-    .where(
-      sql`${schema.productVariant.productId} = ${productId} AND ${schema.productVariant.name} = ${v.name}`,
-    )
-    .get();
-  if (existing) {
-    await db
-      .update(schema.productVariant)
-      .set(values)
-      .where(eq(schema.productVariant.id, existing.id));
-  } else {
-    await db.insert(schema.productVariant).values(values);
-  }
-}
-
-async function upsertProductImages(p: SeedProduct, productId: string): Promise<void> {
-  const shots = (GALLERY[p.category] ?? []).map((k) => IMG[k]);
-  const urls = [...new Set([IMG[p.image], ...shots])].slice(0, 4);
-  await db.delete(schema.productImage).where(eq(schema.productImage.productId, productId));
-  await db
-    .insert(schema.productImage)
-    .values(urls.map((url, sortOrder) => ({ productId, url, sortOrder })));
+function requireId(map: Map<string, string>, key: string): string {
+  const id = map.get(key);
+  if (id === undefined) throw new Error(`Seed reference missing id for "${key}"`);
+  return id;
 }
 
 async function seed(): Promise<void> {
+  // Truncate first, children before parents, so no FK is violated mid-reset.
   await db.delete(schema.orderItem);
   await db.delete(schema.order);
   await db.delete(schema.productVariant);
   await db.delete(schema.productImage);
 
-  const categoryIds = new Map<string, string>();
-  for (const c of CATEGORIES)
-    categoryIds.set(c.slug, await upsertCategory(c.slug, c.name, c.nameEn));
-  for (const p of PRODUCTS) {
-    const productId = await upsertProduct(p, categoryIds.get(p.category)!);
-    await upsertProductImages(p, productId);
-    for (let i = 0; i < p.variants.length; i += 1) {
-      await upsertVariant(productId, p.variants[i], i);
-    }
-  }
+  // Upsert on slug keeps category/product ids stable across reseeds, which the
+  // d1-seed export relies on to merge rows without orphaning D1 orders.
+  const categoryRows = await db
+    .insert(schema.category)
+    .values(CATEGORIES.map((c) => ({ name: c.name, nameEn: c.nameEn, slug: c.slug })))
+    .onConflictDoUpdate({
+      target: schema.category.slug,
+      set: { name: sql`excluded.name`, nameEn: sql`excluded.name_en` },
+    })
+    .returning({ id: schema.category.id, slug: schema.category.slug });
+  const categoryIds = new Map(categoryRows.map((row) => [row.slug, row.id]));
+
+  const productRows = await db
+    .insert(schema.product)
+    .values(
+      PRODUCTS.map((p) => ({
+        name: p.name,
+        nameEn: p.nameEn,
+        slug: p.slug,
+        description: p.description,
+        descriptionEn: p.descriptionEn,
+        price: p.variants.length ? Math.min(...p.variants.map((v) => v.price)) : 0,
+        stock: 0,
+        image: IMG[p.image],
+        categoryId: requireId(categoryIds, p.category),
+        featured: p.featured ? 1 : 0,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: schema.product.slug,
+      set: {
+        name: sql`excluded.name`,
+        nameEn: sql`excluded.name_en`,
+        description: sql`excluded.description`,
+        descriptionEn: sql`excluded.description_en`,
+        price: sql`excluded.price`,
+        stock: sql`excluded.stock`,
+        image: sql`excluded.image`,
+        categoryId: sql`excluded.category_id`,
+        featured: sql`excluded.featured`,
+      },
+    })
+    .returning({ id: schema.product.id, slug: schema.product.slug });
+  const productIds = new Map(productRows.map((row) => [row.slug, row.id]));
+
+  // Variants/images were truncated above, so plain inserts cannot conflict.
+  // Their ids churn per run like image ids always have; the d1-seed export's
+  // stale-row deletes reconcile that on the D1 side.
+  const variantValues = PRODUCTS.flatMap((p) =>
+    p.variants.map((v, sortOrder) => ({
+      productId: requireId(productIds, p.slug),
+      name: v.name,
+      nameEn: v.nameEn,
+      price: v.price,
+      stock: v.stock,
+      image: IMG[v.image],
+      sortOrder,
+    })),
+  );
+  const imageValues = PRODUCTS.flatMap((p) => {
+    const productId = requireId(productIds, p.slug);
+    const shots = (GALLERY[p.category] ?? []).map((k) => IMG[k]);
+    return [...new Set([IMG[p.image], ...shots])].slice(0, 4).map((url, sortOrder) => ({
+      productId,
+      url,
+      sortOrder,
+    }));
+  });
+  for (const chunkRows of chunk(variantValues, INSERT_CHUNK_SIZE))
+    await db.insert(schema.productVariant).values(chunkRows);
+  for (const chunkRows of chunk(imageValues, INSERT_CHUNK_SIZE))
+    await db.insert(schema.productImage).values(chunkRows);
 
   const productSlugs = PRODUCTS.map((p) => p.slug);
   await db.delete(schema.product).where(

@@ -145,6 +145,8 @@ preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
 - [ ] `pnpm audit` flags 5 vulnerabilities (lodash ×3, esbuild) in transitive
       dev tooling (drizzle-kit/tsx/vite); pre-existing, dev-only — revisit
       when updating the toolchain. `pnpm audit --prod` is clean.
+  - [x] Resolved (2026-08-21): better-auth ^1.7.1 killed the lodash chain;
+        pnpm-workspace overrides pin cookie/lodash/esbuild; `pnpm audit` clean.
 - [x] SQLITE_BUSY hardening: `createDbRateLimiter.allow()` now retries on
       `SQLITE_BUSY` via the shared `src/lib/server/sqlite.ts` helpers.
 - [x] `store_rate_limit` rows for abandoned keys are now opportunistically
@@ -156,6 +158,26 @@ preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
 - [x] Container data persistence resolved: D1 is a managed Cloudflare
       database; no volume mounts needed. Local dev uses `.wrangler/state`
       persistence.
+
+## Done: post-audit hardening (2026-08-21)
+
+Full security/performance pass closing every finding from the post-vibe-coding
+audit (security review: 0 blockers; code review majors fixed):
+
+- [x] IDOR on guest order success page closed (HMAC capability cookie +
+      owner-session gate, uniform 404s, minimal column projection).
+- [x] Checkout card fields removed (PCI scope dropped); dead i18n keys deleted.
+- [x] `ORDER_ACCESS_SECRET` env validation (fail-hard in prod); examples +
+      `.dev.vars` updated — set it in Cloudflare Pages settings before deploy.
+- [x] Atomic checkout via single `db.batch` + post-commit affected-row
+      verification with compensating batch on lost stock races (+ BUSY retries).
+- [x] Search hardened: 40-byte query cap, FTS ids ≤ 64, clamped limits,
+      parallel variant/image loads, list-path projection (no description TEXT).
+- [x] Rate limits: `/api/search/suggestions` and `/api/cart` GET+POST.
+- [x] Migration 0006: order FK + `(user_id, created_at)` index, four FK
+      indexes, UNIQUE(product_id, name) after dedup; dead `task` table gone.
+- [x] Account orders paginated server-side (12/page).
+- [x] `minPasswordLength: 8`; better-auth ^1.7.1; audit-clean deps.
 
 ## Done: free-tier image cutover (2026-08-21)
 

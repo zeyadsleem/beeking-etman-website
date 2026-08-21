@@ -16,6 +16,14 @@ function validateEnv(): void {
       `BETTER_AUTH_SECRET must be at least ${MIN_SECRET_LENGTH} characters in production`,
     );
   }
+  const orderAccessSecret = env.ORDER_ACCESS_SECRET;
+  if (!orderAccessSecret)
+    throw new Error("ORDER_ACCESS_SECRET is not set (required in production)");
+  if (orderAccessSecret.length < MIN_SECRET_LENGTH) {
+    throw new Error(
+      `ORDER_ACCESS_SECRET must be at least ${MIN_SECRET_LENGTH} characters in production`,
+    );
+  }
   if (!env.ORIGIN) throw new Error("ORIGIN is not set (required in production)");
 }
 

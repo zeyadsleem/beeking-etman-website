@@ -76,24 +76,7 @@
 
     <fieldset class="rounded-2xl border border-cocoa-200 bg-cocoa-50/50 p-5">
       <legend class="px-2 text-sm font-bold text-cocoa-800">{t(lang, "checkout.paymentTitle")}</legend>
-      <p class="mb-4 text-xs text-cocoa-500">{t(lang, "checkout.paymentNote")}</p>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <label class="field-label sm:col-span-2">
-          {t(lang, "checkout.cardNumber")}
-          <input name="cardNumber" inputmode="numeric" placeholder="4242 4242 4242 4242" value={value("cardNumber")} autocomplete="cc-number" class="field mt-1" />
-          {#if error("cardNumber")}<span class="field-error">{error("cardNumber")}</span>{/if}
-        </label>
-        <label class="field-label">
-          {t(lang, "checkout.cardExpiry")}
-          <input name="cardExpiry" placeholder="08/28" value={value("cardExpiry")} autocomplete="cc-exp" class="field mt-1" />
-          {#if error("cardExpiry")}<span class="field-error">{error("cardExpiry")}</span>{/if}
-        </label>
-        <label class="field-label">
-          {t(lang, "checkout.cardCvc")}
-          <input name="cardCvc" inputmode="numeric" value={value("cardCvc")} autocomplete="cc-csc" class="field mt-1" />
-          {#if error("cardCvc")}<span class="field-error">{error("cardCvc")}</span>{/if}
-        </label>
-      </div>
+      <p class="text-xs text-cocoa-500">{t(lang, "checkout.paymentNote")}</p>
     </fieldset>
 
     <Button

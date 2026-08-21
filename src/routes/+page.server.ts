@@ -1,14 +1,16 @@
-import { getCategories, getFeaturedProducts, listProducts } from "$lib/server/store";
+import { getFeaturedProducts, listProducts } from "$lib/server/store";
 import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
 import type { PageServerLoad } from "./$types";
 
+// Categories are intentionally not fetched here: +layout.server.ts already
+// loads them once per request and SvelteKit merges layout data into page
+// data, so +page.svelte keeps reading data.categories.
 export const load: PageServerLoad = async (event) => {
   const lang = getLang(event);
-  const [categories, featured, products] = await Promise.all([
-    getCategories(db, lang),
+  const [featured, products] = await Promise.all([
     getFeaturedProducts(db, 8, lang),
     listProducts(db, { limit: 100 }, lang),
   ]);
-  return { categories, featured, products };
+  return { featured, products };
 };

@@ -1,10 +1,13 @@
-import { afterAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, describe, expect, it, vi } from "vite-plus/test";
+
+vi.setConfig({ testTimeout: 30_000 });
 import { unlinkSync, existsSync } from "node:fs";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 import { isBlendItem } from "$lib/cart";
 import { getProductWithVariants, listProducts, resolveCartItems } from "./store";
+import { clampLimit, findCategoryByQuery, truncateQueryToByteLimit } from "./store";
 
 const DB_FILE = "store-test.db";
 
@@ -132,6 +135,38 @@ async function buildDb() {
 afterAll(() => {
   client?.close();
   if (existsSync(DB_FILE)) unlinkSync(DB_FILE);
+});
+
+describe("search input guards", () => {
+  it("truncates over-long Arabic queries under the D1 LIKE byte cap", () => {
+    const long = "ع".repeat(60);
+    const out = truncateQueryToByteLimit(long);
+    expect(new TextEncoder().encode(`%${out}%`).length).toBeLessThanOrEqual(50);
+    expect(out.length).toBeLessThan(60);
+  });
+
+  it("keeps short queries untouched", () => {
+    expect(truncateQueryToByteLimit("سدر")).toBe("سدر");
+    expect(truncateQueryToByteLimit("")).toBe("");
+  });
+
+  it("clamps list limits into a bounded range", () => {
+    expect(clampLimit(undefined, 12, 200)).toBe(12);
+    expect(clampLimit(0, 12, 200)).toBe(1);
+    expect(clampLimit(-5, 12, 200)).toBe(1);
+    expect(clampLimit(1000, 12, 200)).toBe(200);
+    expect(clampLimit(Number.NaN, 12, 200)).toBe(12);
+    expect(clampLimit(Number.POSITIVE_INFINITY, 12, 200)).toBe(12);
+    expect(clampLimit(7.9, 12, 200)).toBe(7);
+  });
+
+  it("finds categories with an over-long Arabic query without throwing", async () => {
+    const { db } = await buildDb();
+    const match = await findCategoryByQuery(db, "عسل السدر");
+    expect(match?.slug).toBe("sidr");
+    const overflow = await findCategoryByQuery(db, "ع".repeat(100));
+    expect(overflow).toBeNull();
+  });
 });
 
 describe("store queries with variants", () => {

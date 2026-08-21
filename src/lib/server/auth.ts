@@ -18,7 +18,7 @@ export const auth = betterAuth({
   baseURL: env.ORIGIN ?? (building ? "http://localhost:3000" : undefined),
   secret: env.BETTER_AUTH_SECRET ?? (building ? "build-time-secret-0123456789abcdef" : undefined),
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
-  emailAndPassword: { enabled: true },
+  emailAndPassword: { enabled: true, minPasswordLength: 8 },
   plugins: [
     sveltekitCookies(getRequestEvent), // make sure this is the last plugin in the array
   ],

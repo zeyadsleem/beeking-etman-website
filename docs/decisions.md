@@ -786,3 +786,58 @@ uses `wrangler pages dev` with D1 local persistence. Tests continue to use libsq
 Migrations apply via `wrangler d1 migrations apply` — drizzle's
 `--> statement-breakpoint` comments are handled correctly by wrangler. The Docker
 deployment path is removed.
+
+## 2026-08-21: Post-audit security & performance hardening
+
+**Context:** A full audit after the vibe-coding sprint found a critical IDOR
+(guest orders viewable by URL UUID), non-atomic checkout (stock decrements +
+order insert without a transaction), unbounded Arabic search hitting D1's
+~50-byte LIKE-pattern limit, FTS ids feeding >100 bound parameters, no
+pagination/indexes on user orders, missing FK indexes, full-row over-fetching,
+missing rate limits on `/api/search/suggestions` and `/api/cart`, simulated
+payment collecting real card fields (needless PCI scope), and 5 dependency
+audit findings.
+
+**Decision:**
+
+- **Guest order access:** HMAC-SHA256 capability token
+  (`src/lib/server/order-access.ts`, WebCrypto only) issued into an HttpOnly
+  cookie path-scoped to `/checkout/success`; success page grants access iff
+  owner session OR valid per-order token, else uniform 404. Dedicated
+  `ORDER_ACCESS_SECRET` env var, fail-hard in production (≥32 chars).
+- **Column projection:** every read path selects only rendered columns
+  (success page, account orders, product lists, suggestions); `nonce`/`userId`
+  never serialized.
+- **Card fields removed** from checkout schema/UI/i18n — payment is simulated;
+  out of PCI scope.
+- **Atomic checkout:** `createOrder` runs order + items + guarded decrements
+  in ONE `db.batch` (implicit D1 transaction). Sufficiency pre-checked against
+  a fresh stock read; because a guarded UPDATE matching 0 rows is not an
+  error, per-statement affected-row counts are verified after commit and a
+  lost race triggers a compensating batch (delete order/items, restore only
+  applied decrements) with its own SQLITE_BUSY retries; compensation failure
+  returns `orders.failed`. Nonce/order-number conflict + BUSY retries kept.
+- **D1 limits:** search queries byte-capped at 40 (`truncateQueryToByteLimit`),
+  FTS ids capped at 64 (`FTS_MATCH_LIMIT` < 100-param hard limit), all list
+  limits clamped; variant/image loads parallelized (`Promise.all`).
+- **Rate limits:** suggestions 30/min, cart GET+POST 30/min via
+  `createDbRateLimiter`.
+- **Migration `0006`:** rebuilt `store_order` with `user_id → user.id`
+  (ON DELETE SET NULL) FK + `(user_id, created_at)` index; FK indexes on
+  `store_order_item.order_id`, `store_product.category_id`,
+  `store_product_image.product_id`, `store_product_variant.product_id`;
+  deduped variants then UNIQUE(`product_id`,`name`). Dead scaffolding `task`
+  table dropped earlier in schema work.
+- **Account orders:** paginated (12/page) server-side.
+- **Auth/deps:** `minPasswordLength: 8`; better-auth ^1.7.1; pnpm-workspace
+  overrides pin `cookie@^0.7.2`, `lodash@^4.17.24`, `esbuild@^0.25.0`
+  (`pnpm audit` now clean).
+
+**Consequences:** Production Pages MUST set `ORDER_ACCESS_SECRET` (≥32 chars)
+or boot throws, same contract as `BETTER_AUTH_SECRET`. Guest orders placed
+before this change 404 (no capability cookie existed). Each guest checkout
+overwrites the previous capability cookie. Variant dedup discards duplicate
+rows' stock; stale cart cookies referencing deleted variants degrade gracefully
+via `resolveCartItems` missing-reporting. Migration applies during a deploy
+window (writes between INSERT…SELECT and cutover are lost). pnpm 11 ignores
+`package.json#pnpm.overrides` — overrides must live in `pnpm-workspace.yaml`.

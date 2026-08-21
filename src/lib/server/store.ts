@@ -57,9 +57,51 @@ export interface ProductPageResult {
 
 export const PRODUCTS_PAGE_SIZE = 12;
 
+// D1 rejects LIKE pattern arguments above ~50 bytes; Arabic costs ~2 bytes per
+// char, so uncapped queries throw HTTP 500 in production only.
+export const MAX_SEARCH_QUERY_BYTES = 40;
+// D1 hard-caps bound parameters at 100 per statement; ids feed an inArray().
+export const FTS_MATCH_LIMIT = 64;
+const MAX_LIST_LIMIT = 200;
+const MAX_PAGE_SIZE = 60;
+
+export function truncateQueryToByteLimit(
+  value: string,
+  maxBytes: number = MAX_SEARCH_QUERY_BYTES,
+): string {
+  const encoder = new TextEncoder();
+  // Any code unit encodes to >= 1 byte, so a valid prefix never exceeds
+  // maxBytes units; pre-slicing keeps the trim loop linear on multi-byte input.
+  let out = value.length > maxBytes ? value.slice(0, maxBytes) : value;
+  while (out.length > 0 && encoder.encode(out).length > maxBytes) {
+    out = out.slice(0, -1);
+  }
+  return out;
+}
+
+export function clampLimit(value: number | undefined, fallback: number, max: number): number {
+  if (value === undefined || !Number.isFinite(value)) return fallback;
+  return Math.min(Math.max(1, Math.trunc(value)), max);
+}
+
 type VariantRow = typeof schema.productVariant.$inferSelect;
 type ProductRow = typeof schema.product.$inferSelect;
 type ImageRow = typeof schema.productImage.$inferSelect;
+type ProductListRow = Pick<
+  ProductRow,
+  "id" | "name" | "nameEn" | "slug" | "image" | "categoryId" | "featured" | "createdAt"
+>;
+
+const productListColumns = {
+  id: schema.product.id,
+  name: schema.product.name,
+  nameEn: schema.product.nameEn,
+  slug: schema.product.slug,
+  image: schema.product.image,
+  categoryId: schema.product.categoryId,
+  featured: schema.product.featured,
+  createdAt: schema.product.createdAt,
+};
 
 const minPriceExpr = sql<number>`(SELECT MIN(${schema.productVariant.price}) FROM ${schema.productVariant} WHERE ${schema.productVariant.productId} = ${schema.product.id})`;
 
@@ -86,7 +128,7 @@ function groupBy<T, K>(rows: readonly T[], key: (row: T) => K): Map<K, T[]> {
 }
 
 export function withVariants(
-  rows: ProductRow[],
+  rows: readonly (ProductRow | ProductListRow)[],
   variantsByProduct: Map<string, VariantRow[]>,
   imagesByProduct: Map<string, ImageRow[]> = new Map(),
   lang: Lang = "ar",
@@ -103,7 +145,7 @@ export function withVariants(
       id: row.id,
       name: localized(row.name, row.nameEn, lang),
       slug: row.slug,
-      description: localized(row.description, row.descriptionEn, lang),
+      description: "description" in row ? localized(row.description, row.descriptionEn, lang) : "",
       image: row.image,
       images,
       categoryId: row.categoryId,
@@ -151,7 +193,7 @@ export async function findCategoryByQuery(
   db: LibSQLDatabase<typeof schema>,
   query: string,
 ): Promise<{ id: string; slug: string } | null> {
-  const q = `%${query.trim()}%`;
+  const q = `%${truncateQueryToByteLimit(query.trim())}%`;
   const row = await db.select().from(schema.category).where(categoryNameCondition(q)).get();
   return row ? { id: row.id, slug: row.slug } : null;
 }
@@ -162,18 +204,17 @@ export async function getFeaturedProducts(
   lang: Lang = "ar",
 ): Promise<ProductSummary[]> {
   const rows = await db
-    .select()
+    .select(productListColumns)
     .from(schema.product)
     .where(eq(schema.product.featured, 1))
     .orderBy(desc(schema.product.createdAt))
-    .limit(limit);
+    .limit(clampLimit(limit, 8, 24));
   const ids = rows.map((r) => r.id);
-  return withVariants(
-    rows,
-    await loadVariantsForProducts(db, ids),
-    await loadImagesForProducts(db, ids),
-    lang,
-  );
+  const [variants, images] = await Promise.all([
+    loadVariantsForProducts(db, ids),
+    loadImagesForProducts(db, ids),
+  ]);
+  return withVariants(rows, variants, images, lang);
 }
 
 function toFtsQuery(query: string): string {
@@ -206,7 +247,7 @@ async function buildProductWhere(
 ): Promise<{ where: SQL | undefined; none: boolean }> {
   const conds: SQL[] = [];
   if (filters.query) {
-    const ids = await searchProductIds(db, filters.query, 1000);
+    const ids = await searchProductIds(db, filters.query, FTS_MATCH_LIMIT);
     if (ids.length === 0) return { where: undefined, none: true };
     conds.push(inArray(schema.product.id, ids));
   }
@@ -235,19 +276,18 @@ export async function listProducts(
   const { where, none } = await buildProductWhere(db, filters);
   if (none) return [];
   const rows = await db
-    .select()
+    .select(productListColumns)
     .from(schema.product)
     .where(where)
     .orderBy(orderByFor(filters.sort ?? "newest", minPriceExpr))
-    .limit(filters.limit ?? 1000)
+    .limit(clampLimit(filters.limit, MAX_LIST_LIMIT, MAX_LIST_LIMIT))
     .offset(filters.offset ?? 0);
   const ids = rows.map((r) => r.id);
-  return withVariants(
-    rows,
-    await loadVariantsForProducts(db, ids),
-    await loadImagesForProducts(db, ids),
-    lang,
-  );
+  const [variants, images] = await Promise.all([
+    loadVariantsForProducts(db, ids),
+    loadImagesForProducts(db, ids),
+  ]);
+  return withVariants(rows, variants, images, lang);
 }
 
 export async function listProductsPage(
@@ -256,7 +296,11 @@ export async function listProductsPage(
   lang: Lang = "ar",
 ): Promise<ProductPageResult> {
   const requestedPage = Math.max(1, filters.page ?? 1);
-  const pageSize = filters.pageSize ?? PRODUCTS_PAGE_SIZE;
+  const pageSize = clampLimit(
+    filters.pageSize ?? PRODUCTS_PAGE_SIZE,
+    PRODUCTS_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+  );
   const { where, none } = await buildProductWhere(db, filters);
   if (none) {
     return { products: [], total: 0, page: 1, pageSize, totalPages: 0 };
@@ -269,24 +313,18 @@ export async function listProductsPage(
   const totalPages = Math.ceil(total / pageSize);
   const page = Math.min(requestedPage, Math.max(1, totalPages));
   const rows = await db
-    .select()
+    .select(productListColumns)
     .from(schema.product)
     .where(where)
     .orderBy(orderByFor(filters.sort ?? "newest", minPriceExpr))
     .limit(pageSize)
     .offset((page - 1) * pageSize);
-  const summaries = withVariants(
-    rows,
-    await loadVariantsForProducts(
-      db,
-      rows.map((r) => r.id),
-    ),
-    await loadImagesForProducts(
-      db,
-      rows.map((r) => r.id),
-    ),
-    lang,
-  );
+  const ids = rows.map((r) => r.id);
+  const [variants, images] = await Promise.all([
+    loadVariantsForProducts(db, ids),
+    loadImagesForProducts(db, ids),
+  ]);
+  const summaries = withVariants(rows, variants, images, lang);
   return { products: summaries, total, page, pageSize, totalPages };
 }
 
@@ -305,7 +343,7 @@ export async function getSearchSuggestions(
   products: SearchSuggestionProduct[];
   categories: { id: string; name: string; slug: string }[];
 }> {
-  const trimmed = query.trim();
+  const trimmed = truncateQueryToByteLimit(query.trim());
   const q = `%${trimmed}%`;
   const [ids, categoryRows] = await Promise.all([
     searchProductIds(db, trimmed, 6),
@@ -317,7 +355,17 @@ export async function getSearchSuggestions(
     slug: c.slug,
   }));
   const rows = ids.length
-    ? await db.select().from(schema.product).where(inArray(schema.product.id, ids))
+    ? await db
+        .select({
+          id: schema.product.id,
+          name: schema.product.name,
+          nameEn: schema.product.nameEn,
+          slug: schema.product.slug,
+          image: schema.product.image,
+          price: schema.product.price,
+        })
+        .from(schema.product)
+        .where(inArray(schema.product.id, ids))
     : [];
   const variants = await loadVariantsForProducts(
     db,
@@ -342,12 +390,11 @@ export async function getProductWithVariants(
 ): Promise<ProductSummary | null> {
   const row = await db.select().from(schema.product).where(eq(schema.product.slug, slug)).get();
   if (!row) return null;
-  const list = withVariants(
-    [row],
-    await loadVariantsForProducts(db, [row.id]),
-    await loadImagesForProducts(db, [row.id]),
-    lang,
-  );
+  const [variants, images] = await Promise.all([
+    loadVariantsForProducts(db, [row.id]),
+    loadImagesForProducts(db, [row.id]),
+  ]);
+  const list = withVariants([row], variants, images, lang);
   return list[0];
 }
 
@@ -358,20 +405,19 @@ export async function getRelatedProducts(
   lang: Lang = "ar",
 ): Promise<ProductSummary[]> {
   const rows = await db
-    .select()
+    .select(productListColumns)
     .from(schema.product)
     .where(
       and(eq(schema.product.categoryId, product.categoryId), ne(schema.product.id, product.id)),
     )
     .orderBy(desc(schema.product.featured), desc(schema.product.createdAt))
-    .limit(limit);
+    .limit(clampLimit(limit, 4, 24));
   const ids = rows.map((r) => r.id);
-  return withVariants(
-    rows,
-    await loadVariantsForProducts(db, ids),
-    await loadImagesForProducts(db, ids),
-    lang,
-  );
+  const [variants, images] = await Promise.all([
+    loadVariantsForProducts(db, ids),
+    loadImagesForProducts(db, ids),
+  ]);
+  return withVariants(rows, variants, images, lang);
 }
 
 export interface ResolvedCart {

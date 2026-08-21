@@ -1,4 +1,4 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { computeTotals } from "$lib/cart";
 import type { CartEntry, CartItem } from "$lib/cart";
@@ -43,7 +43,21 @@ interface OrderUnit {
   variantName: string;
   quantity: number;
   unitPrice: number;
-  stock: number;
+}
+
+// Batch write results differ per driver: libsql reports `rowsAffected`,
+// D1 reports `meta.changes`. A guarded UPDATE matching 0 rows is not an
+// error inside a batch, so affected counts must be verified explicitly.
+interface BatchWriteResult {
+  rowsAffected?: number;
+  meta?: { changes?: number };
+}
+
+function affectedRowCount(result: unknown): number {
+  if (typeof result !== "object" || result === null) return 0;
+  const { rowsAffected, meta } = result as BatchWriteResult;
+  if (typeof rowsAffected === "number") return rowsAffected;
+  return typeof meta?.changes === "number" ? meta.changes : 0;
 }
 
 function toOrderUnits(items: CartItem[]): OrderUnit[] {
@@ -57,7 +71,6 @@ function toOrderUnits(items: CartItem[]): OrderUnit[] {
         variantName: item.variantName,
         quantity: 1,
         unitPrice: item.basePrice,
-        stock: item.stock,
       });
       for (const a of item.additives) {
         units.push({
@@ -67,7 +80,6 @@ function toOrderUnits(items: CartItem[]): OrderUnit[] {
           variantName: "",
           quantity: a.qty,
           unitPrice: a.price,
-          stock: a.stock,
         });
       }
     } else {
@@ -78,7 +90,6 @@ function toOrderUnits(items: CartItem[]): OrderUnit[] {
         variantName: item.variantName,
         quantity: item.quantity,
         unitPrice: item.price,
-        stock: item.stock,
       });
     }
   }
@@ -100,6 +111,46 @@ async function findOrderByNonce(
     .get();
 }
 
+// Undo a committed batch whose guarded decrement lost a stock race: delete
+// the order we just wrote and add back exactly what was taken (restoring
+// only the decrements that applied is safe under concurrency). Returns
+// false when compensation itself fails even after busy retries — the caller
+// must then treat the outcome as unknown rather than report stock state.
+async function compensateLostStockRace(
+  db: LibSQLDatabase<typeof schema>,
+  orderId: string,
+  appliedVariantIds: string[],
+  demandByVariant: Map<string, number>,
+): Promise<boolean> {
+  const restockEntries = appliedVariantIds.flatMap((variantId) => {
+    const quantity = demandByVariant.get(variantId);
+    return quantity === undefined ? [] : [[variantId, quantity] as const];
+  });
+  for (let attempt = 0; attempt <= SQLITE_BUSY_RETRIES; attempt++) {
+    try {
+      await db.batch([
+        db.delete(schema.orderItem).where(eq(schema.orderItem.orderId, orderId)),
+        db.delete(schema.order).where(eq(schema.order.id, orderId)),
+        ...restockEntries.map(([variantId, quantity]) =>
+          db
+            .update(schema.productVariant)
+            .set({ stock: sql`${schema.productVariant.stock} + ${quantity}` })
+            .where(eq(schema.productVariant.id, variantId)),
+        ),
+      ]);
+      return true;
+    } catch (error) {
+      if (isBusyError(error) && attempt < SQLITE_BUSY_RETRIES) {
+        await sleep((attempt + 1) * 50);
+        continue;
+      }
+      console.error("[createOrder] compensation after lost stock race failed", { orderId, error });
+      return false;
+    }
+  }
+  return false;
+}
+
 export async function createOrder(
   db: LibSQLDatabase<typeof schema>,
   lines: CartEntry[],
@@ -117,6 +168,16 @@ export async function createOrder(
     return { ok: false, message: t(lang, "orders.noProducts"), outOfStock: [] };
   }
 
+  const units = toOrderUnits(items);
+  // Aggregate demand per variant from the resolved units: several cart lines
+  // (or blend base + additives) can target the same variant, and the guarded
+  // decrement must reserve the combined amount in one statement.
+  const demandByVariant = new Map<string, number>();
+  for (const unit of units) {
+    demandByVariant.set(unit.variantId, (demandByVariant.get(unit.variantId) ?? 0) + unit.quantity);
+  }
+  // resolveCartItems clamps line quantities to the stock snapshot, so raw
+  // requested amounts are tracked separately to catch over-demand.
   const requested = new Map<string, number>();
   for (const line of lines) {
     if (isBlendEntry(line)) {
@@ -127,20 +188,6 @@ export async function createOrder(
     } else {
       requested.set(line.variantId, (requested.get(line.variantId) ?? 0) + line.quantity);
     }
-  }
-
-  const units = toOrderUnits(items);
-  const outOfStock = [
-    ...new Set(
-      units.filter((u) => (requested.get(u.variantId) ?? u.quantity) > u.stock).map((u) => u.name),
-    ),
-  ];
-  if (outOfStock.length > 0) {
-    return {
-      ok: false,
-      message: t(lang, "orders.outOfStock"),
-      outOfStock,
-    };
   }
 
   const existing = await findOrderByNonce(db, nonce);
@@ -155,47 +202,94 @@ export async function createOrder(
     const orderNumber = generateOrderNumber();
     const orderId = crypto.randomUUID();
 
-    // D1 does not support interactive transactions (BEGIN/SAVEPOINT), so
-    // stock decrements use guarded atomic updates with explicit compensation
-    // to keep the "never oversell" invariant without a transaction.
-    const decremented = await decrementStock(db, units);
-    if (!decremented.ok) {
+    // D1 does not support interactive transactions, but drizzle's libsql
+    // driver runs db.batch([...]) as one implicit transaction: every write
+    // below (stock decrements + order + items) commits or rolls back together.
+    // Sufficiency is enforced against a fresh read before batching; because a
+    // guarded UPDATE matching 0 rows is not an error, each decrement is
+    // verified after the batch and the whole order is compensated if a
+    // concurrent checkout won the stock race.
+    const variantIds = [...demandByVariant.keys()];
+    const stockRows = await db
+      .select({ id: schema.productVariant.id, stock: schema.productVariant.stock })
+      .from(schema.productVariant)
+      .where(inArray(schema.productVariant.id, variantIds));
+    const stockById = new Map(stockRows.map((row) => [row.id, row.stock]));
+    const insufficient = units.filter((u) => {
+      const current = stockById.get(u.variantId);
+      return current === undefined || (requested.get(u.variantId) ?? u.quantity) > current;
+    });
+    if (insufficient.length > 0) {
       return {
         ok: false,
         message: t(lang, "orders.outOfStock"),
-        outOfStock: [decremented.name],
+        outOfStock: [...new Set(insufficient.map((u) => u.name))],
       };
     }
 
     try {
-      await db.insert(schema.order).values({
-        id: orderId,
-        number: orderNumber,
-        nonce,
-        email: customer.email,
-        name: customer.name,
-        phone: customer.phone,
-        address: customer.address,
-        city: customer.city,
-        total: totals.total,
-        status: "paid",
-        userId: userId ?? null,
-        createdAt: Date.now(),
-      });
-      await db.insert(schema.orderItem).values(
-        units.map((u) => ({
-          orderId,
-          productId: u.productId,
-          productName: u.name,
-          variantName: u.variantName,
-          quantity: u.quantity,
-          unitPrice: u.unitPrice,
-        })),
+      const decrementEntries = [...demandByVariant];
+      const batchResult = await db.batch([
+        db.insert(schema.order).values({
+          id: orderId,
+          number: orderNumber,
+          nonce,
+          email: customer.email,
+          name: customer.name,
+          phone: customer.phone,
+          address: customer.address,
+          city: customer.city,
+          total: totals.total,
+          status: "paid",
+          userId: userId ?? null,
+          createdAt: Date.now(),
+        }),
+        db.insert(schema.orderItem).values(
+          units.map((u) => ({
+            orderId,
+            productId: u.productId,
+            productName: u.name,
+            variantName: u.variantName,
+            quantity: u.quantity,
+            unitPrice: u.unitPrice,
+          })),
+        ),
+        ...decrementEntries.map(([variantId, quantity]) =>
+          db
+            .update(schema.productVariant)
+            .set({ stock: sql`${schema.productVariant.stock} - ${quantity}` })
+            .where(
+              and(
+                eq(schema.productVariant.id, variantId),
+                gte(schema.productVariant.stock, quantity),
+              ),
+            ),
+        ),
+      ]);
+      const lostStock = decrementEntries.filter(
+        (_, i) => affectedRowCount(batchResult[2 + i]) !== 1,
       );
+      if (lostStock.length > 0) {
+        const appliedIds = decrementEntries
+          .filter(([variantId]) => !lostStock.some(([lostId]) => lostId === variantId))
+          .map(([variantId]) => variantId);
+        const compensated = await compensateLostStockRace(db, orderId, appliedIds, demandByVariant);
+        if (!compensated) {
+          return { ok: false, message: t(lang, "orders.failed"), outOfStock: [] };
+        }
+        return {
+          ok: false,
+          message: t(lang, "orders.outOfStock"),
+          outOfStock: [
+            ...new Set(
+              units.filter((u) => lostStock.some(([id]) => id === u.variantId)).map((u) => u.name),
+            ),
+          ],
+        };
+      }
       return { ok: true, orderId, orderNumber, total: totals.total };
     } catch (error) {
-      await rollbackOrderInsert(db, orderId);
-      await restoreStock(db, decremented.units);
+      // The batch is atomic: nothing was written, so retries just re-run it.
 
       if (isNonceConflict(error)) {
         const replayed = await findOrderByNonce(db, nonce);
@@ -227,48 +321,4 @@ export async function createOrder(
     message: lastConflict ? t(lang, "orders.numberCollision") : t(lang, "orders.failed"),
     outOfStock: [],
   };
-}
-
-type StockDecrement = { ok: true; units: OrderUnit[] } | { ok: false; name: string };
-
-async function decrementStock(
-  db: LibSQLDatabase<typeof schema>,
-  units: OrderUnit[],
-): Promise<StockDecrement> {
-  const applied: OrderUnit[] = [];
-  for (const unit of units) {
-    const updated = await db
-      .update(schema.productVariant)
-      .set({ stock: sql`${schema.productVariant.stock} - ${unit.quantity}` })
-      .where(
-        and(
-          eq(schema.productVariant.id, unit.variantId),
-          gte(schema.productVariant.stock, unit.quantity),
-        ),
-      )
-      .returning({ id: schema.productVariant.id });
-    if (updated.length === 0) {
-      await restoreStock(db, applied);
-      return { ok: false, name: unit.name };
-    }
-    applied.push(unit);
-  }
-  return { ok: true, units: applied };
-}
-
-async function restoreStock(db: LibSQLDatabase<typeof schema>, units: OrderUnit[]): Promise<void> {
-  for (const unit of units) {
-    await db
-      .update(schema.productVariant)
-      .set({ stock: sql`${schema.productVariant.stock} + ${unit.quantity}` })
-      .where(eq(schema.productVariant.id, unit.variantId));
-  }
-}
-
-async function rollbackOrderInsert(
-  db: LibSQLDatabase<typeof schema>,
-  orderId: string,
-): Promise<void> {
-  await db.delete(schema.orderItem).where(eq(schema.orderItem.orderId, orderId));
-  await db.delete(schema.order).where(eq(schema.order.id, orderId));
 }

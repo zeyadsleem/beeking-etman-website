@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { formatEGP } from "$lib/currency";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
@@ -7,6 +8,12 @@
 
   let { data }: { data: PageData } = $props();
   const lang = $derived(data.lang);
+
+  function goToPage(page: number): void {
+    const params = new URLSearchParams();
+    if (page > 1) params.set("page", String(page));
+    void goto(`/account/orders${params.size ? `?${params}` : ""}`);
+  }
 </script>
 
 <svelte:head><title>{t(lang, "orders.title")} — مملكة النحل</title></svelte:head>
@@ -34,5 +41,31 @@
         </li>
       {/each}
     </ul>
+
+    {#if data.totalPages > 1}
+      <nav class="mt-10 flex items-center justify-center gap-4" aria-label={t(lang, "products.paginationAria")}>
+        <Button
+          variant="outline"
+          type="button"
+          class="text-sm"
+          disabled={data.page <= 1}
+          onclick={() => goToPage(data.page - 1)}
+        >
+          {t(lang, "products.prev")}
+        </Button>
+        <span class="text-sm text-cocoa-600" aria-label={t(lang, "products.pageAria", { page: data.page })}>
+          {t(lang, "products.page")} {data.page} {t(lang, "products.of")} {data.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          type="button"
+          class="text-sm"
+          disabled={data.page >= data.totalPages}
+          onclick={() => goToPage(data.page + 1)}
+        >
+          {t(lang, "products.next")}
+        </Button>
+      </nav>
+    {/if}
   {/if}
 </div>
