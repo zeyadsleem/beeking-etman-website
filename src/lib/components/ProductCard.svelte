@@ -31,7 +31,7 @@
   }
 </script>
 
-<section class="group flex flex-col overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment transition-all duration-300 hover:border-cocoa-200 hover:shadow-warm-sm">
+<section class="group flex flex-col overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment transition-all duration-300 hover:-translate-y-0.5 hover:border-cocoa-200 hover:shadow-warm">
   <a href={`/products/${product.slug}`} class="relative block overflow-hidden bg-cocoa-100" onclick={beginImageTransition}>
     <AspectRatio.Root ratio={4 / 3} class="overflow-hidden">
       <img
@@ -49,7 +49,7 @@
     {/if}
   </a>
   <div class="flex flex-1 flex-col gap-2 p-4">
-    <h2 class="headline text-lg leading-snug text-cocoa-900">{product.name}</h2>
+    <h2 class="card-title text-base leading-snug text-cocoa-900">{product.name}</h2>
     <div class="mt-auto flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex w-full flex-col gap-0.5">
         {#if product.variants.length > 1}
@@ -66,7 +66,7 @@
         <a
           href={`/products/${product.slug}`}
           onclick={beginImageTransition}
-          class="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-full border border-cocoa-300 bg-transparent px-4 py-2 text-sm font-semibold text-cocoa-800 transition-all duration-300 hover:border-cocoa-900 hover:text-cocoa-950 sm:w-auto"
+          class="btn-outline w-full shrink-0 px-4 py-2 sm:w-auto"
           aria-label={t(lang, "product.chooseSizeAria", { name: product.name })}
         >
           {t(lang, "product.chooseSize")}
@@ -77,7 +77,7 @@
       {:else}
         <button
           type="button"
-          class="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-full bg-ink-950 px-4 py-2 text-sm font-semibold text-parchment shadow-warm-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-warm disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+          class="btn-primary w-full shrink-0 px-4 py-2 sm:w-auto"
           disabled={product.variants[0]?.stock === 0}
           onclick={handleAdd}
           data-testid="add-to-cart"

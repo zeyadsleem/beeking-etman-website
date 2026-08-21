@@ -103,6 +103,7 @@
 
   function submit() {
     const q = query.trim();
+    query = "";
     items = [];
     open = false;
     onSearch(q);

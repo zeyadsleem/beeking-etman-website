@@ -56,8 +56,8 @@
 
 <Hero lang={lang} featured={data.featured} productCount={data.products.length} />
 
-<div class="border-y border-cocoa-100 bg-parchment/70">
-  <div class="mx-auto grid max-w-3xl grid-cols-1 gap-y-2 px-6 py-5 text-center sm:grid-cols-3 sm:divide-x sm:divide-cocoa-100">
+<div class="hidden border-y border-cocoa-100 bg-parchment/70 sm:block">
+  <div class="mx-auto grid max-w-3xl grid-cols-3 divide-x divide-cocoa-100 px-6 py-5 text-center">
     <p class="text-sm font-semibold text-cocoa-700">{t(lang, "home.benefitShipping")}</p>
     <p class="text-sm font-semibold text-cocoa-700">{t(lang, "home.benefitCod")}</p>
     <p class="text-sm font-semibold text-cocoa-700">{t(lang, "home.benefitGift")}</p>

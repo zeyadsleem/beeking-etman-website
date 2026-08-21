@@ -20,7 +20,7 @@
   </div>
   <form method="post" action="?/register" use:enhance class="space-y-4 rounded-2xl border border-cocoa-100 bg-parchment p-7 shadow-warm-sm">
     {#if form?.message}
-      <p class="rounded-xl bg-clay-50 px-4 py-3 text-sm font-semibold text-clay-700" role="alert">{form.message}</p>
+      <p class="alert-error" role="alert">{form.message}</p>
     {/if}
     <label class="field-label">
       {t(lang, "register.name")}

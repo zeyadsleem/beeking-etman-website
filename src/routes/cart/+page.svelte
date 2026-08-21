@@ -23,7 +23,7 @@
 
 <svelte:head><title>{t(lang, "cart.pageTitle")}</title></svelte:head>
 
-<div class="mt-6">
+<div class="mt-8">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "cart.title")}</SectionTitle>
 
   {#if cartState.items.length === 0}

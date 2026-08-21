@@ -11,7 +11,7 @@
 
 <svelte:head><title>{t(lang, "orders.title")} — مملكة النحل</title></svelte:head>
 
-<div class="mt-6">
+<div class="mt-8">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "orders.title")}</SectionTitle>
   {#if data.orders.length === 0}
     <div class="mt-8 flex flex-col items-center rounded-2xl border border-dashed border-cocoa-200 bg-parchment p-14 text-center">
@@ -19,7 +19,7 @@
       <Button variant="primary" href="/products" class="mt-5">{t(lang, "orders.browse")}</Button>
     </div>
   {:else}
-    <ul class="mt-6 space-y-4">
+    <ul class="mt-8 space-y-4">
       {#each data.orders as order (order.id)}
         <li class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cocoa-100 bg-parchment p-5 shadow-warm-sm transition hover:border-cocoa-200">
           <div>

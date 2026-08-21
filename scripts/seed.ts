@@ -48,19 +48,25 @@ const IMG = {
 const GALLERY: Record<string, (keyof typeof IMG)[]> = {
   flowers: ["glassLight", "glassPale", "dipper"],
   sidr: ["glassDark", "glassLight", "dipper"],
-  blends: ["blackseed", "glassLight", "nutsInHoney"],
+  vib: ["glassPale", "glassLight", "dipper"],
+  "nuts-honey": ["nutsInHoney", "nutsCan", "blackseed"],
   comb: ["combFrame", "combFrameCitrus", "combChunks"],
   "bee-supplements": ["royalJelly", "propolis", "beePollen", "honeySpoons"],
   nuts: ["nutsCan", "hazelnut", "pistachio", "mixedNuts"],
 };
 
 const CATEGORIES = [
-  { slug: "flowers", name: "عسل الزهور", nameEn: "Flower Honey" },
+  {
+    slug: "flowers",
+    name: "عسل الزهور والبردقوش وحبة البركة",
+    nameEn: "Flowers, Marjoram & Black Seed",
+  },
   { slug: "sidr", name: "عسل السدر", nameEn: "Sidr Honey" },
-  { slug: "blends", name: "خلطات وعسل مدعم", nameEn: "Blends & Boosted Honey" },
+  { slug: "vib", name: "عسل Vib", nameEn: "Vib Honey" },
+  { slug: "nuts-honey", name: "مكسرات بالعسل", nameEn: "Nuts in Honey" },
+  { slug: "nuts", name: "مكسرات", nameEn: "Nuts" },
   { slug: "comb", name: "شمع العسل", nameEn: "Comb Honey" },
   { slug: "bee-supplements", name: "مكملات النحل", nameEn: "Bee Supplements" },
-  { slug: "nuts", name: "مكسرات", nameEn: "Nuts" },
 ];
 
 interface SeedVariant {
@@ -84,6 +90,7 @@ interface SeedProduct {
 }
 
 const PRODUCTS: SeedProduct[] = [
+  // ── Flowers, Marjoram & Black Seed ──────────────────────────────────
   {
     slug: "clover-honey-1kg-glass",
     name: "عسل برسيم 1 ك زجاج",
@@ -96,7 +103,7 @@ const PRODUCTS: SeedProduct[] = [
     image: "glassLight",
     featured: true,
     variants: [
-      { name: "1 ك زجاج", nameEn: "1kg Glass", price: 250_00, stock: 30, image: "glassLight" },
+      { name: "1 ك زجاج", nameEn: "1kg Glass", price: 135_00, stock: 30, image: "glassLight" },
     ],
   },
   {
@@ -111,7 +118,7 @@ const PRODUCTS: SeedProduct[] = [
     image: "plasticJar",
     featured: false,
     variants: [
-      { name: "1 ك بلاستيك", nameEn: "1kg Plastic", price: 220_00, stock: 30, image: "plasticJar" },
+      { name: "1 ك بلاستيك", nameEn: "1kg Plastic", price: 120_00, stock: 30, image: "plasticJar" },
     ],
   },
   {
@@ -129,7 +136,7 @@ const PRODUCTS: SeedProduct[] = [
       {
         name: "1 ك اسكويز",
         nameEn: "1kg Squeeze",
-        price: 230_00,
+        price: 130_00,
         stock: 25,
         image: "squeezeBottle",
       },
@@ -149,7 +156,7 @@ const PRODUCTS: SeedProduct[] = [
       {
         name: "500 جرام زجاج",
         nameEn: "500g Glass",
-        price: 140_00,
+        price: 70_00,
         stock: 40,
         image: "glassLight",
       },
@@ -169,38 +176,10 @@ const PRODUCTS: SeedProduct[] = [
       {
         name: "500 جرام بلاستيك",
         nameEn: "500g Plastic",
-        price: 120_00,
+        price: 65_00,
         stock: 50,
         image: "plasticJar500",
       },
-    ],
-  },
-  {
-    slug: "clover-honey-1kg-vib",
-    name: "عسل برسيم 1ك Vib",
-    nameEn: "Clover Honey 1kg Vib",
-    description: "كيلو عسل برسيم كامل بعبوة Vib الزجاجية الشهيرة — خيار عائلي موثوق بسعر مميز.",
-    descriptionEn:
-      "A full kilo of clover honey in the famous Vib glass jar — a trusted family choice at a great price.",
-    category: "flowers",
-    image: "glassPale",
-    featured: false,
-    variants: [
-      { name: "1 ك Vib", nameEn: "1kg Vib", price: 225_00, stock: 25, image: "glassPale" },
-    ],
-  },
-  {
-    slug: "clover-honey-half-vib",
-    name: "عسل برسيم نص Vib",
-    nameEn: "Clover Honey Half Vib",
-    description: "نصف كيلو عسل برسيم بعبوة Vib — توازن مثالي بين الجودة والسعر للاستخدام الفردي.",
-    descriptionEn:
-      "Half a kilo of clover honey in a Vib jar — a perfect balance of quality and price for individual use.",
-    category: "flowers",
-    image: "glassPale",
-    featured: false,
-    variants: [
-      { name: "نص Vib", nameEn: "Half Vib", price: 125_00, stock: 35, image: "glassPale" },
     ],
   },
   {
@@ -214,7 +193,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "flowers",
     image: "glassLight",
     featured: false,
-    variants: [{ name: "150 جرام", nameEn: "150g", price: 60_00, stock: 45, image: "glassLight" }],
+    variants: [{ name: "150 جرام", nameEn: "150g", price: 35_00, stock: 45, image: "glassLight" }],
   },
   {
     slug: "citrus-honey-1kg",
@@ -227,35 +206,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "flowers",
     image: "glassLight",
     featured: true,
-    variants: [{ name: "1 ك عادي", nameEn: "1kg", price: 240_00, stock: 25, image: "glassLight" }],
-  },
-  {
-    slug: "citrus-honey-1kg-vib",
-    name: "عسل موالح 1ك Vib",
-    nameEn: "Citrus Honey 1kg Vib",
-    description: "كيلو عسل موالح منعش بعبوة Vib الزجاجية — نكهة الحمضيات المشرقة للعائلة.",
-    descriptionEn:
-      "A kilo of refreshing citrus honey in a Vib glass jar — bright citrus flavor for the whole family.",
-    category: "flowers",
-    image: "glassPale",
-    featured: false,
-    variants: [
-      { name: "1 ك Vib", nameEn: "1kg Vib", price: 230_00, stock: 20, image: "glassPale" },
-    ],
-  },
-  {
-    slug: "citrus-honey-half-vib",
-    name: "عسل موالح نص Vib",
-    nameEn: "Citrus Honey Half Vib",
-    description: "نصف كيلو عسل الموالح بعبوة Vib — نكهة الحمضيات في حجم ذهبي مناسب.",
-    descriptionEn:
-      "Half a kilo of citrus honey in a Vib jar — citrus flavor in a perfectly sized golden portion.",
-    category: "flowers",
-    image: "glassPale",
-    featured: false,
-    variants: [
-      { name: "نص Vib", nameEn: "Half Vib", price: 130_00, stock: 30, image: "glassPale" },
-    ],
+    variants: [{ name: "1 ك عادي", nameEn: "1kg", price: 145_00, stock: 25, image: "glassLight" }],
   },
   {
     slug: "marjoram-honey-500g",
@@ -268,7 +219,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "flowers",
     image: "dipper",
     featured: false,
-    variants: [{ name: "500 جرام", nameEn: "500g", price: 180_00, stock: 22, image: "dipper" }],
+    variants: [{ name: "500 جرام", nameEn: "500g", price: 90_00, stock: 22, image: "dipper" }],
   },
   {
     slug: "marjoram-honey-1kg-glass",
@@ -281,9 +232,36 @@ const PRODUCTS: SeedProduct[] = [
     image: "glassPale",
     featured: false,
     variants: [
-      { name: "1 ك زجاج", nameEn: "1kg Glass", price: 330_00, stock: 16, image: "glassPale" },
+      { name: "1 ك زجاج", nameEn: "1kg Glass", price: 180_00, stock: 16, image: "glassPale" },
     ],
   },
+  {
+    slug: "blackseed-honey-half",
+    name: "عسل حبة البركة نص",
+    nameEn: "Black Seed Honey Half",
+    description: "عسل برسيم مدعّم بحبة البركة المطحونة — منشط مناعة شتوي في حجم نص كيلو.",
+    descriptionEn:
+      "Clover honey boosted with ground black seed — a winter immunity booster in a half-kilo size.",
+    category: "flowers",
+    image: "blackseed",
+    featured: false,
+    variants: [{ name: "نص", nameEn: "Half", price: 90_00, stock: 24, image: "blackseed" }],
+  },
+  {
+    slug: "blackseed-honey-1kg",
+    name: "عسل حبة البركة 1 ك",
+    nameEn: "Black Seed Honey 1kg",
+    description:
+      "عسل مدعّم بحبة البركة المطحونة — منشط طبيعي للمناعة والأكثر طلبًا في الشتاء، بحجم كيلو.",
+    descriptionEn:
+      "Honey boosted with ground black seed — a natural immunity booster and the most requested in winter, in a kilo size.",
+    category: "flowers",
+    image: "blackseed",
+    featured: true,
+    variants: [{ name: "1 ك", nameEn: "1kg", price: 180_00, stock: 18, image: "blackseed" }],
+  },
+
+  // ── Sidr Honey ──────────────────────────────────────────────────────
   {
     slug: "sidr-honey-1kg",
     name: "عسل سدر مصري 1 ك",
@@ -295,7 +273,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "sidr",
     image: "glassDark",
     featured: true,
-    variants: [{ name: "1 ك", nameEn: "1kg", price: 700_00, stock: 12, image: "glassDark" }],
+    variants: [{ name: "1 ك", nameEn: "1kg", price: 1000_00, stock: 12, image: "glassDark" }],
   },
   {
     slug: "sidr-honey-500g",
@@ -307,33 +285,66 @@ const PRODUCTS: SeedProduct[] = [
     category: "sidr",
     image: "glassDark",
     featured: false,
-    variants: [{ name: "500 جرام", nameEn: "500g", price: 380_00, stock: 18, image: "glassDark" }],
+    variants: [{ name: "500 جرام", nameEn: "500g", price: 500_00, stock: 18, image: "glassDark" }],
   },
+
+  // ── Vib Honey ───────────────────────────────────────────────────────
   {
-    slug: "blackseed-honey-half",
-    name: "عسل حبة البركة نص",
-    nameEn: "Black Seed Honey Half",
-    description: "عسل برسيم مدعّم بحبة البركة المطحونة — منشط مناعة شتوي في حجم نص كيلو.",
+    slug: "clover-honey-1kg-vib",
+    name: "عسل برسيم 1ك Vib",
+    nameEn: "Clover Honey 1kg Vib",
+    description: "كيلو عسل برسيم كامل بعبوة Vib الزجاجية الشهيرة — خيار عائلي موثوق بسعر مميز.",
     descriptionEn:
-      "Clover honey boosted with ground black seed — a winter immunity booster in a half-kilo size.",
-    category: "blends",
-    image: "blackseed",
+      "A full kilo of clover honey in the famous Vib glass jar — a trusted family choice at a great price.",
+    category: "vib",
+    image: "glassPale",
     featured: false,
-    variants: [{ name: "نص", nameEn: "Half", price: 210_00, stock: 24, image: "blackseed" }],
+    variants: [
+      { name: "1 ك Vib", nameEn: "1kg Vib", price: 180_00, stock: 25, image: "glassPale" },
+    ],
   },
   {
-    slug: "blackseed-honey-1kg",
-    name: "عسل حبة البركة 1 ك",
-    nameEn: "Black Seed Honey 1kg",
-    description:
-      "عسل مدعّم بحبة البركة المطحونة — منشط طبيعي للمناعة والأكثر طلبًا في الشتاء، بحجم كيلو.",
+    slug: "clover-honey-half-vib",
+    name: "عسل برسيم نص Vib",
+    nameEn: "Clover Honey Half Vib",
+    description: "نصف كيلو عسل برسيم بعبوة Vib — توازن مثالي بين الجودة والسعر للاستخدام الفردي.",
     descriptionEn:
-      "Honey boosted with ground black seed — a natural immunity booster and the most requested in winter, in a kilo size.",
-    category: "blends",
-    image: "blackseed",
-    featured: true,
-    variants: [{ name: "1 ك", nameEn: "1kg", price: 380_00, stock: 18, image: "blackseed" }],
+      "Half a kilo of clover honey in a Vib jar — a perfect balance of quality and price for individual use.",
+    category: "vib",
+    image: "glassPale",
+    featured: false,
+    variants: [{ name: "نص Vib", nameEn: "Half Vib", price: 90_00, stock: 35, image: "glassPale" }],
   },
+  {
+    slug: "citrus-honey-1kg-vib",
+    name: "عسل موالح 1ك Vib",
+    nameEn: "Citrus Honey 1kg Vib",
+    description: "كيلو عسل موالح منعش بعبوة Vib الزجاجية — نكهة الحمضيات المشرقة للعائلة.",
+    descriptionEn:
+      "A kilo of refreshing citrus honey in a Vib glass jar — bright citrus flavor for the whole family.",
+    category: "vib",
+    image: "glassPale",
+    featured: false,
+    variants: [
+      { name: "1 ك Vib", nameEn: "1kg Vib", price: 200_00, stock: 20, image: "glassPale" },
+    ],
+  },
+  {
+    slug: "citrus-honey-half-vib",
+    name: "عسل موالح نص Vib",
+    nameEn: "Citrus Honey Half Vib",
+    description: "نصف كيلو عسل الموالح بعبوة Vib — نكهة الحمضيات في حجم ذهبي مناسب.",
+    descriptionEn:
+      "Half a kilo of citrus honey in a Vib jar — citrus flavor in a perfectly sized golden portion.",
+    category: "vib",
+    image: "glassPale",
+    featured: false,
+    variants: [
+      { name: "نص Vib", nameEn: "Half Vib", price: 100_00, stock: 30, image: "glassPale" },
+    ],
+  },
+
+  // ── Nuts in Honey ───────────────────────────────────────────────────
   {
     slug: "six-blend-1kg-plastic",
     name: "عسل خلطة سداسي بلاستيك",
@@ -342,11 +353,11 @@ const PRODUCTS: SeedProduct[] = [
       "الخلطة السداسية المتكاملة من أعشاب وعسل مختار لتقوية المناعة والطاقة اليومية — بعبوة بلاستيك اقتصادية.",
     descriptionEn:
       "The complete six-herb blend of selected herbs and honey to strengthen immunity and daily energy — in an economical plastic jar.",
-    category: "blends",
+    category: "nuts-honey",
     image: "plasticJar",
     featured: false,
     variants: [
-      { name: "1 ك بلاستيك", nameEn: "1kg Plastic", price: 260_00, stock: 20, image: "plasticJar" },
+      { name: "1 ك بلاستيك", nameEn: "1kg Plastic", price: 100_00, stock: 20, image: "plasticJar" },
     ],
   },
   {
@@ -356,12 +367,10 @@ const PRODUCTS: SeedProduct[] = [
     description: "لوز وفستق وكاجو وبندق مغموسة في عسل برسيم صافٍ — سناك صحي وملكي بعبوة 370 جرام.",
     descriptionEn:
       "Almonds, pistachios, cashews and hazelnuts dipped in pure clover honey — a healthy, royal snack in a 370g jar.",
-    category: "blends",
+    category: "nuts-honey",
     image: "nutsInHoney",
     featured: false,
-    variants: [
-      { name: "370 جرام", nameEn: "370g", price: 260_00, stock: 20, image: "nutsInHoney" },
-    ],
+    variants: [{ name: "370 جرام", nameEn: "370g", price: 90_00, stock: 20, image: "nutsInHoney" }],
   },
   {
     slug: "nuts-in-honey-370-round",
@@ -370,14 +379,14 @@ const PRODUCTS: SeedProduct[] = [
     description: "مكسرات فاخرة بالعسل في عبوة دائرية أنيقة — مظهر جميل ومذاق ملكي.",
     descriptionEn:
       "Premium nuts in honey in an elegant round jar — a beautiful look and a royal taste.",
-    category: "blends",
+    category: "nuts-honey",
     image: "nutsInHoney",
     featured: false,
     variants: [
       {
         name: "370 جرام دائري",
         nameEn: "370g Round",
-        price: 260_00,
+        price: 100_00,
         stock: 18,
         image: "nutsInHoney",
       },
@@ -390,10 +399,10 @@ const PRODUCTS: SeedProduct[] = [
     description: "تشكيلة مكسرات بالعسل بعبوة بيضاوية فاخرة — مظهر راقٍ ومذاق أرقى.",
     descriptionEn:
       "A selection of nuts in honey in a luxurious oval jar — a refined look and an even finer taste.",
-    category: "blends",
+    category: "nuts-honey",
     image: "nutsInHoney",
     featured: false,
-    variants: [{ name: "بيضاوي", nameEn: "Oval", price: 280_00, stock: 16, image: "nutsInHoney" }],
+    variants: [{ name: "بيضاوي", nameEn: "Oval", price: 125_00, stock: 16, image: "nutsInHoney" }],
   },
   {
     slug: "nuts-in-honey-can-400g",
@@ -402,11 +411,11 @@ const PRODUCTS: SeedProduct[] = [
     description: "مكسرات فاخرة بالعسل في علبة كان معدنية تحفظ الجودة والنكهة — للعزائم والهدايا.",
     descriptionEn:
       "Premium nuts in honey in a metal can that preserves quality and flavor — for gatherings and gifts.",
-    category: "blends",
+    category: "nuts-honey",
     image: "nutsCan",
     featured: false,
     variants: [
-      { name: "كان 400 جرام", nameEn: "Can 400g", price: 330_00, stock: 14, image: "nutsCan" },
+      { name: "كان 400 جرام", nameEn: "Can 400g", price: 125_00, stock: 14, image: "nutsCan" },
     ],
   },
   {
@@ -415,11 +424,11 @@ const PRODUCTS: SeedProduct[] = [
     nameEn: "Nuts in Honey 800g",
     description: "حجم العائلة — مكسرات مشكّلة فاخرة مغموسة في عسل برسيم بوزن 800 جرام.",
     descriptionEn: "Family size — a fine selection of nuts dipped in clover honey, weighing 800g.",
-    category: "blends",
+    category: "nuts-honey",
     image: "nutsInHoney",
     featured: true,
     variants: [
-      { name: "800 جرام", nameEn: "800g", price: 560_00, stock: 10, image: "nutsInHoney" },
+      { name: "800 جرام", nameEn: "800g", price: 210_00, stock: 10, image: "nutsInHoney" },
     ],
   },
   {
@@ -429,13 +438,15 @@ const PRODUCTS: SeedProduct[] = [
     description: "أفخم تشكيلة مكسرات بالعسل بوزن كيلو كامل — باقة الهدايا الملكية بامتياز.",
     descriptionEn:
       "The most luxurious selection of nuts in honey at a full kilo — the royal gift bundle par excellence.",
-    category: "blends",
+    category: "nuts-honey",
     image: "nutsInHoney",
     featured: false,
     variants: [
-      { name: "اكستر 1 ك", nameEn: "Extra 1kg", price: 690_00, stock: 8, image: "nutsInHoney" },
+      { name: "اكستر 1 ك", nameEn: "Extra 1kg", price: 250_00, stock: 8, image: "nutsInHoney" },
     ],
   },
+
+  // ── Comb Honey ──────────────────────────────────────────────────────
   {
     slug: "comb-frame-clover",
     name: "برواز شمع بالعسل برسيم",
@@ -445,7 +456,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "comb",
     image: "combFrame",
     featured: true,
-    variants: [{ name: "برسيم", nameEn: "Clover", price: 70_00, stock: 15, image: "combFrame" }],
+    variants: [{ name: "برسيم", nameEn: "Clover", price: 170_00, stock: 15, image: "combFrame" }],
   },
   {
     slug: "comb-frame-citrus",
@@ -458,7 +469,7 @@ const PRODUCTS: SeedProduct[] = [
     image: "combFrameCitrus",
     featured: false,
     variants: [
-      { name: "موالح", nameEn: "Citrus", price: 75_00, stock: 15, image: "combFrameCitrus" },
+      { name: "موالح", nameEn: "Citrus", price: 180_00, stock: 15, image: "combFrameCitrus" },
     ],
   },
   {
@@ -475,7 +486,7 @@ const PRODUCTS: SeedProduct[] = [
       {
         name: "250 جرام برسيم",
         nameEn: "250g Clover",
-        price: 90_00,
+        price: 50_00,
         stock: 25,
         image: "combChunks",
       },
@@ -494,7 +505,7 @@ const PRODUCTS: SeedProduct[] = [
       {
         name: "250 جرام موالح",
         nameEn: "250g Citrus",
-        price: 95_00,
+        price: 60_00,
         stock: 25,
         image: "combChunks",
       },
@@ -514,7 +525,7 @@ const PRODUCTS: SeedProduct[] = [
       {
         name: "500 جرام برسيم",
         nameEn: "500g Clover",
-        price: 165_00,
+        price: 90_00,
         stock: 18,
         image: "combChunks",
       },
@@ -533,12 +544,14 @@ const PRODUCTS: SeedProduct[] = [
       {
         name: "500 جرام موالح",
         nameEn: "500g Citrus",
-        price: 175_00,
+        price: 100_00,
         stock: 18,
         image: "combChunks",
       },
     ],
   },
+
+  // ── Bee Supplements ─────────────────────────────────────────────────
   {
     slug: "royal-jelly-5g",
     name: "غذاء ملكات 5 جم بلدي",
@@ -549,7 +562,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "bee-supplements",
     image: "royalJelly",
     featured: true,
-    variants: [{ name: "5 جم", nameEn: "5g", price: 85_00, stock: 30, image: "royalJelly" }],
+    variants: [{ name: "5 جم", nameEn: "5g", price: 80_00, stock: 30, image: "royalJelly" }],
   },
   {
     slug: "propolis-box",
@@ -560,7 +573,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "bee-supplements",
     image: "propolis",
     featured: true,
-    variants: [{ name: "علبة", nameEn: "Box", price: 160_00, stock: 20, image: "propolis" }],
+    variants: [{ name: "علبة", nameEn: "Box", price: 70_00, stock: 20, image: "propolis" }],
   },
   {
     slug: "ginseng-box",
@@ -571,7 +584,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "bee-supplements",
     image: "ginseng",
     featured: false,
-    variants: [{ name: "علبة", nameEn: "Box", price: 130_00, stock: 20, image: "ginseng" }],
+    variants: [{ name: "علبة", nameEn: "Box", price: 80_00, stock: 20, image: "ginseng" }],
   },
   {
     slug: "palm-pollen-box",
@@ -582,7 +595,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "bee-supplements",
     image: "palmPollen",
     featured: false,
-    variants: [{ name: "علبة", nameEn: "Box", price: 110_00, stock: 20, image: "palmPollen" }],
+    variants: [{ name: "علبة", nameEn: "Box", price: 25_00, stock: 20, image: "palmPollen" }],
   },
   {
     slug: "bee-pollen-box",
@@ -593,7 +606,7 @@ const PRODUCTS: SeedProduct[] = [
     category: "bee-supplements",
     image: "beePollen",
     featured: false,
-    variants: [{ name: "علبة", nameEn: "Box", price: 95_00, stock: 20, image: "beePollen" }],
+    variants: [{ name: "علبة", nameEn: "Box", price: 30_00, stock: 20, image: "beePollen" }],
   },
   {
     slug: "bee-pollen-125g",
@@ -605,7 +618,7 @@ const PRODUCTS: SeedProduct[] = [
     image: "beePollen125",
     featured: false,
     variants: [
-      { name: "125 جرام", nameEn: "125g", price: 145_00, stock: 15, image: "beePollen125" },
+      { name: "125 جرام", nameEn: "125g", price: 100_00, stock: 15, image: "beePollen125" },
     ],
   },
   {
@@ -618,8 +631,10 @@ const PRODUCTS: SeedProduct[] = [
     category: "bee-supplements",
     image: "honeySpoons",
     featured: false,
-    variants: [{ name: "علبة", nameEn: "Box", price: 90_00, stock: 25, image: "honeySpoons" }],
+    variants: [{ name: "علبة", nameEn: "Box", price: 40_00, stock: 25, image: "honeySpoons" }],
   },
+
+  // ── Nuts ────────────────────────────────────────────────────────────
   {
     slug: "hazelnut-100g",
     name: "بندق 100 جرام",
@@ -710,12 +725,13 @@ async function upsertCategory(slug: string, name: string, nameEn: string): Promi
 }
 
 async function upsertProduct(p: SeedProduct, categoryId: string): Promise<string> {
+  const minPrice = p.variants.length ? Math.min(...p.variants.map((v) => v.price)) : 0;
   const values = {
     name: p.name,
     nameEn: p.nameEn,
     description: p.description,
     descriptionEn: p.descriptionEn,
-    price: 0,
+    price: minPrice,
     stock: 0,
     image: IMG[p.image],
     categoryId,

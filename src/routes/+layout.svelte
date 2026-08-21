@@ -1,9 +1,4 @@
 <script lang="ts">
-  import "@fontsource-variable/cairo";
-  import "@fontsource-variable/manrope";
-  import "@fontsource-variable/newsreader";
-  import "@fontsource/amiri/arabic-400.css";
-  import "@fontsource/amiri/arabic-700.css";
   import { beforeNavigate, onNavigate } from "$app/navigation";
   import { getDir, t } from "$lib/i18n/messages";
   import "./layout.css";
@@ -61,7 +56,7 @@
   <title>{t(data.lang, "brand.tagline")}</title>
 </svelte:head>
 
-<div class="flex min-h-screen flex-col">
+<div class="flex min-h-screen flex-col overflow-x-clip">
   <Header user={data.user} lang={data.lang} />
   <main class="mx-auto w-full max-w-7xl flex-1 px-4">
     {@render children()}

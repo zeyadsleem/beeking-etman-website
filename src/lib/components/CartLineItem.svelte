@@ -41,7 +41,7 @@
         onclick={isDrawer ? closeDrawer : undefined}
         class={isDrawer
           ? "line-clamp-1 text-sm font-semibold text-cocoa-800 transition-colors hover:text-honey-700"
-          : "headline text-base leading-snug text-cocoa-900 hover:text-honey-700"}
+          : "card-title text-base leading-snug text-cocoa-900 hover:text-honey-700"}
       >
         {item.name}
       </a>

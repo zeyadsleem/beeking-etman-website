@@ -24,7 +24,7 @@
 
 <svelte:head><title>{t(lang, "checkout.pageTitle")}</title></svelte:head>
 
-<div class="mt-6 grid gap-8 lg:grid-cols-[1fr_380px]">
+<div class="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
   <form
     method="post"
     action="?/submit"
@@ -43,7 +43,7 @@
     <SectionTitle as="h1" className="text-4xl">{t(lang, "checkout.shippingTitle")}</SectionTitle>
 
     {#if error("cart")}
-      <p class="rounded-xl bg-clay-50 px-4 py-3 text-sm font-semibold text-clay-700" role="alert" data-testid="cart-error">{error("cart")}</p>
+      <p class="alert-error" role="alert" data-testid="cart-error">{error("cart")}</p>
     {/if}
 
     <div class="grid gap-4 sm:grid-cols-2">
@@ -80,17 +80,17 @@
       <div class="grid gap-4 sm:grid-cols-2">
         <label class="field-label sm:col-span-2">
           {t(lang, "checkout.cardNumber")}
-          <input name="cardNumber" inputmode="numeric" placeholder="4242 4242 4242 4242" value={value("cardNumber")} autocomplete="cc-number" class="field mt-1 bg-white" />
+          <input name="cardNumber" inputmode="numeric" placeholder="4242 4242 4242 4242" value={value("cardNumber")} autocomplete="cc-number" class="field mt-1" />
           {#if error("cardNumber")}<span class="field-error">{error("cardNumber")}</span>{/if}
         </label>
         <label class="field-label">
           {t(lang, "checkout.cardExpiry")}
-          <input name="cardExpiry" placeholder="08/28" value={value("cardExpiry")} autocomplete="cc-exp" class="field mt-1 bg-white" />
+          <input name="cardExpiry" placeholder="08/28" value={value("cardExpiry")} autocomplete="cc-exp" class="field mt-1" />
           {#if error("cardExpiry")}<span class="field-error">{error("cardExpiry")}</span>{/if}
         </label>
         <label class="field-label">
           {t(lang, "checkout.cardCvc")}
-          <input name="cardCvc" inputmode="numeric" value={value("cardCvc")} autocomplete="cc-csc" class="field mt-1 bg-white" />
+          <input name="cardCvc" inputmode="numeric" value={value("cardCvc")} autocomplete="cc-csc" class="field mt-1" />
           {#if error("cardCvc")}<span class="field-error">{error("cardCvc")}</span>{/if}
         </label>
       </div>

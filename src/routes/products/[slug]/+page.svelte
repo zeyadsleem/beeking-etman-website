@@ -68,7 +68,7 @@
   <div class="flex flex-col gap-5">
     <div>
       <p class="eyebrow">{t(lang, "detail.eyebrow")}</p>
-      <h1 class="headline mt-2 text-4xl leading-tight text-cocoa-900">{data.product.name}</h1>
+      <h1 class="card-title mt-2 text-4xl leading-tight text-cocoa-900">{data.product.name}</h1>
     </div>
 
     <div class="flex flex-wrap items-end gap-3">

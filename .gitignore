@@ -33,3 +33,11 @@ local.db-wal
 d1-seed.sql
 
 # dotenv environment variable files
+
+# Playwright MCP debug artifacts
+.playwright-mcp/
+
+# Local screenshots
+/hero-4k.png
+/hero-mobile-390-rtl.png
+/home-full.png

@@ -340,7 +340,7 @@
   ></div>
   <div
     aria-hidden="true"
-    class="pointer-events-none absolute start-1/2 top-1/3 size-72 -translate-x-1/2 rounded-full bg-gold-300/30 blur-3xl"
+    class="pointer-events-none absolute start-1/2 top-1/3 size-72 -translate-x-1/2 rounded-full bg-honey-300/30 blur-3xl"
   ></div>
   <div class="relative z-10 mx-auto max-w-6xl px-4 py-14 sm:px-6">
     <div class="text-center">

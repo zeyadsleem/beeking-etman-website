@@ -101,39 +101,26 @@
   })();
 </script>
 
-<section class="relative overflow-x-clip pt-10 pb-16 lg:pt-14">
+<section class="relative start-1/2 -ms-[50vw] w-screen overflow-x-clip pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-14 lg:pb-16">
   <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
     <div class="absolute -top-40 end-[-8rem] h-[30rem] w-[30rem] rounded-full bg-honey-100/60 blur-3xl"></div>
     <div class="absolute bottom-[-10rem] start-[-8rem] h-[26rem] w-[26rem] rounded-full bg-clay-100/50 blur-3xl"></div>
   </div>
 
-  <div class="hero-decor pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+  <div class="hero-decor pointer-events-none absolute inset-0 z-0 mx-auto max-w-7xl" aria-hidden="true">
     {#each decorativeIcons as icon}
       <img src={icon.src} alt="" draggable="false" style={icon.style} class={`aspect-square ${icon.anim} ${icon.align} select-none`} />
     {/each}
   </div>
 
-  <div class="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
+  <div class="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 sm:px-6 lg:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
     <div class="relative motion-safe:animate-fade-up">
       <div
+        data-testid="hero-brand-mobile"
         class="group absolute -top-6 end-0 h-32 w-32 transition-all duration-300 hover:-translate-y-1 motion-safe:animate-float lg:hidden"
         aria-hidden="true"
       >
         <img
-          data-testid="hero-brand-mobile"
-          src={lang === "ar" ? "/images/etman-wax-ar.png" : "/images/etman-wax-en.png"}
-          alt=""
-          draggable="false"
-          class="h-full w-full select-none"
-        />
-      </div>
-      <div
-        data-testid="hero-brand"
-        class="group absolute -top-4 end-0 hidden h-36 w-36 transition-all duration-300 hover:-translate-y-1 motion-safe:animate-float lg:block lg:h-40 lg:w-40"
-        aria-hidden="true"
-      >
-        <img
-          data-testid="hero-brand-img"
           src={lang === "ar" ? "/images/etman-wax-ar.png" : "/images/etman-wax-en.png"}
           alt=""
           draggable="false"
@@ -153,7 +140,13 @@
         {t(lang, "hero.eyebrow")}
       </p>
 
-      <h1 class="headline mt-5 text-5xl leading-[1.15] text-cocoa-950 sm:text-6xl lg:text-7xl">
+      <p class="mt-2 flex items-center gap-3 text-sm tracking-wider text-honey-700">
+        <span class="h-px w-6 bg-honey-400"></span>
+        {t(lang, "hero.since")}
+        <span class="h-px w-6 bg-honey-400"></span>
+      </p>
+
+      <h1 class="headline mt-4 text-4xl leading-[1.15] text-cocoa-950 sm:text-6xl lg:mt-5 lg:text-7xl">
         {t(lang, "hero.titleA")}<br />
         <span class="relative inline-block text-honey-700">
           {t(lang, "hero.titleB")}
@@ -174,11 +167,11 @@
         </span>
       </h1>
 
-      <p class="mt-6 max-w-md text-lg leading-relaxed text-cocoa-500">
+      <p class="mt-4 max-w-md text-lg leading-relaxed text-cocoa-500 lg:mt-6">
         {t(lang, "hero.subtitle")}
       </p>
 
-      <div class="mt-8 flex flex-wrap items-center gap-4">
+      <div class="mt-6 flex flex-wrap items-center gap-4 lg:mt-8">
         <Button variant="primary" href="/products">
           {t(lang, "hero.ctaShop")}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -194,18 +187,18 @@
         <Button variant="outline" href="#categories">{t(lang, "hero.ctaDiscover")}</Button>
       </div>
 
-      <dl class="mt-12 grid max-w-lg grid-cols-3 divide-x divide-cocoa-100">
+      <dl class="mt-8 grid max-w-lg grid-cols-3 divide-x divide-cocoa-100 lg:mt-12">
         <div class="px-6 first:ps-0 last:pe-0">
-          <dt class="text-xs font-semibold text-cocoa-500">{t(lang, "hero.statProducts")}</dt>
-          <dd class="headline mt-1 text-3xl text-cocoa-950" use:countUp={productCount}>0</dd>
+          <dt class="flex h-10 items-end text-xs font-semibold text-cocoa-500">{t(lang, "hero.statProducts")}</dt>
+          <dd class="headline mt-1 text-3xl text-cocoa-950" use:countUp={{ target: productCount, lang }}>0</dd>
         </div>
         <div class="px-6 first:ps-0 last:pe-0">
-          <dt class="text-xs font-semibold text-cocoa-500">{t(lang, "hero.statGovernorates")}</dt>
-          <dd class="headline mt-1 text-3xl text-cocoa-950" use:countUp={27}>0</dd>
+          <dt class="flex h-10 items-end text-xs font-semibold text-cocoa-500">{t(lang, "hero.statGovernorates")}</dt>
+          <dd class="headline mt-1 text-3xl text-cocoa-950" use:countUp={{ target: 27, lang }}>0</dd>
         </div>
         <div class="px-6 first:ps-0 last:pe-0">
-          <dt class="text-xs font-semibold text-cocoa-500">{t(lang, "hero.statCustomers")}</dt>
-          <dd class="headline mt-1 text-3xl text-cocoa-950" use:countUp={12000}>0</dd>
+          <dt class="flex h-10 items-end text-xs font-semibold text-cocoa-500">{t(lang, "hero.statCustomers")}</dt>
+          <dd class="headline mt-1 text-3xl text-cocoa-950" use:countUp={{ target: 12000, lang }}>0</dd>
         </div>
       </dl>
     </div>
@@ -214,6 +207,19 @@
       <div class="hex-texture absolute inset-0 rounded-[2rem] opacity-30" aria-hidden="true"></div>
 
       <div class="relative mx-auto w-[85%] max-w-md">
+        <div
+          data-testid="hero-brand"
+          class="group absolute -top-10 end-0 z-10 h-36 w-36 transition-all duration-300 hover:-translate-y-1 motion-safe:animate-float lg:h-40 lg:w-40"
+          aria-hidden="true"
+        >
+          <img
+            data-testid="hero-brand-img"
+            src={lang === "ar" ? "/images/etman-wax-ar.png" : "/images/etman-wax-en.png"}
+            alt=""
+            draggable="false"
+            class="h-full w-full select-none"
+          />
+        </div>
         <figure class="group relative">
           <div class="absolute inset-0 -z-10 rounded-full bg-honey-100/70 blur-2xl" aria-hidden="true"></div>
           <div class="relative overflow-hidden rounded-t-full rounded-b-[1.5rem] border border-honey-200 bg-parchment shadow-warm-lg">
@@ -265,7 +271,7 @@
       </div>
     </div>
 
-    <div class="relative mx-auto mt-14 max-w-sm motion-safe:animate-fade-up lg:hidden" style="animation-delay: 120ms">
+    <div class="relative mx-auto mt-8 w-full max-w-[16rem] motion-safe:animate-fade-up lg:hidden" style="animation-delay: 120ms">
       <div class="absolute inset-0 -z-10 rounded-full bg-honey-100/60 blur-2xl" aria-hidden="true"></div>
       <figure class="relative overflow-hidden rounded-t-full rounded-b-2xl border border-honey-200 bg-parchment shadow-warm-lg">
         <div class="relative">
@@ -281,17 +287,6 @@
           <div class="pointer-events-none absolute inset-3 rounded-t-full rounded-b-2xl ring-1 ring-inset ring-parchment/70" aria-hidden="true"></div>
         </div>
       </figure>
-
-      <div class="absolute top-4 -start-2 rounded-2xl border border-cocoa-100 bg-parchment px-3.5 py-2.5 shadow-warm motion-safe:animate-float">
-        <div class="flex items-center gap-1 text-honey-600" role="img" aria-label={t(lang, "hero.ratingAria")}>
-          {#each stars as _}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.6L12 17.3 6.1 20.1l1.2-6.6L2.5 8.9 9.1 8z" />
-            </svg>
-          {/each}
-        </div>
-        <p class="mt-0.5 text-xs font-bold text-cocoa-900">{t(lang, "hero.rating")}</p>
-      </div>
     </div>
   </div>
 </section>

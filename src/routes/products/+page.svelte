@@ -45,13 +45,13 @@
 
 <svelte:head><title>{t(lang, "products.pageTitle")}</title></svelte:head>
 
-<section class="mt-6">
+<section class="mt-8">
   <p class="eyebrow">{t(lang, "brand.name")}</p>
   <h1 class="headline mt-2 text-4xl leading-tight text-cocoa-900">{t(lang, "products.title")}</h1>
   <p class="mt-3 max-w-xl text-cocoa-500">{t(lang, "products.subtitle")}</p>
 </section>
 
-<Breadcrumb lang={lang} className="mt-6" items={[{ label: t(lang, "nav.home"), href: "/" }, { label: t(lang, "nav.store") }]} />
+<Breadcrumb lang={lang} className="mt-8" items={[{ label: t(lang, "nav.home"), href: "/" }, { label: t(lang, "nav.store") }]} />
 
 <SearchSuggestions
   lang={lang}
@@ -139,7 +139,7 @@
     <Button variant="outline" type="button" onclick={() => selectCategory(null)} class="mt-1 text-sm">{t(lang, "products.showAll")}</Button>
   </div>
 {:else}
-  <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+  <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
     {#each data.products as product (product.id)}
       <ProductCard lang={lang} {product} />
     {/each}
