@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { waitForApp } from "./e2e-utils";
 
 test.use({ locale: "ar-EG" });
 
 test("guest browses, picks a variant, checks out", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("عسل");
 
@@ -43,6 +45,7 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
 
 test("clicking another link during a view transition still navigates", async ({ page }) => {
   await page.goto("/products", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
 
   await page.getByRole("link", { name: "عسل سدر مصري" }).first().click();
   await page.waitForURL(/\/products\/sidr-honey-1kg/);
@@ -55,6 +58,7 @@ test("clicking another link during a view transition still navigates", async ({ 
 
 test("clicking a product inside the cart drawer closes the drawer", async ({ page }) => {
   await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
 
   await page.getByRole("link", { name: "المتجر" }).first().click();
@@ -70,6 +74,7 @@ test("clicking a product inside the cart drawer closes the drawer", async ({ pag
 
 test("sort dropdown shows translated labels in Arabic", async ({ page }) => {
   await page.goto("/products", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
 
   const sortTrigger = page.getByRole("button", { name: "ترتيب المنتجات" });
   await expect(sortTrigger).toContainText("الأحدث");
@@ -78,8 +83,15 @@ test("sort dropdown shows translated labels in Arabic", async ({ page }) => {
 
 test("checkout shows validation errors for bad input", async ({ page }) => {
   await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
+  // The cart cookie is set by an async POST /api/cart; wait for it so the
+  // hard navigation below cannot cancel the sync mid-flight.
+  await page.waitForResponse(
+    (r) => r.url().includes("/api/cart") && r.request().method() === "POST",
+  );
   await page.goto("/checkout", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
 
   await page.getByRole("button", { name: "تأكيد الطلب" }).click();
 

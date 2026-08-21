@@ -1,4 +1,5 @@
 import { expect, test, chromium } from "@playwright/test";
+import { waitForApp } from "./e2e-utils";
 
 test("no reveal-hidden, low CLS, same-page click is a no-op", async () => {
   const browser = await chromium.launch();
@@ -33,6 +34,7 @@ test("no reveal-hidden, low CLS, same-page click is a no-op", async () => {
   });
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
   await expect(page.locator("h1").first()).toBeVisible();
   await page.waitForTimeout(1200);
 
@@ -90,6 +92,7 @@ test("cross-page navigation is client-side and still transitions", async () => {
   });
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
   await expect(page.locator("h1").first()).toBeVisible();
   await page.waitForTimeout(1000);
   await page.waitForLoadState("load");
@@ -124,6 +127,7 @@ test("browser back after client-side navigation returns home", async () => {
   const page = await context.newPage();
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
   await expect(page.locator("h1").first()).toBeVisible();
   const homeUrl = page.url();
   await page.waitForTimeout(800);
@@ -148,6 +152,7 @@ test("hash link still scrolls to section", async () => {
   const page = await context.newPage();
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
   await expect(page.locator("h1").first()).toBeVisible();
   await page.waitForTimeout(800);
 

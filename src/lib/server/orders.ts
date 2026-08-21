@@ -36,10 +36,6 @@ export function isOrderNumberConflict(error: unknown): boolean {
   return error.message.includes("store_order.number");
 }
 
-function isOutOfStockError(error: unknown): error is Error {
-  return error instanceof Error && error.message.startsWith("OUT_OF_STOCK:");
-}
-
 interface OrderUnit {
   variantId: string;
   productId: string;
@@ -158,55 +154,49 @@ export async function createOrder(
   for (let attempt = 0; attempt < MAX_ORDER_ATTEMPTS; attempt++) {
     const orderNumber = generateOrderNumber();
     const orderId = crypto.randomUUID();
+
+    // D1 does not support interactive transactions (BEGIN/SAVEPOINT), so
+    // stock decrements use guarded atomic updates with explicit compensation
+    // to keep the "never oversell" invariant without a transaction.
+    const decremented = await decrementStock(db, units);
+    if (!decremented.ok) {
+      return {
+        ok: false,
+        message: t(lang, "orders.outOfStock"),
+        outOfStock: [decremented.name],
+      };
+    }
+
     try {
-      await db.transaction(async (tx) => {
-        for (const unit of units) {
-          const updated = await tx
-            .update(schema.productVariant)
-            .set({ stock: sql`${schema.productVariant.stock} - ${unit.quantity}` })
-            .where(
-              and(
-                eq(schema.productVariant.id, unit.variantId),
-                gte(schema.productVariant.stock, unit.quantity),
-              ),
-            )
-            .returning({ id: schema.productVariant.id });
-          if (updated.length === 0) throw new Error(`OUT_OF_STOCK:${unit.name}`);
-        }
-        await tx.insert(schema.order).values({
-          id: orderId,
-          number: orderNumber,
-          nonce,
-          email: customer.email,
-          name: customer.name,
-          phone: customer.phone,
-          address: customer.address,
-          city: customer.city,
-          total: totals.total,
-          status: "paid",
-          userId: userId ?? null,
-          createdAt: Date.now(),
-        });
-        await tx.insert(schema.orderItem).values(
-          units.map((u) => ({
-            orderId,
-            productId: u.productId,
-            productName: u.name,
-            variantName: u.variantName,
-            quantity: u.quantity,
-            unitPrice: u.unitPrice,
-          })),
-        );
+      await db.insert(schema.order).values({
+        id: orderId,
+        number: orderNumber,
+        nonce,
+        email: customer.email,
+        name: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        city: customer.city,
+        total: totals.total,
+        status: "paid",
+        userId: userId ?? null,
+        createdAt: Date.now(),
       });
+      await db.insert(schema.orderItem).values(
+        units.map((u) => ({
+          orderId,
+          productId: u.productId,
+          productName: u.name,
+          variantName: u.variantName,
+          quantity: u.quantity,
+          unitPrice: u.unitPrice,
+        })),
+      );
       return { ok: true, orderId, orderNumber, total: totals.total };
     } catch (error) {
-      if (isOutOfStockError(error)) {
-        return {
-          ok: false,
-          message: t(lang, "orders.outOfStock"),
-          outOfStock: [error.message.slice("OUT_OF_STOCK:".length)],
-        };
-      }
+      await rollbackOrderInsert(db, orderId);
+      await restoreStock(db, decremented.units);
+
       if (isNonceConflict(error)) {
         const replayed = await findOrderByNonce(db, nonce);
         if (replayed) {
@@ -227,6 +217,7 @@ export async function createOrder(
         await sleep((attempt + 1) * 50);
         continue;
       }
+      console.error("[createOrder] attempt failed", error);
       return { ok: false, message: t(lang, "orders.failed"), outOfStock: [] };
     }
   }
@@ -236,4 +227,48 @@ export async function createOrder(
     message: lastConflict ? t(lang, "orders.numberCollision") : t(lang, "orders.failed"),
     outOfStock: [],
   };
+}
+
+type StockDecrement = { ok: true; units: OrderUnit[] } | { ok: false; name: string };
+
+async function decrementStock(
+  db: LibSQLDatabase<typeof schema>,
+  units: OrderUnit[],
+): Promise<StockDecrement> {
+  const applied: OrderUnit[] = [];
+  for (const unit of units) {
+    const updated = await db
+      .update(schema.productVariant)
+      .set({ stock: sql`${schema.productVariant.stock} - ${unit.quantity}` })
+      .where(
+        and(
+          eq(schema.productVariant.id, unit.variantId),
+          gte(schema.productVariant.stock, unit.quantity),
+        ),
+      )
+      .returning({ id: schema.productVariant.id });
+    if (updated.length === 0) {
+      await restoreStock(db, applied);
+      return { ok: false, name: unit.name };
+    }
+    applied.push(unit);
+  }
+  return { ok: true, units: applied };
+}
+
+async function restoreStock(db: LibSQLDatabase<typeof schema>, units: OrderUnit[]): Promise<void> {
+  for (const unit of units) {
+    await db
+      .update(schema.productVariant)
+      .set({ stock: sql`${schema.productVariant.stock} + ${unit.quantity}` })
+      .where(eq(schema.productVariant.id, unit.variantId));
+  }
+}
+
+async function rollbackOrderInsert(
+  db: LibSQLDatabase<typeof schema>,
+  orderId: string,
+): Promise<void> {
+  await db.delete(schema.orderItem).where(eq(schema.orderItem.orderId, orderId));
+  await db.delete(schema.order).where(eq(schema.order.id, orderId));
 }

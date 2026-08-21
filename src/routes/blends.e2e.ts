@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { waitForApp } from "./e2e-utils";
 
 test.use({ locale: "ar-EG" });
 
 test("customer composes a blend and adds it to the cart", async ({ page }) => {
   await page.goto("/blends", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("اصنع خلطتك");
 

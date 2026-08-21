@@ -12,16 +12,31 @@
   $effect(() => {
     document.documentElement.lang = data.lang;
     document.documentElement.dir = getDir(data.lang);
+    // E2E hook: signals that hydration finished and the router is attached.
+    (window as unknown as { __appReady?: boolean }).__appReady = true;
   });
 
-  beforeNavigate((navigation) => {
-    // Skip same-page clicks, but never popstate (back/forward): the browser
-    // updates location.href before firing popstate, so the URL already equals
-    // the target and cancelling would block every back/forward navigation.
-    if (navigation.type !== "popstate" && navigation.to && navigation.to.url.href === location.href) {
-      navigation.cancel();
-      return;
+  // Same-page anchor clicks (same origin/path/search, no hash) are true
+  // no-ops: preventDefault at the click level. Cancelling inside
+  // beforeNavigate is not an option — a cancelled link-click navigation falls
+  // through to the browser's native navigation, causing a full page reload.
+  function onClick(event: MouseEvent) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const target = event.target instanceof Element ? event.target.closest("a") : null;
+    if (!target) return;
+    const url = new URL(target.href, location.href);
+    if (
+      url.origin === location.origin &&
+      url.pathname === location.pathname &&
+      url.search === location.search &&
+      !url.hash &&
+      !location.hash
+    ) {
+      event.preventDefault();
     }
+  }
+
+  beforeNavigate(() => {
     // Entrance animations only play on the initial full page load; on
     // client-side navigations the view transition already handles the fade.
     document.documentElement.classList.add("has-nav");
@@ -51,6 +66,7 @@
   });
 </script>
 
+<svelte:window onclickcapture={onClick} />
 <svelte:head>
   <link rel="icon" href="/images/logo.png" type="image/png" />
   <title>{t(data.lang, "brand.tagline")}</title>

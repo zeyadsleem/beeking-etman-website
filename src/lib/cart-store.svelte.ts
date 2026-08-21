@@ -84,14 +84,35 @@ function persist(items: CartItem[]): void {
   } catch {
     // Storage unavailable (private mode / quota); the in-memory cart keeps the update.
   }
+  syncPending = true;
   void fetch("/api/cart", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ items: toEntries(items) }),
-  }).catch(() => undefined);
+  })
+    .then(() => {
+      syncPending = false;
+    })
+    .catch(() => undefined);
 }
 
 let syncBound = false;
+let flushBound = false;
+let syncPending = false;
+
+// A hard navigation cancels an in-flight /api/cart fetch before the server
+// can set the signed cart cookie, which would make the next document see an
+// empty cart. Flush unsynced state via sendBeacon on pagehide.
+function bindUnloadFlush(): void {
+  if (flushBound || !browser) return;
+  flushBound = true;
+  window.addEventListener("pagehide", () => {
+    if (!syncPending) return;
+    syncPending = false;
+    const body = JSON.stringify({ items: toEntries(state.items) });
+    navigator.sendBeacon("/api/cart", new Blob([body], { type: "application/json" }));
+  });
+}
 
 function bindCrossTabSync(): void {
   if (syncBound || !browser) return;
@@ -111,6 +132,7 @@ function bindCrossTabSync(): void {
 export function loadCart(): void {
   if (!browser) return;
   bindCrossTabSync();
+  bindUnloadFlush();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
