@@ -6,7 +6,6 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { user } from "./auth.schema";
 
 export const category = sqliteTable("store_category", {
   id: text("id")
@@ -138,9 +137,7 @@ export const address = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id),
+    userId: text("user_id").notNull(),
     label: text("label").notNull(),
     name: text("name").notNull(),
     phone: text("phone").notNull(),

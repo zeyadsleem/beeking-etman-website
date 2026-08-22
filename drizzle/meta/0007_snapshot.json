@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f8fcc418-428a-4997-af24-1b69316ff35d",
+  "id": "00abb610-49a0-418f-aa15-4526596015fc",
   "prevId": "5cd34178-fe40-49f7-a67b-17b557d5518b",
   "tables": {
     "store_address": {
@@ -86,17 +86,7 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {
-        "store_address_user_id_user_id_fk": {
-          "name": "store_address_user_id_user_id_fk",
-          "tableFrom": "store_address",
-          "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
