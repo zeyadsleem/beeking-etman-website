@@ -30,9 +30,6 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
   await page.getByLabel("رقم الهاتف").fill("01012345678");
   await page.getByLabel("المدينة").fill("القاهرة");
   await page.getByLabel("العنوان بالتفصيل").fill("شارع التسعين، التجمع الخامس");
-  await page.getByLabel("رقم البطاقة").fill("4242424242424242");
-  await page.getByLabel("تاريخ الانتهاء (MM/YY)").fill("08/28");
-  await page.getByLabel("رمز الأمان (CVV)").fill("123");
 
   await page.getByRole("button", { name: "تأكيد الطلب" }).click();
 

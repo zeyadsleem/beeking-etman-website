@@ -6,7 +6,6 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { user } from "./auth.schema";
 
 export const category = sqliteTable("store_category", {
   id: text("id")
@@ -94,7 +93,7 @@ export const order = sqliteTable(
     city: text("city").notNull(),
     total: integer("total").notNull(),
     status: text("status").notNull().default("paid"),
-    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    userId: text("user_id"),
     createdAt: integer("created_at")
       .notNull()
       .$defaultFn(() => Date.now()),

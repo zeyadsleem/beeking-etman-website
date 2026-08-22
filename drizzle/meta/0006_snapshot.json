@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "32275195-7de0-4a45-a8a5-f30d928964bf",
+  "id": "5cd34178-fe40-49f7-a67b-17b557d5518b",
   "prevId": "61e3a56f-6086-4b55-87dc-e1e5acb54b9f",
   "tables": {
     "store_category": {
@@ -155,17 +155,7 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {
-        "store_order_user_id_user_id_fk": {
-          "name": "store_order_user_id_user_id_fk",
-          "tableFrom": "store_order",
-          "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
