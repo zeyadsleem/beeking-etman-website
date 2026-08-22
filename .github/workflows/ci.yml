@@ -58,6 +58,15 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+      # Apply D1 schema migrations to the remote database BEFORE deploying the
+      # new Worker code, so the code never runs against an outdated schema.
+      # Idempotent: applied migrations are tracked in the remote d1_migrations
+      # table and skipped on subsequent deploys.
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 migrations apply beeking --remote -y
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
