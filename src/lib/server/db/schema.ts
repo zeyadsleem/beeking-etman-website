@@ -6,6 +6,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { user } from "./auth.schema";
 
 export const category = sqliteTable("store_category", {
   id: text("id")
@@ -129,6 +130,31 @@ export const rateLimit = sqliteTable(
     count: integer("count").notNull().default(0),
   },
   (table) => [primaryKey({ columns: [table.key, table.windowStart] })],
+);
+
+export const address = sqliteTable(
+  "store_address",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    label: text("label").notNull(),
+    name: text("name").notNull(),
+    phone: text("phone").notNull(),
+    address: text("address").notNull(),
+    city: text("city").notNull(),
+    isDefault: integer("is_default").notNull().default(0),
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer("updated_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [index("store_address_userId_idx").on(table.userId)],
 );
 
 export * from "./auth.schema";
