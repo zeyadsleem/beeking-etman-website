@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, ne } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { z } from "zod";
 import { t, type Lang } from "$lib/i18n/messages";
@@ -146,25 +146,33 @@ export async function deleteAddress(
     .limit(1);
   if (rows.length === 0) return { ok: false, error: "not_found" };
 
-  await db
+  // Pick the promotion candidate BEFORE deleting and commit both writes as
+  // one batch: a DELETE that autocommits separately from the promotion could
+  // otherwise leave the user with zero defaults persistently (same invariant
+  // setDefaultAddress enforces via db.batch).
+  const promotion =
+    rows[0]!.isDefault === 1
+      ? await db
+          .select({ id: schema.address.id })
+          .from(schema.address)
+          .where(and(eq(schema.address.userId, userId), ne(schema.address.id, id)))
+          .orderBy(desc(schema.address.createdAt))
+          .limit(1)
+      : [];
+
+  const remove = db
     .delete(schema.address)
     .where(and(eq(schema.address.id, id), eq(schema.address.userId, userId)));
-
-  // Deleting the default promotes the most recent remaining address so the
-  // user always has one selected whenever any address remains.
-  if (rows[0]!.isDefault === 1) {
-    const latest = await db
-      .select({ id: schema.address.id })
-      .from(schema.address)
-      .where(eq(schema.address.userId, userId))
-      .orderBy(desc(schema.address.createdAt))
-      .limit(1);
-    if (latest[0]) {
-      await db
-        .update(schema.address)
-        .set({ isDefault: 1, updatedAt: Date.now() })
-        .where(eq(schema.address.id, latest[0].id));
-    }
-  }
+  await db.batch(
+    promotion[0]
+      ? [
+          remove,
+          db
+            .update(schema.address)
+            .set({ isDefault: 1, updatedAt: Date.now() })
+            .where(eq(schema.address.id, promotion[0].id)),
+        ]
+      : [remove],
+  );
   return { ok: true };
 }

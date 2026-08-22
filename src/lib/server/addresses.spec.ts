@@ -132,4 +132,38 @@ describe("updateAddress / deleteAddress", () => {
     await deleteAddress(db, "u9", a.value.id);
     expect(await listAddresses(db, USER)).toHaveLength(1);
   });
+
+  it("deleting a non-default address leaves the default untouched", async () => {
+    const a = await createAddress(db, USER, addr());
+    const b = await createAddress(db, USER, addr({ label: "الثاني" }));
+    if (!(a.ok && b.ok)) throw new Error("seed failed");
+    const del = await deleteAddress(db, USER, b.value.id);
+    expect(del.ok).toBe(true);
+    const def = await getDefaultAddress(db, USER);
+    expect(def?.id).toBe(a.value.id);
+    expect(await listAddresses(db, USER)).toHaveLength(1);
+  });
+
+  it("setDefaultAddress rejects foreign and unknown ids", async () => {
+    const a = await createAddress(db, USER, addr());
+    if (!a.ok) throw new Error("seed failed");
+    const foreign = await setDefaultAddress(db, "u2", a.value.id);
+    const unknown = await setDefaultAddress(db, USER, "nope");
+    expect(foreign).toEqual({ ok: false, error: "not_found" });
+    expect(unknown).toEqual({ ok: false, error: "not_found" });
+    const def = await getDefaultAddress(db, USER);
+    expect(def?.id).toBe(a.value.id);
+  });
+
+  it("updating an address does not change which one is default", async () => {
+    const a = await createAddress(db, USER, addr());
+    const b = await createAddress(db, USER, addr({ label: "الثاني" }));
+    if (!(a.ok && b.ok)) throw new Error("seed failed");
+    const upd = await updateAddress(db, USER, b.value.id, addr({ name: "منى" }));
+    expect(upd.ok).toBe(true);
+    const def = await getDefaultAddress(db, USER);
+    expect(def?.id).toBe(a.value.id);
+    if (!upd.ok) return;
+    expect(upd.value.isDefault).toBe(0);
+  });
 });
