@@ -7,7 +7,9 @@ export default defineConfig({
       "pnpm run db:reset && pnpm run db:seed:d1 && cp .dev.vars.example .dev.vars && pnpm run build && pnpm run d1:migrate && pnpm run d1:seed && sh -c 'while :; do pnpm run preview; echo \"[webserver] preview exited, restarting\" >&2; sleep 1; done'",
     port: 4173,
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    // Cold chain (reset + seed export + build ×2 + migrations + seeds) can
+    // take several minutes before preview answers on the port.
+    timeout: 600_000,
   },
   testMatch: "**/*.e2e.{ts,js}",
   // The wrangler pages dev server (workerd) crashes under concurrent load
