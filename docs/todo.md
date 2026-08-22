@@ -5,6 +5,28 @@ Ordered work items with status. The original storefront shipped under
 under `docs/superpowers/plans/2026-08-14-mamlakat-alnahl.md` (spec
 `docs/superpowers/specs/2026-08-14-mamlakat-alnahl-design.md`).
 
+## Roadmap (2026-08-22)
+
+Major gaps agreed after the 2026-08-22 outage. Each item is an independent
+sub-project with its own spec → plan → implementation cycle; work them top to
+bottom unless the user reorders.
+
+1. [ ] **Customer account area** — profile page (name, email, password change),
+       saved addresses (schema + checkout prefill), full order history with
+       status/detail view, sign-out everywhere. **← current focus**
+2. [ ] **Admin dashboard** — `/admin` behind a role gate: orders list + status
+       transitions, product/variant/image CRUD, stock adjustments, basic sales
+       stats. Without it every operational task requires direct DB access.
+3. [ ] **Transactional email** — order confirmation + status updates
+       (Cloudflare Email Service or Resend), triggered post-checkout.
+4. [ ] **Real payment gateway** — replace mock payment (Paymob/Fawry for EGP).
+       Deferred by user decision 2026-08-22 until items 1–3 land.
+
+Incident note (2026-08-22): production outage (Error 1101) — security commit
+`6749196` added fail-hard `ORDER_ACCESS_SECRET` validation while the Pages
+secret held an invalid value; fixed by rotating the secret via API and
+redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
+
 ## Shipped
 
 ### Honey storefront (`2026-08-12-honey-store.md`)
