@@ -26,12 +26,16 @@
   let fields: AddressInput = $state({ ...emptyFields });
 
   function openAdd(): void {
+    // Clear stale ActionData so errors from a previous action (e.g. a failed
+    // delete or validation) don't render inside the freshly opened dialog.
+    form = null;
     editing = null;
     fields = { ...emptyFields };
     addEditOpen = true;
   }
 
   function openEdit(address: SavedAddress): void {
+    form = null;
     editing = address;
     fields = {
       label: address.label,
