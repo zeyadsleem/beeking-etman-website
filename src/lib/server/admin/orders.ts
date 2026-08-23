@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
+import { affectedRowCount } from "$lib/server/orders";
 import {
   isBusyError,
   sleep,
@@ -208,6 +209,12 @@ async function resolveRestockPlan(
   }
   return plan;
 }
+function restockStatement(db: LibSQLDatabase<typeof schema>, entry: RestockEntry) {
+  return db
+    .update(schema.productVariant)
+    .set({ stock: sql`${schema.productVariant.stock} + ${entry.quantity}` })
+    .where(eq(schema.productVariant.id, entry.variantId));
+}
 
 export async function transitionOrderStatus(
   db: LibSQLDatabase<typeof schema>,
@@ -226,25 +233,48 @@ export async function transitionOrderStatus(
     return { ok: false, reason: "invalid_transition" };
   }
 
-  const restockPlan = next === "cancelled" ? await resolveRestockPlan(db, orderId) : [];
-
-  // One implicit transaction per drizzle batch on libsql/D1: the guarded flip
-  // and every stock increment commit or roll back together. The flip matches
-  // only while the stored status still equals what we read above, so a stale
-  // concurrent call cannot re-flip an already-transitioned order.
-  await retryOnBusy(() =>
+  // Authorization write: the flip lands only while the stored status still
+  // equals what we read above, so exactly one racing caller wins; a stale
+  // caller's update matches zero rows and is rejected without touching
+  // inventory. Affected-row counting goes through the shared helper because
+  // libsql and D1 shape batch results differently.
+  const [flip] = await retryOnBusy(() =>
     db.batch([
       db
         .update(schema.order)
         .set({ status: next })
         .where(and(eq(schema.order.id, orderId), eq(schema.order.status, current.status))),
-      ...restockPlan.map(({ variantId, quantity }) =>
-        db
-          .update(schema.productVariant)
-          .set({ stock: sql`${schema.productVariant.stock} + ${quantity}` })
-          .where(eq(schema.productVariant.id, variantId)),
-      ),
     ]),
   );
+  if (affectedRowCount(flip) !== 1) {
+    return { ok: false, reason: "invalid_transition" };
+  }
+
+  if (next !== "cancelled") return { ok: true };
+
+  // Restock runs only after the flip authorized this caller as the winner.
+  // D1 (the production driver — see getDb) has no interactive transactions,
+  // so flip and restock cannot share one atomic unit; ordering them flip-first
+  // keeps inventory safe: stock can never be restored twice for one order.
+  // Residual window: a crash or permanent restock-batch failure after the
+  // committed flip leaves the order cancelled with stock unrestored — logged
+  // loudly and surfaced to the caller instead of being swallowed.
+  const [firstEntry, ...restEntries] = await resolveRestockPlan(db, orderId);
+  if (!firstEntry) return { ok: true };
+
+  try {
+    await retryOnBusy(() =>
+      db.batch([
+        restockStatement(db, firstEntry),
+        ...restEntries.map((e) => restockStatement(db, e)),
+      ]),
+    );
+  } catch (error) {
+    console.error("[transitionOrderStatus] cancel committed but restock failed", {
+      orderId,
+      error,
+    });
+    throw error;
+  }
   return { ok: true };
 }

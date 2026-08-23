@@ -1,6 +1,12 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { existsSync, unlinkSync } from "node:fs";
-import { eq } from "drizzle-orm";
+
+// Seeding-heavy tests (25+ serial inserts) and per-test schema rebuilds brush
+// against vitest's 5s/10s defaults when the whole suite runs in parallel —
+// same guard as orders.spec.ts.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+
+import { eq, sql } from "drizzle-orm";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
@@ -15,10 +21,15 @@ import {
 
 const DB_FILE = "admin-orders-test.db";
 
+// One client for the whole file: reopening the same file after an unlink can
+// strand open handles (SQLITE_READONLY_DBMOVED), so rebuilds drop/recreate
+// tables on this client instead of deleting the database.
+let client: ReturnType<typeof createClient> | null = null;
+
 async function buildDb() {
-  orderCounter = 0;
-  const client = createClient({ url: `file:${DB_FILE}` });
+  client ??= createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
+  orderCounter = 0;
   await db.run(`DROP TABLE IF EXISTS store_order_item`);
   await db.run(`DROP TABLE IF EXISTS store_order`);
   await db.run(`DROP TABLE IF EXISTS store_product_variant`);
@@ -161,6 +172,7 @@ async function variantStocks(
 }
 
 afterAll(() => {
+  client?.close();
   if (existsSync(DB_FILE)) unlinkSync(DB_FILE);
 });
 
@@ -191,7 +203,6 @@ describe("allowedTransitions", () => {
 describe("listOrders", () => {
   let db: Awaited<ReturnType<typeof buildDb>>;
   beforeEach(async () => {
-    if (existsSync(DB_FILE)) unlinkSync(DB_FILE);
     db = await buildDb();
   });
 
@@ -252,7 +263,6 @@ describe("listOrders", () => {
 describe("getOrderWithItems", () => {
   let db: Awaited<ReturnType<typeof buildDb>>;
   beforeEach(async () => {
-    if (existsSync(DB_FILE)) unlinkSync(DB_FILE);
     db = await buildDb();
   });
 
@@ -290,7 +300,6 @@ describe("getOrderWithItems", () => {
 describe("transitionOrderStatus", () => {
   let db: Awaited<ReturnType<typeof buildDb>>;
   beforeEach(async () => {
-    if (existsSync(DB_FILE)) unlinkSync(DB_FILE);
     db = await buildDb();
   });
 
@@ -380,6 +389,45 @@ describe("transitionOrderStatus", () => {
     const stocks = await variantStocks(db);
     expect(stocks.get("250g")).toBe(4);
     expect(stocks.get("1kg")).toBe(5);
+  });
+
+  it("rejects a stale cancel that lost a concurrent race without restoring stock", async () => {
+    const productId = await seedProduct(db, [
+      { name: "250g", stock: 0 },
+      { name: "1kg", stock: 3 },
+    ]);
+    const orderId = await seedOrder(db);
+    await seedOrderItem(db, orderId, { productId, variantName: "250g", quantity: 4 });
+    await seedOrderItem(db, orderId, { productId, variantName: "1kg", quantity: 2 });
+    // A concurrent admin cancels the order between our read and our guarded
+    // flip, completing their own restock; by the time our flip runs its WHERE
+    // clause matches nothing.
+    const originalBatch = db.batch.bind(db);
+    vi.spyOn(db, "batch").mockImplementationOnce(async (statements) => {
+      await db.run(sql`UPDATE store_order SET status = 'cancelled' WHERE id = ${orderId}`);
+      await db.run(
+        sql`UPDATE store_product_variant SET stock = stock + quantity
+            FROM (SELECT product_id, variant_name, quantity FROM store_order_item WHERE order_id = ${orderId}) AS item
+            WHERE store_product_variant.product_id = item.product_id AND store_product_variant.name = item.variant_name`,
+      );
+      return originalBatch(statements);
+    });
+
+    expect(await transitionOrderStatus(db, orderId, "cancelled")).toEqual({
+      ok: false,
+      reason: "invalid_transition",
+    });
+
+    // The winner restocked exactly once; the loser restored nothing.
+    const stocks = await variantStocks(db);
+    expect(stocks.get("250g")).toBe(4);
+    expect(stocks.get("1kg")).toBe(5);
+    const row = await db
+      .select({ status: schema.order.status })
+      .from(schema.order)
+      .where(eq(schema.order.id, orderId))
+      .get();
+    expect(row?.status).toBe("cancelled");
   });
 
   it("skips restock for a missing variant but still cancels and restocks the rest", async () => {
