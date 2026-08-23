@@ -338,6 +338,17 @@ const ar = {
   "admin.order.backToList": "العودة إلى الطلبات",
   "admin.order.quantity": "الكمية",
   "admin.order.unitPrice": "سعر الوحدة",
+  "admin.categories.title": "إدارة الأصناف",
+  "admin.categories.new": "إضافة صنف",
+  "admin.categories.edit": "تعديل الصنف",
+  "admin.categories.save": "حفظ",
+  "admin.categories.delete": "حذف",
+  "admin.categories.count": "عدد المنتجات",
+  "admin.categories.slug": "المعرف (slug)",
+  "admin.categories.nameEn": "الاسم بالإنجليزية",
+  "admin.categories.confirmDelete": "هل تريد حذف هذا الصنف؟ لا يمكن التراجع.",
+  "admin.categories.hasProductsError": "لا يمكن حذف صنف به منتجات.",
+  "admin.categories.slugTaken": "هذا المعرف مستخدم بالفعل.",
 } as const;
 
 export type MessageKey = keyof typeof ar;
@@ -648,6 +659,17 @@ const en: Record<MessageKey, string> = {
   "admin.order.backToList": "Back to orders",
   "admin.order.quantity": "Qty",
   "admin.order.unitPrice": "Unit price",
+  "admin.categories.title": "Manage categories",
+  "admin.categories.new": "Add category",
+  "admin.categories.edit": "Edit category",
+  "admin.categories.save": "Save",
+  "admin.categories.delete": "Delete",
+  "admin.categories.count": "Products",
+  "admin.categories.slug": "Slug",
+  "admin.categories.nameEn": "English name",
+  "admin.categories.confirmDelete": "Delete this category? This cannot be undone.",
+  "admin.categories.hasProductsError": "Cannot delete a category that has products.",
+  "admin.categories.slugTaken": "This slug is already in use.",
 };
 
 const catalogs: Record<Lang, Record<MessageKey, string>> = { ar, en };
