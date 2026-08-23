@@ -74,7 +74,10 @@ export async function saveProductImage(
   // the localized message instead of the request dying on an unhandled error.
   try {
     await bucket.put(key, buffer);
-  } catch {
+  } catch (error) {
+    // The typed union keeps callers simple; the raw cause goes to the logs so
+    // an R2 outage is diagnosable instead of a silent storage_unavailable.
+    console.error("media put failed", error);
     return { ok: false, reason: "storage_unavailable" };
   }
   return { ok: true, url: `${base}/${key}` };
