@@ -1,5 +1,7 @@
 <script lang="ts">
   import { T } from "@threlte/core";
+  import { onDestroy } from "svelte";
+  import * as THREE from "three";
 
   let {
     scale = 1,
@@ -10,6 +12,14 @@
   const H = 0.62;
   const R = 0.22;
   const innerH = H * 0.85;
+
+  const honeyGeo = new THREE.CylinderGeometry(R - 0.02, R - 0.02, innerH, 32);
+
+  const clampedFill = $derived(Math.min(1, Math.max(0.001, fillLevel)));
+
+  onDestroy(() => {
+    honeyGeo.dispose();
+  });
 </script>
 
 <T.Group {scale}>
@@ -26,8 +36,11 @@
     />
   </T.Mesh>
 
-  <T.Mesh position={[0, 0.02 + (innerH * fillLevel) / 2, 0]}>
-    <T.CylinderGeometry args={[R - 0.02, R - 0.02, Math.max(innerH * fillLevel, 0.001), 32]} />
+  <T.Mesh
+    geometry={honeyGeo}
+    position={[0, 0.02 + (innerH * clampedFill) / 2, 0]}
+    scale={[1, clampedFill, 1]}
+  >
     <T.MeshPhysicalMaterial {color} roughness={0.25} clearcoat={0.6} />
   </T.Mesh>
 
