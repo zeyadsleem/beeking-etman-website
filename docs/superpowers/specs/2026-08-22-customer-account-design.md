@@ -40,9 +40,7 @@ export const address = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id),
+    userId: text("user_id").notNull(), // no FK constraint (see note below)
     label: text("label").notNull(), // "البيت", "الشغل"
     name: text("name").notNull(),
     phone: text("phone").notNull(),
@@ -59,6 +57,11 @@ export const address = sqliteTable(
   (table) => [index("store_address_userId_idx").on(table.userId)],
 );
 ```
+
+The `user_id` foreign key is deliberately dropped from the spec above as shipped
+(plain column + index): it mirrors the existing `store_order` convention, avoids
+relying on D1's FK enforcement, and keeps the account-deletion lifecycle
+explicit in the service layer.
 
 Rules enforced in the service layer:
 
