@@ -135,7 +135,7 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 ### Customer account area (`2026-08-22-customer-account.md`)
 
 - [x] Task 1 — `store_address` table + migration 0007, no-FK per spec (`93e21f2`)
-- [x] Task 2 — Address service: 3-address cap, single default with atomic
+- [x] Task 2 — Address service: 10-address cap, single default with atomic
       batch promotion, ownership-scoped queries (`c84ced1`)
 - [x] Task 3 — Profile hub: name change, password change, sign-out (`219b6b3`)
 - [x] Task 4 — Saved-address CRUD page (`4f0cd93`)

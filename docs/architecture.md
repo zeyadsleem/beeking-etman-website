@@ -63,7 +63,7 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
 - `src/lib/server/addresses.ts` — per-user saved-address service
   (`addressSchema(lang)` + `listAddresses`/`listAddressSummaries`/
   `getDefaultAddress`/`createAddress`/`updateAddress`/`setDefaultAddress`/
-  `deleteAddress`, all keyed `(db, userId)`); enforces the 3-address cap and
+  `deleteAddress`, all keyed `(db, userId)`); enforces the 10-address cap and
   the single-default invariant (default promotion runs as one atomic `batch`,
   delete promotes the oldest survivor).
 - `src/lib/server/rate-limit.ts` — DB-backed fixed-window rate limiter for
@@ -103,7 +103,8 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   an index, deliberately **no FK** — mirrors `store_order.user_id`; deletion of
   auth users never blocks), label, recipient name, phone, city, address
   details, `is_default` flag (single default enforced in the service layer),
-  created/updated timestamps. Capped at 3 rows per user by `addresses.ts`.
+  created/updated timestamps. Capped at 10 rows per user (`MAX_ADDRESSES` in
+  `addresses.ts`).
 - `store_rate_limit` — fixed-window rate-limit buckets (key + window-start
   composite PK, count) for auth endpoints.
 - Better Auth tables — user/session/account, etc.
