@@ -2,12 +2,13 @@ import { redirect } from "@sveltejs/kit";
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
+import { loginRedirectPath } from "$lib/server/login-redirect";
 import type { PageServerLoad } from "./$types";
 
 const ORDERS_PAGE_SIZE = 12;
 
 export const load: PageServerLoad = async (event) => {
-  if (!event.locals.user) redirect(302, "/login");
+  if (!event.locals.user) redirect(302, loginRedirectPath(event.url));
   const rawPage = Number.parseInt(event.url.searchParams.get("page") ?? "1", 10);
   const requestedPage = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
 

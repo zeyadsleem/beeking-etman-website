@@ -27,6 +27,23 @@ describe("safeRedirectTarget", () => {
     expect(safeRedirectTarget("javascript:alert(1)")).toBe("/account");
   });
 
+  it("rejects backslash tricks that WHATWG parsing sends off-origin", () => {
+    // Browsers parse "\" as "/" in special schemes, so "/\evil.example"
+    // resolves like "//evil.example".
+    expect(safeRedirectTarget("/\\evil.example")).toBe("/account");
+    expect(safeRedirectTarget("/\\//evil.example")).toBe("/account");
+  });
+
+  it("rejects the percent-encoded (%2F%5C) form of the same bypass", () => {
+    // In production the value arrives via searchParams.get, which decodes
+    // "?redirectTo=%2F%5Cevil.example" to "/\evil.example" before validation.
+    const decoded = new URL(
+      "https://example.test/login?redirectTo=%2F%5Cevil.example",
+    ).searchParams.get("redirectTo");
+    expect(decoded).toBe("/\\evil.example");
+    expect(safeRedirectTarget(decoded)).toBe("/account");
+  });
+
   it("falls back to /account for missing or empty values", () => {
     expect(safeRedirectTarget(null)).toBe("/account");
     expect(safeRedirectTarget(undefined)).toBe("/account");

@@ -14,10 +14,14 @@ export function loginRedirectPath(current: URL): string {
 
 /**
  * Validate a client-supplied redirect target. Accepts ONLY strings starting
- * with a single "/" (never "//", which browsers treat as protocol-relative);
- * anything else falls back to the account hub.
+ * with a single "/" (never "//", which browsers treat as protocol-relative)
+ * and containing no backslash (WHATWG URL parsing treats "\" as "/" in
+ * special schemes, so "/\host" would resolve off-origin); anything else
+ * falls back to the account hub.
  */
 export function safeRedirectTarget(raw: string | null | undefined): string {
   if (typeof raw !== "string") return DEFAULT_REDIRECT_TARGET;
-  return raw.startsWith("/") && !raw.startsWith("//") ? raw : DEFAULT_REDIRECT_TARGET;
+  return raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")
+    ? raw
+    : DEFAULT_REDIRECT_TARGET;
 }
