@@ -302,11 +302,35 @@ html:lang(en) body {
 
 @media (min-width: 64rem) {
   .hero-grid {
+    position: relative;
     grid-template-columns: 1.05fr 1fr;
-    align-content: center;
     grid-template-areas:
-      "text image"
-      "stats image";
+      "text"
+      "stats";
+  }
+
+  /* Explicit placement: the arch below is taken out of flow, which frees its
+     auto-placement slot — without explicit coordinates the stats would slide
+     up into it, beside the text. */
+  .hero-grid > .grid-area-text {
+    grid-area: 1 / 1;
+  }
+
+  .hero-grid > .grid-area-stats {
+    grid-area: 2 / 1;
+    margin-top: 0;
+  }
+
+  /* The arch is out of flow on desktop: a 4/5 portrait is taller than the
+     text column, and an in-flow item inflates the text row and pushes the
+     stats away from the CTAs. Centered on the grid box; the section's
+     vertical padding absorbs the overhang (including the wax seal above). */
+  .hero-grid > .grid-area-image {
+    position: absolute;
+    top: calc(50% + 0.5rem);
+    inset-inline-end: 2rem;
+    translate: 0 -50%;
+    width: min(100%, 25rem);
   }
 }
 

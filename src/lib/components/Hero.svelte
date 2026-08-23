@@ -21,7 +21,7 @@
     <div class="absolute bottom-[-10rem] start-[-8rem] h-[26rem] w-[26rem] rounded-full bg-clay-100/50 blur-3xl"></div>
   </div>
 
-  <div class="hero-grid mx-auto w-full max-w-7xl gap-8 px-4 sm:gap-10 sm:px-6 lg:gap-14 lg:px-8">
+  <div class="hero-grid mx-auto w-full max-w-7xl gap-x-8 gap-y-8 px-4 sm:gap-x-10 sm:gap-y-10 sm:px-6 lg:gap-x-14 lg:gap-y-9 lg:px-8">
     <div class="relative grid-area-text motion-safe:animate-fade-up">
       <div
         data-testid="hero-brand-inline"
@@ -123,7 +123,7 @@
     </div>
 
     <dl
-      class="mt-2 grid max-w-lg grid-cols-3 gap-4 grid-area-stats motion-safe:animate-fade-up sm:gap-6 lg:mt-6"
+      class="mt-2 grid max-w-lg grid-cols-3 gap-4 grid-area-stats motion-safe:animate-fade-up sm:gap-6"
       style="animation-delay: 240ms"
     >
       <div>
