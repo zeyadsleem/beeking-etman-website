@@ -160,7 +160,8 @@ export async function listAdminProducts(
   db: LibSQLDatabase<typeof schema>,
   opts?: { query?: string; page?: number },
 ): Promise<{ items: AdminProductRow[]; total: number }> {
-  const page = Math.max(1, Math.trunc(opts?.page ?? 1));
+  const requestedPage = opts?.page ?? 1;
+  const page = Math.max(1, Number.isFinite(requestedPage) ? Math.trunc(requestedPage) : 1);
   const where = buildNameFilter(opts?.query);
 
   const rows = await fetchAdminProductRows(db, where, {
@@ -262,7 +263,20 @@ async function probeAvailableSlug(
  * are zeroed/emptied explicitly because the mirrored DDL has no defaults for
  * image. featured rides the existing integer column.
  */
-function productWriteValues(input: ProductInput, slug: string) {
+interface ProductWriteValues {
+  name: string;
+  nameEn: string;
+  slug: string;
+  description: string;
+  descriptionEn: string;
+  price: number;
+  stock: number;
+  image: string;
+  categoryId: string;
+  featured: number;
+}
+
+function productWriteValues(input: ProductInput, slug: string): ProductWriteValues {
   return {
     name: input.name,
     nameEn: input.nameEn,
@@ -426,8 +440,21 @@ export async function upsertVariant(
       )
       .returning({ id: schema.productVariant.id });
     if (updated[0]) return { ok: true, id: updated[0].id };
-    // The row vanished between rendering and submit; honor the write under
-    // the requested id, matching the sibling service's upsert behavior.
+
+    // The scoped UPDATE matched nothing: either the id belongs to a variant of
+    // a different product (forged or stale hidden field) or the row vanished
+    // between rendering and submit. Only a genuine vanish may take the
+    // recreate-under-id path; a cross-product id is rejected with the typed
+    // product_missing reason instead of crashing on the primary key.
+    const owner = await db
+      .select({ productId: schema.productVariant.productId })
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, input.id))
+      .get();
+    if (owner) return { ok: false, reason: "product_missing" };
+
+    // The row vanished; honor the write under the requested id, matching the
+    // sibling service's upsert behavior.
     const created = await db
       .insert(schema.productVariant)
       .values({ ...values, id: input.id })

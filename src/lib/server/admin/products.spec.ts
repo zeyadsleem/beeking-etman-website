@@ -384,6 +384,16 @@ describe("listAdminProducts", () => {
     expect(page2.items.map((p) => p.id)).toEqual(createdIds.slice(0, 5).reverse());
   });
 
+  it("treats a non-finite page as page 1 instead of passing NaN to offset", async () => {
+    const categoryId = await seedCategory(db);
+    const only = await seedProduct(db, categoryId, { createdAt: 1_700_000_000_000 });
+
+    const result = await listAdminProducts(db, { page: Number.NaN });
+
+    expect(result.total).toBe(1);
+    expect(result.items.map((p) => p.id)).toEqual([only]);
+  });
+
   it("searches arabic names and english names alike, filtering page and total", async () => {
     const categoryId = await seedCategory(db);
     const royal = await seedProduct(db, categoryId, {
@@ -714,6 +724,34 @@ describe("upsertVariant", () => {
       ok: false,
       reason: "name_taken",
     });
+  });
+
+  it("rejects a variantId belonging to a different product with product_missing", async () => {
+    const otherProductId = await seedProduct(db, categoryId);
+    const foreignVariantId = await seedVariant(db, otherProductId, { name: "خارجي", stock: 3 });
+    const productId = await seedProduct(db, categoryId);
+
+    const result = await upsertVariant(
+      db,
+      productId,
+      variantInput({ id: foreignVariantId, name: "250g", stock: 9 }),
+    );
+
+    expect(result).toEqual({ ok: false, reason: "product_missing" });
+    const rows = await db.select().from(schema.productVariant);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: foreignVariantId, productId: otherProductId, stock: 3 });
+  });
+
+  it("recreates a variant under its rendered id when the row vanished before submit", async () => {
+    const productId = await seedProduct(db, categoryId);
+    const vanishedId = crypto.randomUUID();
+
+    const result = await upsertVariant(db, productId, variantInput({ id: vanishedId }));
+
+    expect(result).toEqual({ ok: true, id: vanishedId });
+    const row = await db.select().from(schema.productVariant).get();
+    expect(row).toMatchObject({ id: vanishedId, productId });
   });
 });
 
