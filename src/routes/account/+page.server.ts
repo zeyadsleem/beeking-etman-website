@@ -4,6 +4,7 @@ import { auth } from "$lib/server/auth";
 import { db } from "$lib/server/db";
 import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
 import { getLang } from "$lib/server/lang";
+import { loginRedirectPath } from "$lib/server/login-redirect";
 import { nameSchema } from "$lib/server/name-schema";
 import { t } from "$lib/i18n/messages";
 import type { Actions, PageServerLoad } from "./$types";
@@ -11,7 +12,7 @@ import type { Actions, PageServerLoad } from "./$types";
 const accountLimiter = createDbRateLimiter(db, { windowMs: 60_000, max: 15 });
 
 export const load: PageServerLoad = (event) => {
-  if (!event.locals.user) redirect(302, "/login");
+  if (!event.locals.user) redirect(302, loginRedirectPath(event.url));
   return {
     lang: getLang(event),
     user: { name: event.locals.user.name, email: event.locals.user.email },

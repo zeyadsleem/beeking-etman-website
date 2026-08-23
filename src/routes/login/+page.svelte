@@ -18,7 +18,13 @@
     <h1 class="headline mt-3 text-3xl text-cocoa-900">{t(lang, "login.heading")}</h1>
     <p class="mt-1 text-sm text-cocoa-500">{t(lang, "login.helper")}</p>
   </div>
-  <form method="post" action="?/signIn" use:enhance class="space-y-4 rounded-2xl border border-cocoa-100 bg-parchment p-7 shadow-warm-sm">
+  <!-- The named action replaces the query string, so redirectTo must ride along explicitly. -->
+  <form
+    method="post"
+    action={`?/signIn&redirectTo=${encodeURIComponent(data.redirectTo)}`}
+    use:enhance
+    class="space-y-4 rounded-2xl border border-cocoa-100 bg-parchment p-7 shadow-warm-sm"
+  >
     {#if form?.message}
       <p class="alert-error" role="alert">{form.message}</p>
     {/if}
