@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { test, waitForApp } from "./e2e-utils";
+import { clearRateLimitRows, test, waitForApp } from "./e2e-utils";
 
 test.use({ locale: "ar-EG" });
 
@@ -13,6 +13,9 @@ function uniqueEmail(label: string): string {
 }
 
 async function registerAndLogin(page: Page, email: string): Promise<void> {
+  // Retried tests re-register, so each registration starts from a fresh
+  // rate-limit budget instead of inheriting earlier attempts' spend.
+  clearRateLimitRows("register:");
   await page.goto("/register", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
   await page.getByLabel("الاسم").fill("سارة محمد");
@@ -79,20 +82,56 @@ test.describe("customer account", () => {
     await page.getByLabel("المدينة").fill("القاهرة");
     await page.getByLabel("العنوان التفصيلي").fill("12 شارع النيل، المهندسين");
     await page.getByRole("button", { name: /^حفظ$/ }).click();
-    await expect(page.getByTestId("address-card")).toContainText("البيت");
-    await expect(page.getByText("افتراضي")).toBeVisible();
 
-    // Checkout: saved-address picker prefills shipping fields.
+    // Update: the dialog reopens pre-filled; rename and expect the card to follow.
+    const homeCard = page.getByTestId("address-card").filter({ hasText: "البيت" });
+    await expect(homeCard).toBeVisible();
+    await homeCard.getByRole("button", { name: "تعديل العنوان" }).click();
+    await expect(page.getByTestId("address-dialog")).toBeVisible();
+    await expect(page.getByLabel("اسم العنوان")).toHaveValue("البيت");
+    await page.getByLabel("اسم العنوان").fill("بيت العائلة");
+    await page.getByRole("button", { name: /^حفظ$/ }).click();
+    const familyCard = page.getByTestId("address-card").filter({ hasText: "بيت العائلة" });
+    await expect(page.getByTestId("address-card")).toHaveCount(1);
+    await expect(familyCard).toContainText("بيت العائلة");
+    await expect(familyCard.getByText("افتراضي", { exact: true })).toBeVisible();
+
+    // Create a second address; it must NOT steal the default badge.
+    await page.getByRole("button", { name: "إضافة عنوان" }).click();
+    await expect(page.getByTestId("address-dialog")).toBeVisible();
+    await expect(page.getByLabel("اسم العنوان")).toHaveValue("");
+    await page.getByLabel("اسم العنوان").fill("المكتب");
+    await page.getByLabel("اسم المستلم").fill("سارة محمد");
+    await page.getByLabel("رقم الهاتف").fill("01112345678");
+    await page.getByLabel("المدينة").fill("الجيزة");
+    await page.getByLabel("العنوان التفصيلي").fill("5 شارع البحر، الدقي");
+    await page.getByRole("button", { name: /^حفظ$/ }).click();
+    const officeCard = page.getByTestId("address-card").filter({ hasText: "المكتب" });
+    await expect(page.getByTestId("address-card")).toHaveCount(2);
+    await expect(officeCard).toBeVisible();
+    await expect(officeCard.getByText("افتراضي", { exact: true })).toHaveCount(0);
+
+    // Delete the default address: the card disappears and the default badge
+    // is promoted onto the remaining (most recent) address.
+    await familyCard.getByRole("button", { name: "حذف" }).click();
+    await expect(page.getByTestId("delete-confirm-dialog")).toBeVisible();
+    await page.getByTestId("delete-confirm-dialog").getByRole("button", { name: "حذف" }).click();
+    await expect(page.getByTestId("address-card")).toHaveCount(1);
+    await expect(officeCard).toBeVisible();
+    await expect(officeCard.getByText("افتراضي", { exact: true })).toBeVisible();
+
+    // Checkout: saved-address picker prefills shipping fields from the
+    // promoted default.
     await buySeededProduct(page, async (checkout) => {
-      const savedRadio = checkout.getByRole("radio", { name: /البيت/ });
+      const savedRadio = checkout.getByRole("radio", { name: /المكتب/ });
       const newRadio = checkout.getByRole("radio", { name: "عنوان جديد" });
       await expect(checkout.getByText("العناوين المحفوظة")).toBeVisible();
       await expect(savedRadio).toBeChecked();
       await expect(newRadio).not.toBeChecked();
       await expect(checkout.getByLabel("الاسم بالكامل")).toHaveValue("سارة محمد");
-      await expect(checkout.getByLabel("رقم الهاتف")).toHaveValue("01012345678");
-      await expect(checkout.getByLabel("المدينة")).toHaveValue("القاهرة");
-      await expect(checkout.getByLabel("العنوان بالتفصيل")).toHaveValue("12 شارع النيل، المهندسين");
+      await expect(checkout.getByLabel("رقم الهاتف")).toHaveValue("01112345678");
+      await expect(checkout.getByLabel("المدينة")).toHaveValue("الجيزة");
+      await expect(checkout.getByLabel("العنوان بالتفصيل")).toHaveValue("5 شارع البحر، الدقي");
 
       // The save-address checkbox only shows while “new address” is selected.
       const saveCheckbox = checkout.getByLabel("احفظ هذا العنوان في حسابي");
