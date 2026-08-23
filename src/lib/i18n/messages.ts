@@ -351,6 +351,21 @@ const ar = {
   "admin.categories.slugRequired": "أدخل المعرف (slug)، أو اكتب الاسم بالإنجليزية ليُولَّد تلقائيًا.",
   "admin.categories.slugInvalid":
     "المعرف (slug) غير صالح — استخدم حروفًا إنجليزية صغيرة وأرقامًا وشرطات فقط.",
+  "admin.products.title": "إدارة المنتجات",
+  "admin.products.new": "منتج جديد",
+  "admin.products.searchPlaceholder": "ابحث بالاسم…",
+  "admin.products.edit": "تعديل",
+  "admin.products.delete": "حذف",
+  "admin.products.featured": "مميز",
+  "admin.products.stock": "المخزون",
+  "admin.products.category": "الصنف",
+  "admin.products.confirmDelete": "هل تريد حذف هذا المنتج؟ لا يمكن التراجع.",
+  "admin.products.referencedByOrders": "لا يمكن حذف منتج مرتبط بطلبات.",
+  "admin.products.deleted": "تم حذف المنتج",
+  "admin.products.empty": "لا توجد منتجات.",
+  "admin.products.next": "التالي",
+  "admin.products.prev": "السابق",
+  "admin.products.variantsCount": "عدد المتغيرات: {count}",
 } as const;
 
 export type MessageKey = keyof typeof ar;
@@ -674,6 +689,21 @@ const en: Record<MessageKey, string> = {
   "admin.categories.slugRequired": "Enter a slug, or provide the English name so one is generated.",
   "admin.categories.slugInvalid":
     "Invalid slug — use lowercase English letters, numbers, and hyphens only.",
+  "admin.products.title": "Manage products",
+  "admin.products.new": "New product",
+  "admin.products.searchPlaceholder": "Search by name…",
+  "admin.products.edit": "Edit",
+  "admin.products.delete": "Delete",
+  "admin.products.featured": "Featured",
+  "admin.products.stock": "Stock",
+  "admin.products.category": "Category",
+  "admin.products.confirmDelete": "Delete this product? This cannot be undone.",
+  "admin.products.referencedByOrders": "Cannot delete a product linked to orders.",
+  "admin.products.deleted": "Product deleted",
+  "admin.products.empty": "No products.",
+  "admin.products.next": "Next",
+  "admin.products.prev": "Prev",
+  "admin.products.variantsCount": "Variants: {count}",
 };
 
 const catalogs: Record<Lang, Record<MessageKey, string>> = { ar, en };
