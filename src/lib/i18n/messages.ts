@@ -332,6 +332,8 @@ const ar = {
   "admin.order.markShipped": "تعليم كمشحون",
   "admin.order.markDelivered": "تعليم كمسلّم",
   "admin.order.cancel": "إلغاء الطلب",
+  "admin.order.confirmCancel":
+    "هل تريد إلغاء هذا الطلب؟ ستُعاد الكميات إلى المخزون ولا يمكن التراجع.",
   "admin.order.invalidTransition": "لا يمكن تنفيذ هذا الانتقال",
   "admin.order.updated": "تم تحديث حالة الطلب",
   "admin.order.backToList": "العودة إلى الطلبات",
@@ -707,6 +709,8 @@ const en: Record<MessageKey, string> = {
   "admin.order.markShipped": "Mark shipped",
   "admin.order.markDelivered": "Mark delivered",
   "admin.order.cancel": "Cancel order",
+  "admin.order.confirmCancel":
+    "Cancel this order? Quantities will be restocked and this cannot be undone.",
   "admin.order.invalidTransition": "This transition is not allowed",
   "admin.order.updated": "Order updated",
   "admin.order.backToList": "Back to orders",

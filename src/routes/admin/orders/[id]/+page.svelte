@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
+  import { Dialog } from "bits-ui";
   import { formatEGP } from "$lib/currency";
   import AdminOrderStatusBadge from "$lib/components/AdminOrderStatusBadge.svelte";
   import Button from "$lib/components/Button.svelte";
@@ -6,8 +8,13 @@
   import { formatDate, t } from "$lib/i18n/messages";
   import type { ActionData, PageData } from "./$types";
 
-  let { data, form }: { data: PageData; form: ActionData } = $props();
+  let { data, form }: { data: Pick<PageData, "order" | "items" | "transitions" | "lang">; form: ActionData } =
+    $props();
   const lang = $derived(data.lang);
+
+  // Cancellation is terminal and restocks inventory, so it never fires from a
+  // bare submit — the trigger only opens the confirmation dialog below.
+  let cancelConfirmOpen = $state(false);
 
   // Mirrors the .btn-primary shape but with the clay danger tone — cancelling
   // is the one destructive transition in the lifecycle.
@@ -57,7 +64,7 @@
           <input type="hidden" name="id" value={data.order.id} />
           <input type="hidden" name="status" value={next} />
           {#if next === "cancelled"}
-            <button type="submit" class={CANCEL_BUTTON_CLASS}>
+            <button type="button" class={CANCEL_BUTTON_CLASS} onclick={() => (cancelConfirmOpen = true)}>
               {t(lang, "admin.order.cancel")}
             </button>
           {:else if next === "shipped"}
@@ -126,3 +133,35 @@
     </table>
   </section>
 </section>
+
+<Dialog.Root bind:open={cancelConfirmOpen}>
+  <Dialog.Portal>
+    <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
+    <Dialog.Content
+      class="fixed inset-x-4 top-1/2 z-50 mx-auto w-full max-w-sm -translate-y-1/2 rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-lg focus:outline-none"
+      data-testid="cancel-confirm-dialog"
+    >
+      <Dialog.Title class="headline text-xl text-cocoa-900">
+        {t(lang, "admin.order.cancel")}
+      </Dialog.Title>
+      <Dialog.Description class="sr-only">{data.order.number}</Dialog.Description>
+      <p class="mt-3 text-sm text-cocoa-700">{t(lang, "admin.order.confirmCancel")}</p>
+      <form
+        method="POST"
+        action="?/update"
+        use:enhance={() => {
+          return async ({ result, update }) => {
+            if (result.type === "success") cancelConfirmOpen = false;
+            await update();
+          };
+        }}
+        class="mt-5 flex items-center justify-end gap-2"
+      >
+        <input type="hidden" name="id" value={data.order.id} />
+        <input type="hidden" name="status" value="cancelled" />
+        <Dialog.Close class="btn-outline">{t(lang, "addresses.cancel")}</Dialog.Close>
+        <Button type="submit" variant="primary">{t(lang, "admin.order.cancel")}</Button>
+      </form>
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>
