@@ -20,6 +20,36 @@
   function error(name: string) {
     return form?.errors?.[name] ?? "";
   }
+
+  // Default address resolved once at init; the closure makes the intentional
+  // initial-value capture explicit so later `data` refreshes never reset the
+  // user's radio choice.
+  function initialSavedChoice(): string {
+    return data.savedAddresses.find((a) => a.isDefault)?.id ?? "new";
+  }
+  let savedChoice = $state(initialSavedChoice());
+
+  let name = $state(value("name"));
+  let phone = $state(value("phone"));
+  let address = $state(value("address"));
+  let city = $state(value("city"));
+
+  const selectedSaved = $derived(
+    savedChoice === "new" ? null : (data.savedAddresses.find((a) => a.id === savedChoice) ?? null),
+  );
+
+  // Prefill the shipping fields whenever a saved address is picked. The form
+  // stays the source of truth afterwards — editing a picked address never
+  // rewrites the stored copy.
+  $effect(() => {
+    const s = selectedSaved;
+    if (s) {
+      name = s.name;
+      phone = s.phone;
+      address = s.address;
+      city = s.city;
+    }
+  });
 </script>
 
 <svelte:head><title>{t(lang, "checkout.pageTitle")}</title></svelte:head>
@@ -46,10 +76,36 @@
       <p class="alert-error" role="alert" data-testid="cart-error">{error("cart")}</p>
     {/if}
 
+    {#if data.savedAddresses.length > 0}
+      <fieldset class="rounded-2xl border border-cocoa-200 bg-parchment p-5">
+        <legend class="px-2 text-sm font-bold text-cocoa-700">
+          {t(lang, "checkout.savedAddresses")}
+        </legend>
+        <div role="radiogroup" aria-label={t(lang, "checkout.savedAddresses")} class="grid gap-2">
+          {#each data.savedAddresses as addr (addr.id)}
+            <label class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 has-checked:border-honey-500 has-checked:bg-honey-50">
+              <input
+                type="radio"
+                name="savedAddress"
+                value={addr.id}
+                bind:group={savedChoice}
+                class="accent-honey-600"
+              />
+              <span class="text-sm"><b>{addr.label}</b> — {addr.name}، {addr.city}، {addr.phone}</span>
+            </label>
+          {/each}
+          <label class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 has-checked:border-honey-500 has-checked:bg-honey-50">
+            <input type="radio" name="savedAddress" value="new" bind:group={savedChoice} class="accent-honey-600" />
+            <span class="text-sm font-semibold">{t(lang, "checkout.useNewAddress")}</span>
+          </label>
+        </div>
+      </fieldset>
+    {/if}
+
     <div class="grid gap-4 sm:grid-cols-2">
       <label class="field-label">
         {t(lang, "checkout.name")}
-        <input name="name" value={value("name")} autocomplete="name" class="field mt-1" />
+        <input name="name" bind:value={name} autocomplete="name" class="field mt-1" />
         {#if error("name")}<span class="field-error">{error("name")}</span>{/if}
       </label>
       <label class="field-label">
@@ -59,20 +115,27 @@
       </label>
       <label class="field-label">
         {t(lang, "checkout.phone")}
-        <input name="phone" inputmode="tel" value={value("phone")} autocomplete="tel" class="field mt-1" />
+        <input name="phone" inputmode="tel" bind:value={phone} autocomplete="tel" class="field mt-1" />
         {#if error("phone")}<span class="field-error">{error("phone")}</span>{/if}
       </label>
       <label class="field-label">
         {t(lang, "checkout.city")}
-        <input name="city" value={value("city")} class="field mt-1" />
+        <input name="city" bind:value={city} class="field mt-1" />
         {#if error("city")}<span class="field-error">{error("city")}</span>{/if}
       </label>
     </div>
     <label class="field-label">
       {t(lang, "checkout.address")}
-      <input name="address" value={value("address")} autocomplete="street-address" class="field mt-1" />
+      <input name="address" bind:value={address} autocomplete="street-address" class="field mt-1" />
       {#if error("address")}<span class="field-error">{error("address")}</span>{/if}
     </label>
+
+    {#if data.isLoggedIn && savedChoice === "new"}
+      <label class="flex items-center gap-2 text-sm text-cocoa-700">
+        <input type="checkbox" name="saveAddress" class="accent-honey-600" />
+        {t(lang, "checkout.saveThisAddress")}
+      </label>
+    {/if}
 
     <fieldset class="rounded-2xl border border-cocoa-200 bg-cocoa-50/50 p-5">
       <legend class="px-2 text-sm font-bold text-cocoa-800">{t(lang, "checkout.paymentTitle")}</legend>

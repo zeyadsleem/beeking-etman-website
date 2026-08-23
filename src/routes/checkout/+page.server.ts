@@ -4,6 +4,7 @@ import { db } from "$lib/server/db";
 import { clearCartCookie, getCartSecret, readCartCookie } from "$lib/server/cart-cookie";
 import { getOrderAccessSecret, setOrderAccessCookie } from "$lib/server/order-access";
 import { createCheckoutSchema, formatZodErrors } from "$lib/server/checkout-schema";
+import { createAddress, listAddresses } from "$lib/server/addresses";
 import { createOrder } from "$lib/server/orders";
 import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
 import { resolveCartItems } from "$lib/server/store";
@@ -26,7 +27,18 @@ export const load: PageServerLoad = async (event) => {
   if (lines.length === 0) redirect(302, "/cart");
   const { items, missing } = await resolveCartItems(db, lines, lang);
   if (items.length === 0) redirect(302, "/cart");
-  return { nonce, items, missingVariantIds: missing, totals: computeTotals(items) };
+  let savedAddresses: Awaited<ReturnType<typeof listAddresses>> = [];
+  if (event.locals.user) {
+    savedAddresses = await listAddresses(db, event.locals.user.id);
+  }
+  return {
+    nonce,
+    items,
+    missingVariantIds: missing,
+    totals: computeTotals(items),
+    savedAddresses,
+    isLoggedIn: Boolean(event.locals.user),
+  };
 };
 
 export const actions: Actions = {
@@ -76,6 +88,16 @@ export const actions: Actions = {
 
     await setOrderAccessCookie(cookies, result.orderId, getOrderAccessSecret(env));
     clearCartCookie(cookies);
+    if (locals.user && form.saveAddress === "on") {
+      const saved = await createAddress(db, locals.user.id, {
+        label: `${parsed.data.city} — ${parsed.data.name}`,
+        name: parsed.data.name,
+        phone: parsed.data.phone,
+        address: parsed.data.address,
+        city: parsed.data.city,
+      });
+      if (!saved.ok) console.error("post-checkout address save failed:", saved.error);
+    }
     redirect(303, `/checkout/success/${result.orderId}`);
   },
 };
