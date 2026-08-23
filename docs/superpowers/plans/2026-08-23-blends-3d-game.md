@@ -244,7 +244,10 @@ git commit -m "feat(blends): add benefit texts and ingredient colors for 3D game
 export const FULL_STIR_RADIANS: number; // 3 full rotations = 3 * 2*PI
 export function normalizeAngleDelta(rad: number): number; // wrap to (-PI, PI]
 export function accumulateStir(totalRadians: number, delta: number): number;
-export function stirProgress(totalRadians: number): number; // clamp01(|t| / FULL_STIR_RADIANS)
+export function stirProgress(totalRadians: number): number; // clamp01(t / FULL_STIR_RADIANS), signed net rotation
+// NOTE for consumers: accumulateStir is SIGNED net rotation. Feed per-frame pointer
+// deltas (|delta| < PI after wrapping); latch completion when progress >= 1 so a
+// counter-wiggle cannot pull the total back below FULL_STIR_RADIANS.
 ```
 
 ```ts
@@ -285,7 +288,7 @@ describe("normalizeAngleDelta", () => {
 });
 
 describe("accumulateStir / stirProgress", () => {
-  it("accumulates absolute rotation regardless of direction", () => {
+  it("accumulates signed net rotation (reversal undoes progress)", () => {
     let total = 0;
     for (let i = 0; i < 10; i++) total = accumulateStir(total, 0.6);
     for (let i = 0; i < 5; i++) total = accumulateStir(total, -0.9);
@@ -370,7 +373,7 @@ export function normalizeAngleDelta(rad: number): number {
 }
 
 export function accumulateStir(totalRadians: number, delta: number): number {
-  return totalRadians + Math.abs(normalizeAngleDelta(delta));
+  return totalRadians + normalizeAngleDelta(delta);
 }
 
 export function stirProgress(totalRadians: number): number {
