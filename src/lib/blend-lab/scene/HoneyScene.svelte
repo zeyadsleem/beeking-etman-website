@@ -2,6 +2,7 @@
   import { Canvas } from "@threlte/core";
   import { Environment } from "@threlte/extras";
   import type { PageData } from "../../../routes/blends/$types";
+  import { t } from "$lib/i18n/messages";
   import { BlendsGame, provideBlendsGame } from "$lib/blend-lab/game-state.svelte";
   import CameraRig from "./CameraRig.svelte";
 
@@ -27,7 +28,7 @@
   <!-- HTML overlay layer -->
   <div class="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
     <header class="text-center text-parchment">
-      <h1 class="headline text-2xl font-bold drop-shadow">{data.lang === "ar" ? "مختبر العسل التفاعلي" : "Interactive Honey Lab"}</h1>
+      <h1 class="headline text-2xl font-bold drop-shadow">{t(data.lang, "blends.game.title")}</h1>
     </header>
   </div>
 </div>

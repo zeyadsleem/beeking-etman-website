@@ -20,7 +20,6 @@
 
   useTask((delta) => {
     const pose = STEP_CAMERAS[game.step];
-    if (!pose) return;
     const k = instant ? 1 : Math.min(1, delta * 2.5);
     camera.current.position.lerp(tmpPos.set(...pose.position), ease(k));
     currentTarget.lerp(tmpTarget.set(...pose.target), ease(k));
