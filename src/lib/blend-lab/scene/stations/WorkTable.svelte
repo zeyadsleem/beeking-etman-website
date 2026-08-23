@@ -79,6 +79,7 @@
   }
 
   function begin(key: AdditiveKey, e: PointerEvent): void {
+    if (game.step !== "prep") return;
     if (dragging) return;
     dragging = key;
     dragPointerId = e.pointerId;
