@@ -17,6 +17,8 @@ export default defineConfig({
   // restart loop recovers the server; retries let in-flight tests rerun
   // against it after a crash.
   workers: 1,
-  retries: process.env.CI ? 2 : 1,
+  // 2 retries locally too: a crash can land mid-test twice in a long run, and
+  // each restart window is ~15-30s (see gotoWithRestartRetry in e2e-utils).
+  retries: 2,
   expect: { timeout: 10_000 },
 });

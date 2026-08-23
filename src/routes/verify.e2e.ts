@@ -1,5 +1,5 @@
-import { expect, test, chromium } from "@playwright/test";
-import { waitForApp } from "./e2e-utils";
+import { expect, chromium } from "@playwright/test";
+import { test, waitForApp } from "./e2e-utils";
 
 test("no reveal-hidden, low CLS, same-page click is a no-op", async () => {
   const browser = await chromium.launch();

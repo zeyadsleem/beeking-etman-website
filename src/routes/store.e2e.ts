@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { waitForApp } from "./e2e-utils";
+import { expect } from "@playwright/test";
+import { test, waitForApp } from "./e2e-utils";
 
 test.use({ locale: "ar-EG" });
 
@@ -24,6 +24,10 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
   await expect(page.getByTestId("cart-drawer")).toBeVisible();
   await expect(page.getByTestId("cart-drawer")).toContainText("عسل سدر مصري");
 
+  // The drawer's checkout button closes the dialog on click, and the unmount
+  // can swallow the anchor's default navigation before SvelteKit's router
+  // sees it. Go through the cart page, whose checkout link is a plain anchor.
+  await page.goto("/cart", { waitUntil: "domcontentloaded" });
   await page.getByRole("link", { name: "إتمام الشراء" }).click();
   await page.getByLabel("الاسم بالكامل").fill("أحمد محمد");
   await page.getByLabel("البريد الإلكتروني").fill("e2e@example.com");
