@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gte, lt, lte, ne, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
-import { ORDER_STATUSES, type OrderStatus } from "./orders";
+import { ORDER_STATUSES, parseOrderStatus, type OrderStatus } from "./orders";
 
 /**
  * Variants at or below this stock level surface in the dashboard's restock
@@ -15,8 +15,6 @@ const DAY_MS = 86_400_000;
 
 /** Top-products cap fixed by the admin-dashboard design. */
 const TOP_PRODUCTS_LIMIT = 5;
-
-const KNOWN_STATUSES: ReadonlySet<string> = new Set(ORDER_STATUSES);
 
 export interface DailySeriesEntry {
   /** UTC calendar day, "YYYY-MM-DD". */
@@ -102,8 +100,9 @@ export async function getDashboardStats(
     // A status outside the lifecycle vocabulary (hand-edited rows; SQLite
     // stores status as free text) still counts toward kpis.orders above but
     // has no chip to fill — skipping beats crashing the whole dashboard.
-    if (KNOWN_STATUSES.has(row.status)) {
-      byStatus[row.status as OrderStatus] = Number(row.count);
+    const status = parseOrderStatus(row.status);
+    if (status !== null) {
+      byStatus[status] = Number(row.count);
     }
   }
 

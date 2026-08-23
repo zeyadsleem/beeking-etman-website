@@ -391,6 +391,18 @@ const ar = {
   "admin.products.sortOrder": "الترتيب",
   "admin.products.variantSaved": "تم حفظ المتغير",
   "admin.products.variantDeleted": "تم حذف المتغير",
+  "admin.stats.title": "لوحة الإحصائيات",
+  "admin.stats.revenue": "الإيرادات",
+  "admin.stats.orders": "الطلبات",
+  "admin.stats.customers": "العملاء",
+  "admin.stats.byStatus": "توزيع الحالات",
+  "admin.stats.topProducts": "الأكثر مبيعًا",
+  "admin.stats.lowStock": "مخزون منخفض",
+  "admin.stats.last30Days": "آخر 30 يومًا",
+  "admin.stats.noLowStock": "كل الكميات بحالة جيدة.",
+  "admin.stats.quantity": "الكمية",
+  "admin.stats.day": "اليوم",
+  "admin.stats.navAria": "أقسام الأدمن",
 } as const;
 
 export type MessageKey = keyof typeof ar;
@@ -754,6 +766,18 @@ const en: Record<MessageKey, string> = {
   "admin.products.sortOrder": "Sort order",
   "admin.products.variantSaved": "Variant saved",
   "admin.products.variantDeleted": "Variant deleted",
+  "admin.stats.title": "Dashboard",
+  "admin.stats.revenue": "Revenue",
+  "admin.stats.orders": "Orders",
+  "admin.stats.customers": "Customers",
+  "admin.stats.byStatus": "Status breakdown",
+  "admin.stats.topProducts": "Top products",
+  "admin.stats.lowStock": "Low stock",
+  "admin.stats.last30Days": "Last 30 days",
+  "admin.stats.noLowStock": "All stock levels are healthy.",
+  "admin.stats.quantity": "Quantity",
+  "admin.stats.day": "Day",
+  "admin.stats.navAria": "Admin sections",
 };
 
 const catalogs: Record<Lang, Record<MessageKey, string>> = { ar, en };

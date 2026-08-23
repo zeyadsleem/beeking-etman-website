@@ -250,6 +250,39 @@ describe("getDashboardStats — kpis", () => {
       cancelled: 1,
     });
   });
+
+  it("counts a hand-edited unknown status toward kpis.orders but not byStatus", async () => {
+    const db = await buildDb();
+
+    await seedOrder(db, { status: "paid" });
+
+    // SQLite stores status as free text; simulate an out-of-band write that
+    // left a value outside the lifecycle vocabulary.
+    orderCounter += 1;
+    await db.insert(schema.order).values({
+      id: crypto.randomUUID(),
+      number: `HNY-${String(orderCounter).padStart(6, "0")}`,
+      email: "weird@example.com",
+      name: "سارة",
+      phone: "01098765432",
+      address: "شارع 7",
+      city: "الإسكندرية",
+      total: 10_00,
+      status: "refunded",
+      userId: null,
+      createdAt: Date.now(),
+    });
+
+    const stats = await getDashboardStats(db);
+
+    expect(stats.kpis.orders).toBe(2);
+    expect(stats.kpis.byStatus).toEqual({
+      paid: 1,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0,
+    });
+  });
 });
 
 describe("getDashboardStats — dailySeries", () => {
