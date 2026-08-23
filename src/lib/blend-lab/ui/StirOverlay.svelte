@@ -8,12 +8,29 @@
   const R = 64;
   const CIRC = 2 * Math.PI * R;
 
-  let doneNotified = $state(false);
-  $effect(() => {
-    if (game.mixProgress >= 1 && !doneNotified) {
-      doneNotified = true;
-      setTimeout(() => game.finishStir(), 600);
+  let completionTimer: ReturnType<typeof setTimeout> | null = null;
+  let completionLatched = false;
+
+  const clearCompletionTimer = (): void => {
+    if (completionTimer !== null) {
+      clearTimeout(completionTimer);
+      completionTimer = null;
     }
+  };
+
+  $effect(() => {
+    if (game.step !== "stir") {
+      completionLatched = false;
+      return clearCompletionTimer;
+    }
+    if (!completionLatched && game.mixProgress >= 1) {
+      completionLatched = true;
+      completionTimer = setTimeout(() => {
+        completionTimer = null;
+        game.finishStir();
+      }, 600);
+    }
+    return clearCompletionTimer;
   });
 </script>
 

@@ -62,4 +62,24 @@ describe("StirOverlay", () => {
       { timeout: 3000 },
     );
   });
+
+  it("clears the pending completion timer when leaving stir mid-window and re-arms on return", async () => {
+    const game = stirGame();
+    render(StirOverlayHost, { props: { game, lang: "ar" } });
+
+    for (let i = 0; i < 24; i++) game.recordStir(Math.PI / 4);
+    game.goBack();
+    expect(game.step).toBe("prep");
+
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    expect(game.step).toBe("prep");
+
+    game.startStir();
+    await vi.waitFor(
+      () => {
+        expect(game.step).toBe("pour");
+      },
+      { timeout: 3000 },
+    );
+  });
 });
