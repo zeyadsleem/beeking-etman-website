@@ -77,28 +77,27 @@
     {/if}
 
     {#if data.savedAddresses.length > 0}
-      <fieldset class="rounded-2xl border border-cocoa-200 bg-parchment p-5">
+      <!-- Radios sharing name="savedAddress" form the group; the fieldset+legend labels it. -->
+      <fieldset class="grid gap-2 rounded-2xl border border-cocoa-200 bg-parchment p-5">
         <legend class="px-2 text-sm font-bold text-cocoa-700">
           {t(lang, "checkout.savedAddresses")}
         </legend>
-        <div role="radiogroup" aria-label={t(lang, "checkout.savedAddresses")} class="grid gap-2">
-          {#each data.savedAddresses as addr (addr.id)}
-            <label class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 has-checked:border-honey-500 has-checked:bg-honey-50">
-              <input
-                type="radio"
-                name="savedAddress"
-                value={addr.id}
-                bind:group={savedChoice}
-                class="accent-honey-600"
-              />
-              <span class="text-sm"><b>{addr.label}</b> — {addr.name}، {addr.city}، {addr.phone}</span>
-            </label>
-          {/each}
+        {#each data.savedAddresses as addr (addr.id)}
           <label class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 has-checked:border-honey-500 has-checked:bg-honey-50">
-            <input type="radio" name="savedAddress" value="new" bind:group={savedChoice} class="accent-honey-600" />
-            <span class="text-sm font-semibold">{t(lang, "checkout.useNewAddress")}</span>
+            <input
+              type="radio"
+              name="savedAddress"
+              value={addr.id}
+              bind:group={savedChoice}
+              class="accent-honey-600"
+            />
+            <span class="text-sm"><b>{addr.label}</b> — {addr.name}، {addr.city}، {addr.phone}</span>
           </label>
-        </div>
+        {/each}
+        <label class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 has-checked:border-honey-500 has-checked:bg-honey-50">
+          <input type="radio" name="savedAddress" value="new" bind:group={savedChoice} class="accent-honey-600" />
+          <span class="text-sm font-semibold">{t(lang, "checkout.useNewAddress")}</span>
+        </label>
       </fieldset>
     {/if}
 
