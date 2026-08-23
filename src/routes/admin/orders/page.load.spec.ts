@@ -141,6 +141,29 @@ describe("admin orders page load", () => {
     expect(data.items.map((o) => o.id)).toEqual(createdIds.slice(0, 5).reverse());
   });
 
+  it("clamps an out-of-range page to the last page instead of an empty list", async () => {
+    const base = 1_700_000_000_000;
+    const createdIds: string[] = [];
+    const db = currentDb();
+    for (let i = 0; i < 25; i++) {
+      createdIds.push(await seedOrder(db, { createdAt: base + i * 1_000 }));
+    }
+
+    // Beyond-the-last page must land on the final page's items — never a
+    // false "No orders." dead end. Also covers float64-huge values that
+    // survive zod as integers (same empty-items branch).
+    const clamped = await load(fakeEvent("http://localhost/admin/orders?page=99"));
+    expect(clamped.page).toBe(2);
+    expect(clamped.total).toBe(25);
+    expect(clamped.items.map((o) => o.id)).toEqual(createdIds.slice(0, 5).reverse());
+
+    const huge = await load(
+      fakeEvent(`http://localhost/admin/orders?page=${Number.MAX_SAFE_INTEGER}`),
+    );
+    expect(huge.page).toBe(2);
+    expect(huge.items).toHaveLength(5);
+  });
+
   it("filters by a valid status in items and total", async () => {
     const base = 1_700_000_000_000;
     const db = currentDb();
