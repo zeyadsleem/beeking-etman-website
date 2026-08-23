@@ -30,6 +30,13 @@ interface D1Database {
   dump(): Promise<ArrayBuffer>;
 }
 
+// Minimal structural view of Cloudflare's R2Bucket covering what the app
+// exercises today (media uploads). Same rationale as D1Database above: keep
+// @cloudflare/workers-types globals out of client code.
+interface R2LikeBucket {
+  put(key: string, value: ReadableStream | ArrayBuffer): Promise<unknown>;
+}
+
 declare global {
   namespace App {
     interface Locals {
@@ -43,6 +50,8 @@ declare global {
     interface Platform {
       env: {
         DB: D1Database;
+        MEDIA: R2LikeBucket;
+        MEDIA_PUBLIC_BASE_URL?: string;
       };
     }
   }
