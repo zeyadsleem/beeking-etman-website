@@ -15,8 +15,9 @@
   const game = getBlendsGame();
   const BOWL_R = 0.5;
   const BOWL_H = 0.42;
+  const DEFAULT_BASE_ID: BaseHoneyOption["id"] = "clover";
 
-  const uniforms: Record<string, THREE.IUniform> = {
+  const uniforms = {
     uTime: { value: 0 },
     uBaseColor: { value: new THREE.Color(HONEY_COLORS.clover) },
     uSurfaceColor: { value: new THREE.Color(HONEY_COLORS.clover) },
@@ -31,13 +32,48 @@
     (key) => ({ key, hex: INGREDIENT_COLORS[key], weight: 0 }),
   );
 
-  const mixCache = {
-    baseId: null as BaseHoneyOption["id"] | null,
+  interface MixSnapshot {
+    baseId: BaseHoneyOption["id"] | null;
+    doses: Record<AdditiveKey, number>;
+    mixProgress: number;
+  }
+
+  const mixCache: MixSnapshot = {
+    baseId: null,
     doses: zeroDoses(),
     mixProgress: -1,
   };
-  let appliedBaseHex = "";
-  let appliedSurfaceHex = "";
+
+  function snapshotMatchesGame(baseId: BaseHoneyOption["id"]): boolean {
+    return (
+      mixCache.baseId === baseId &&
+      mixCache.mixProgress === game.mixProgress &&
+      ADDITIVE_KEYS.every((key) => mixCache.doses[key] === game.doses[key])
+    );
+  }
+
+  function normalizedHexKey(hex: string): string {
+    return hex.slice(hex.indexOf("#") + 1).toLowerCase();
+  }
+
+  function applyMixColors(baseId: BaseHoneyOption["id"], mixProgress: number): void {
+    const baseHex = HONEY_COLORS[baseId];
+    for (const dosed of dosedColors) {
+      dosed.weight = game.doses[dosed.key];
+      mixCache.doses[dosed.key] = game.doses[dosed.key];
+    }
+    const surfaceHex = mixIngredients(baseHex, dosedColors, mixProgress);
+    const baseColor = uniforms.uBaseColor.value;
+    if (baseColor.getHexString() !== normalizedHexKey(baseHex)) {
+      baseColor.set(baseHex);
+    }
+    const surfaceColor = uniforms.uSurfaceColor.value;
+    if (surfaceColor.getHexString() !== normalizedHexKey(surfaceHex)) {
+      surfaceColor.set(surfaceHex);
+    }
+    mixCache.baseId = baseId;
+    mixCache.mixProgress = mixProgress;
+  }
 
   let mesh: THREE.Mesh | undefined = $state();
 
@@ -51,29 +87,9 @@
     elapsed += delta;
     uniforms.uTime.value = elapsed;
 
-    const baseId = game.honeyId ?? "clover";
-    const mixChanged =
-      mixCache.baseId !== baseId ||
-      mixCache.mixProgress !== game.mixProgress ||
-      ADDITIVE_KEYS.some((key) => mixCache.doses[key] !== game.doses[key]);
-
-    if (mixChanged) {
-      const baseHex = HONEY_COLORS[baseId];
-      if (appliedBaseHex !== baseHex) {
-        uniforms.uBaseColor.value.set(baseHex);
-        appliedBaseHex = baseHex;
-      }
-      for (const dosed of dosedColors) {
-        dosed.weight = game.doses[dosed.key];
-        mixCache.doses[dosed.key] = game.doses[dosed.key];
-      }
-      const surfaceHex = mixIngredients(baseHex, dosedColors, game.mixProgress);
-      if (appliedSurfaceHex !== surfaceHex) {
-        uniforms.uSurfaceColor.value.set(surfaceHex);
-        appliedSurfaceHex = surfaceHex;
-      }
-      mixCache.baseId = baseId;
-      mixCache.mixProgress = game.mixProgress;
+    const baseId = game.honeyId ?? DEFAULT_BASE_ID;
+    if (!snapshotMatchesGame(baseId)) {
+      applyMixColors(baseId, game.mixProgress);
     }
 
     uniforms.uFill.value = Math.min(
