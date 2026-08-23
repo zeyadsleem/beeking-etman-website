@@ -9,10 +9,12 @@
   import GoalTable from "./stations/GoalTable.svelte";
   import HoneyShelf, { type HoneyInspection } from "./stations/HoneyShelf.svelte";
   import WorkTable, { type IngredientInspection } from "./stations/WorkTable.svelte";
+  import JarStation from "./stations/JarStation.svelte";
   import StepBar from "../ui/StepBar.svelte";
   import InfoCard from "../ui/InfoCard.svelte";
   import MixSummary from "../ui/MixSummary.svelte";
   import StirOverlay from "../ui/StirOverlay.svelte";
+  import OrderPanel from "../ui/OrderPanel.svelte";
   import { blendUnitPrice } from "$lib/blend-lab/pricing";
 
   let { data }: { data: PageData } = $props();
@@ -30,6 +32,10 @@
   const unitPrice = $derived(
     blendUnitPrice(data.baseHoneys, data.additives, game.honeyId, game.jarSize, game.doses),
   );
+
+  // devalue serializes the catalog Maps as [key, value] entry arrays
+  const baseMap = $derived(new Map(data.baseHoneys));
+  const additiveMap = $derived(new Map(data.additives));
 </script>
 
 <div
@@ -52,6 +58,7 @@
       additives={data.additives}
       oninspect={(inspection) => (ingredientInspection = inspection)}
     />
+    <JarStation />
   </Canvas>
 
   <!-- HTML overlay layer -->
@@ -65,6 +72,26 @@
       <div class="flex justify-center">
         <MixSummary lang={data.lang} unitPrice={unitPrice} />
       </div>
+    {/if}
+
+    {#if game.step === "pour"}
+      <div class="flex justify-center">
+        <p
+          class="pointer-events-none rounded-full bg-ink-950/70 px-4 py-2 text-sm text-parchment backdrop-blur"
+          data-testid="blends-pour-hint"
+        >
+          {t(data.lang, "blends.game.pour.title")}
+        </p>
+      </div>
+    {/if}
+
+    {#if game.step === "order"}
+      <OrderPanel
+        lang={data.lang}
+        baseHoneys={baseMap}
+        additives={additiveMap}
+        blendImage={data.blendImage}
+      />
     {/if}
 
     <StirOverlay lang={data.lang} />
