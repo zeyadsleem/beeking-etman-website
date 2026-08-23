@@ -317,6 +317,18 @@ const ar = {
   "blends.jar": "البرطمان",
   "blends.switchSize": "بدّل الحجم",
   "blends.reset": "ابدأ من جديد",
+  "admin.orders.title": "إدارة الطلبات",
+  "admin.orders.all": "الكل",
+  "admin.orders.paid": "مدفوع",
+  "admin.orders.shipped": "تم الشحن",
+  "admin.orders.delivered": "تم التسليم",
+  "admin.orders.cancelled": "ملغي",
+  "admin.orders.total": "الإجمالي",
+  "admin.orders.customer": "العميل",
+  "admin.orders.empty": "لا توجد طلبات.",
+  "admin.orders.next": "التالي",
+  "admin.orders.prev": "السابق",
+  "admin.orders.filterAria": "تصفية حسب الحالة",
 } as const;
 
 export type MessageKey = keyof typeof ar;
@@ -606,6 +618,18 @@ const en: Record<MessageKey, string> = {
   "blends.jar": "Jar",
   "blends.switchSize": "Switch size",
   "blends.reset": "Start over",
+  "admin.orders.title": "Manage orders",
+  "admin.orders.all": "All",
+  "admin.orders.paid": "Paid",
+  "admin.orders.shipped": "Shipped",
+  "admin.orders.delivered": "Delivered",
+  "admin.orders.cancelled": "Cancelled",
+  "admin.orders.total": "Total",
+  "admin.orders.customer": "Customer",
+  "admin.orders.empty": "No orders.",
+  "admin.orders.next": "Next",
+  "admin.orders.prev": "Prev",
+  "admin.orders.filterAria": "Filter by status",
 };
 
 const catalogs: Record<Lang, Record<MessageKey, string>> = { ar, en };
