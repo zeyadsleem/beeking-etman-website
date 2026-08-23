@@ -16,9 +16,6 @@ export const load: PageServerLoad = async (event) => {
   const statusParam = event.url.searchParams.get("status");
   const status = statusParam === null ? undefined : parseOrderStatus(statusParam);
   const lang = getLang(event);
-  // URL search params are untrusted input: normalize `page` here so a malformed
-  // value (e.g. "?page=abc" → NaN) can never reach listOrders, whose offset
-  // math cannot recover from a NaN page.
   const requestedPage = pageParam.parse(event.url.searchParams.get("page"));
   const listAt = (p: number) => listOrders(db, { status: status ?? undefined, page: p });
 

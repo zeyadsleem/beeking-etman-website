@@ -329,6 +329,15 @@ const ar = {
   "admin.orders.next": "التالي",
   "admin.orders.prev": "السابق",
   "admin.orders.filterAria": "تصفية حسب الحالة",
+  "admin.order.details": "تفاصيل الطلب",
+  "admin.order.markShipped": "تعليم كمشحون",
+  "admin.order.markDelivered": "تعليم كمسلّم",
+  "admin.order.cancel": "إلغاء الطلب",
+  "admin.order.invalidTransition": "لا يمكن تنفيذ هذا الانتقال",
+  "admin.order.updated": "تم تحديث حالة الطلب",
+  "admin.order.backToList": "العودة إلى الطلبات",
+  "admin.order.quantity": "الكمية",
+  "admin.order.unitPrice": "سعر الوحدة",
 } as const;
 
 export type MessageKey = keyof typeof ar;
@@ -630,6 +639,15 @@ const en: Record<MessageKey, string> = {
   "admin.orders.next": "Next",
   "admin.orders.prev": "Prev",
   "admin.orders.filterAria": "Filter by status",
+  "admin.order.details": "Order details",
+  "admin.order.markShipped": "Mark shipped",
+  "admin.order.markDelivered": "Mark delivered",
+  "admin.order.cancel": "Cancel order",
+  "admin.order.invalidTransition": "This transition is not allowed",
+  "admin.order.updated": "Order updated",
+  "admin.order.backToList": "Back to orders",
+  "admin.order.quantity": "Qty",
+  "admin.order.unitPrice": "Unit price",
 };
 
 const catalogs: Record<Lang, Record<MessageKey, string>> = { ar, en };
