@@ -14,13 +14,44 @@ bottom unless the user reorders.
 1. [ ] **Customer account area** — profile page (name, email, password change),
        saved addresses (schema + checkout prefill), full order history with
        status/detail view, sign-out everywhere. **← current focus**
-2. [ ] **Admin dashboard** — `/admin` behind a role gate: orders list + status
-       transitions, product/variant/image CRUD, stock adjustments, basic sales
-       stats. Without it every operational task requires direct DB access.
-3. [ ] **Transactional email** — order confirmation + status updates
+2. [ ] **Transactional email** — order confirmation + status updates
        (Cloudflare Email Service or Resend), triggered post-checkout.
-4. [ ] **Real payment gateway** — replace mock payment (Paymob/Fawry for EGP).
+3. [ ] **Real payment gateway** — replace mock payment (Paymob/Fawry for EGP).
        Deferred by user decision 2026-08-22 until items 1–3 land.
+
+## Post-merge follow-ups (admin dashboard, 2026-08-23)
+
+Agreed at the `feat/admin-dashboard` final review; none block the merge.
+
+### Before production deploy
+
+- [ ] Enable Cloudflare R2, create bucket `beeking-media`, set
+      `MEDIA_PUBLIC_BASE_URL` (validated as an https:// URL since
+      `chore(admin): validate admin/media env vars`).
+- [ ] Pre-check duplicate `(issuer, account_id)` pairs before migration 0008
+      runs against production data.
+
+### One-liner batch
+
+- [ ] `.finite()` + `MAX_SAFE_INTEGER` cap on the `?page` schemas in the admin
+      orders/products loaders.
+- [ ] Vanished-product image upload returns `fail(404)` instead of a false
+      success.
+- [ ] Corrupt stored order status logs `console.error` on the write path.
+- [ ] `not_found` transition results map to 404 (see decisions 2026-08-23 #5).
+- [ ] Slug-issue mapping exact-matches both constants.
+- [ ] Pasted image URLs restricted to `https:`.
+- [ ] `deleteVariant` scoped by `productId`.
+- [ ] `Content-Type` httpMetadata set on R2 `put`.
+
+### Named follow-ups
+
+- [ ] Native-speaker pass on new Arabic copy.
+- [ ] E2E cases: authenticated-non-admin guard + dashboard KPI render.
+- [ ] Shared client-side `STATUS_ORDER` constant.
+- [ ] `lowStock` query LIMIT.
+- [ ] Move the third copy of `retryOnBusy` into `$lib/server/sqlite`.
+- [ ] Surface form failure messages inside dialog content (house-wide).
 
 Incident note (2026-08-22): production outage (Error 1101) — security commit
 `6749196` added fail-hard `ORDER_ACCESS_SECRET` validation while the Pages

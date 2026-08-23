@@ -841,3 +841,40 @@ rows' stock; stale cart cookies referencing deleted variants degrade gracefully
 via `resolveCartItems` missing-reporting. Migration applies during a deploy
 window (writes between INSERT…SELECT and cutover are lost). pnpm 11 ignores
 `package.json#pnpm.overrides` — overrides must live in `pnpm-workspace.yaml`.
+
+## 2026-08-23: Admin dashboard
+
+**Context:** The admin dashboard branch (order management, product/category
+CRUD with variants, dashboard stats, R2 media) went through spec → plan →
+implementation → final whole-branch review. Five rulings made during that work
+are load-bearing and need a durable record beyond the plan document.
+
+**Decision:**
+
+1. **Branch topology:** `feat/admin-dashboard` was cut from
+   `feat/customer-account`, not `main`, and merges land in order account →
+   admin; the admin work builds directly on the user/role columns and auth
+   plugin setup introduced by the account branch.
+2. **Auth schema source of truth:** better-auth v1.7.1's generator output
+   supersedes the plan document's illustrative SQL — including the hand-fixed
+   `account` issuer default `'local:credential'` and the nullable `user.role`
+   column. Migrations follow the generated DDL; the plan's SQL is prose only.
+3. **Order transitions without transactions:** D1 has no interactive
+   transactions, so `transitionOrderStatus` flips the status first with a
+   conditional UPDATE guarded on the current status, then performs the
+   cancellation restock. Accepted residual risk: a crash between flip and
+   restock leaves an under-restoration window; the failure is logged loudly on
+   the write path and surfaced to the admin as a retryable 500.
+4. **Upload-before-write:** product image upload to R2 happens BEFORE the
+   product row write so that a failed DB write cannot fork duplicate products
+   when the admin retries the form. Accepted cost: the failed write can leave
+   an orphaned R2 blob.
+5. **Vanished-order mapping:** a POST targeting an order that no longer exists
+   maps to the same 409 invalid-transition failure today; mapping it to 404 is
+   the recommended follow-up (tracked in `docs/todo.md`).
+
+**Consequences:** Admin features can be reviewed against these five points
+without re-deriving them from git history or the plan doc. Rulings 3–4 trade
+strict consistency for D1-compatible simplicity, with the failure modes made
+observable rather than silent; ruling 5 leaves one known rough edge explicitly
+open instead of silently shipping it.
