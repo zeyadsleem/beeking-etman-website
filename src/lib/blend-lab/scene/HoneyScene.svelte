@@ -8,8 +8,11 @@
   import CameraRig from "./CameraRig.svelte";
   import GoalTable from "./stations/GoalTable.svelte";
   import HoneyShelf, { type HoneyInspection } from "./stations/HoneyShelf.svelte";
+  import WorkTable, { type IngredientInspection } from "./stations/WorkTable.svelte";
   import StepBar from "../ui/StepBar.svelte";
   import InfoCard from "../ui/InfoCard.svelte";
+  import MixSummary from "../ui/MixSummary.svelte";
+  import { blendUnitPrice } from "$lib/blend-lab/pricing";
 
   let { data }: { data: PageData } = $props();
 
@@ -21,6 +24,11 @@
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   let honeyInspection = $state<HoneyInspection | null>(null);
+  let ingredientInspection = $state<IngredientInspection | null>(null);
+
+  const unitPrice = $derived(
+    blendUnitPrice(data.baseHoneys, data.additives, game.honeyId, game.jarSize, game.doses),
+  );
 </script>
 
 <div class="relative h-dvh w-full overflow-hidden bg-cocoa-950" data-testid="blends-scene">
@@ -35,6 +43,11 @@
       baseHoneys={data.baseHoneys}
       oninspect={(inspection) => (honeyInspection = inspection)}
     />
+    <WorkTable
+      lang={data.lang}
+      additives={data.additives}
+      oninspect={(inspection) => (ingredientInspection = inspection)}
+    />
   </Canvas>
 
   <!-- HTML overlay layer -->
@@ -43,6 +56,12 @@
       <h1 class="headline text-2xl font-bold drop-shadow">{t(data.lang, "blends.game.title")}</h1>
       <StepBar lang={data.lang} />
     </header>
+
+    {#if game.step === "prep" || game.step === "stir"}
+      <div class="flex justify-center">
+        <MixSummary lang={data.lang} unitPrice={unitPrice} />
+      </div>
+    {/if}
 
     {#if honeyInspection && game.step === "honey"}
       {@const current = honeyInspection}
@@ -70,6 +89,21 @@
           priceLabel={current.priceLabel}
           actionLabel={t(data.lang, "blends.game.honey.viewBenefits")}
           onaction={() => game.selectHoney(current.id)}
+        />
+      </div>
+    {/if}
+
+    {#if ingredientInspection && game.step === "prep"}
+      {@const current = ingredientInspection}
+      <div
+        class="pointer-events-auto absolute bottom-24 start-1/2 z-10 w-[min(92vw,26rem)] -translate-x-1/2 rtl:translate-x-1/2"
+        data-testid="ingredient-info-card"
+      >
+        <InfoCard
+          title={current.title}
+          body={current.body}
+          actionLabel={t(data.lang, "blends.game.prep.title")}
+          onaction={() => game.setInspected(null)}
         />
       </div>
     {/if}
