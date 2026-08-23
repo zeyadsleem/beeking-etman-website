@@ -10,7 +10,7 @@ import type { Actions, PageServerLoad } from "./$types";
 const registerLimiter = createDbRateLimiter(db, AUTH_RATE_LIMITS.register);
 
 export const load: PageServerLoad = (event) => {
-  if (event.locals.user) redirect(302, "/account/orders");
+  if (event.locals.user) redirect(302, "/account");
 };
 
 export const actions: Actions = {
@@ -30,6 +30,6 @@ export const actions: Actions = {
       if (error instanceof APIError) return fail(400, { message: t(lang, "errors.signupFailed") });
       return fail(500, { message: t(lang, "errors.unexpected") });
     }
-    redirect(302, "/account/orders");
+    redirect(302, "/account");
   },
 };

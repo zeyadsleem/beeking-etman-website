@@ -130,7 +130,7 @@
       {#if user}
         <Button
           variant="outline"
-          href="/account/orders"
+          href="/account"
           class="hidden shrink-0 items-center gap-2 px-4 py-2.5 lg:inline-flex"
           aria-label={t(lang, "nav.account")}
         >
@@ -240,7 +240,7 @@
             {t(lang, "lang.switchTo")}
           </button>
           {#if user}
-            <a href="/account/orders" onclick={closeMobile} class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">
+            <a href="/account" onclick={closeMobile} class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">
               <UserIcon size={18} />
               {user.name ?? t(lang, "nav.account")}
             </a>
