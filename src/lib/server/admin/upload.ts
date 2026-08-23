@@ -63,9 +63,19 @@ export async function saveProductImage(
   const detected = detectImageType(new Uint8Array(buffer));
   if (!detected) return { ok: false, reason: "unsupported" };
 
-  if (!publicBase) return { ok: false, reason: "storage_unavailable" };
+  // Env config set with a trailing slash would otherwise persist "//" into
+  // every stored url.
+  const base = publicBase?.replace(/\/+$/, "");
+  if (!base) return { ok: false, reason: "storage_unavailable" };
 
   const key = `products/${crypto.randomUUID()}.${detected.ext}`;
-  await bucket.put(key, buffer);
-  return { ok: true, url: `${publicBase}/${key}` };
+  // Storage failures are an expected outcome of the typed union, not a crash:
+  // convert the put rejection to storage_unavailable so callers answer with
+  // the localized message instead of the request dying on an unhandled error.
+  try {
+    await bucket.put(key, buffer);
+  } catch {
+    return { ok: false, reason: "storage_unavailable" };
+  }
+  return { ok: true, url: `${base}/${key}` };
 }

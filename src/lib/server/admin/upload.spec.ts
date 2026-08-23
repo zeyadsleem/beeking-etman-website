@@ -7,8 +7,10 @@ import { MAX_UPLOAD_BYTES, detectImageType, saveProductImage } from "./upload";
 const JPEG_HEADER = [0xff, 0xd8, 0xff];
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
+// Index-based byte construction (a string spread trips the
+// no-misused-spread lint).
 function asciiBytes(text: string): number[] {
-  return [...text].map((char) => char.charCodeAt(0));
+  return Array.from({ length: text.length }, (_, index) => text.charCodeAt(index));
 }
 
 interface PutCall {
@@ -110,6 +112,23 @@ describe("saveProductImage", () => {
     expect(bucket.calls).toHaveLength(0);
   });
 
+  it("reports storage_unavailable instead of throwing when the bucket rejects the write", async () => {
+    let attempts = 0;
+    const failingBucket = {
+      put(): Promise<unknown> {
+        attempts += 1;
+        return Promise.reject(new Error("r2 unavailable"));
+      },
+    };
+    const file = fileFrom([...JPEG_HEADER, 0xe0], "honey.jpg", "image/jpeg");
+
+    await expect(
+      saveProductImage(failingBucket, "https://media.example.com", file),
+    ).resolves.toEqual({ ok: false, reason: "storage_unavailable" });
+    // Exactly one attempt: the failure is reported typed, not retried here.
+    expect(attempts).toBe(1);
+  });
+
   it("stores a verified png under products/ with a uuid key and returns the joined URL", async () => {
     const bucket = makeBucket();
     const file = fileFrom(
@@ -146,5 +165,17 @@ describe("saveProductImage", () => {
     expect(call?.key).toMatch(/^products\/[0-9a-f-]{36}\.webp$/);
     if (!result.ok) return;
     expect(result.url).toBe(`https://cdn.etman.test/${call?.key}`);
+  });
+
+  it("strips trailing slashes from publicBase so stored urls never double the slash", async () => {
+    const bucket = makeBucket();
+    const file = fileFrom(PNG_SIGNATURE, "honey.png");
+
+    const result = await saveProductImage(bucket, "https://media.example.com/", file);
+
+    expect(result.ok).toBe(true);
+    const call = bucket.calls[0];
+    if (!result.ok || !call) return;
+    expect(result.url).toBe(`https://media.example.com/${call.key}`);
   });
 });
