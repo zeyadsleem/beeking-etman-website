@@ -146,6 +146,27 @@ describe("categoryInputSchema", () => {
     const result = categoryInputSchema.safeParse({ name: "عسل السدر", nameEn: "", slug: "" });
     expect(result.success).toBe(false);
   });
+
+  it("flags a blank resolved slug with the slugRequired issue so routes can guide the admin", () => {
+    const result = categoryInputSchema.safeParse({ name: "عسل السدر", nameEn: "", slug: "" });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(
+      result.error.issues.some((issue) => issue.message === "admin.categories.slugRequired"),
+    ).toBe(true);
+  });
+
+  it("flags an explicit malformed slug with the slugInvalid issue, not slugRequired", () => {
+    const result = categoryInputSchema.safeParse({ name: "n", nameEn: "", slug: "Sidr Honey!" });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(
+      result.error.issues.some((issue) => issue.message === "admin.categories.slugInvalid"),
+    ).toBe(true);
+    expect(
+      result.error.issues.some((issue) => issue.message === "admin.categories.slugRequired"),
+    ).toBe(false);
+  });
 });
 
 describe("listCategoriesWithCounts", () => {

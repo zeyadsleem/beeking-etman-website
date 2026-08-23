@@ -345,6 +345,9 @@ const ar = {
   "admin.categories.confirmDelete": "هل تريد حذف هذا الصنف؟ لا يمكن التراجع.",
   "admin.categories.hasProductsError": "لا يمكن حذف صنف به منتجات.",
   "admin.categories.slugTaken": "هذا المعرف مستخدم بالفعل.",
+  "admin.categories.slugRequired": "أدخل المعرف (slug)، أو اكتب الاسم بالإنجليزية ليُولَّد تلقائيًا.",
+  "admin.categories.slugInvalid":
+    "المعرف (slug) غير صالح — استخدم حروفًا إنجليزية صغيرة وأرقامًا وشرطات فقط.",
 } as const;
 
 export type MessageKey = keyof typeof ar;
@@ -662,6 +665,9 @@ const en: Record<MessageKey, string> = {
   "admin.categories.confirmDelete": "Delete this category? This cannot be undone.",
   "admin.categories.hasProductsError": "Cannot delete a category that has products.",
   "admin.categories.slugTaken": "This slug is already in use.",
+  "admin.categories.slugRequired": "Enter a slug, or provide the English name so one is generated.",
+  "admin.categories.slugInvalid":
+    "Invalid slug — use lowercase English letters, numbers, and hyphens only.",
 };
 
 const catalogs: Record<Lang, Record<MessageKey, string>> = { ar, en };

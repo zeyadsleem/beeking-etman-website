@@ -24,10 +24,19 @@ function slugify(value: string): string {
 }
 
 /**
+ * Issue messages double as i18n keys: routes localize them with t() to give
+ * the admin exact guidance instead of a generic failure, without duplicating
+ * the classification logic outside this module.
+ */
+export const CATEGORY_SLUG_REQUIRED = "admin.categories.slugRequired";
+export const CATEGORY_SLUG_INVALID = "admin.categories.slugInvalid";
+
+/**
  * Validates category form payloads. The slug is optional on intake: a blank
  * slug is auto-generated from nameEn (preferred) or name. A payload whose
  * generated slug is empty — e.g. an Arabic-only name with no English name —
- * fails validation so the admin supplies one explicitly.
+ * fails with the slugRequired issue so the admin supplies one explicitly; a
+ * provided-but-malformed slug fails with the slugInvalid issue.
  */
 export const categoryInputSchema: z.ZodType<CategoryInput> = z
   .object({
@@ -39,7 +48,13 @@ export const categoryInputSchema: z.ZodType<CategoryInput> = z
     ...value,
     slug: value.slug !== "" ? value.slug : slugify(value.nameEn !== "" ? value.nameEn : value.name),
   }))
-  .refine((value) => SLUG_PATTERN.test(value.slug), { path: ["slug"] });
+  .superRefine((value, ctx) => {
+    if (value.slug === "") {
+      ctx.addIssue({ code: "custom", path: ["slug"], message: CATEGORY_SLUG_REQUIRED });
+    } else if (!SLUG_PATTERN.test(value.slug)) {
+      ctx.addIssue({ code: "custom", path: ["slug"], message: CATEGORY_SLUG_INVALID });
+    }
+  });
 
 export interface AdminCategoryRow {
   id: string;
