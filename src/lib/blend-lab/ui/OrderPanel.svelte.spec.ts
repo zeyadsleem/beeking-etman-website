@@ -93,14 +93,15 @@ function orderGame(): BlendsGame {
 
 // vitality preset doses on a full jar
 const DOSED_KEYS: AdditiveKey[] = ["royalJelly", "ginseng", "palmPollen"];
+const DEFAULT_FIXTURE = makeFixture();
 const UNIT_PRICE =
   BASE_ENTRY.price +
-  DOSED_KEYS.reduce((sum, k) => sum + (makeFixture().additives.get(k)?.price ?? 0) * 2, 0);
+  DOSED_KEYS.reduce((sum, k) => sum + (DEFAULT_FIXTURE.additives.get(k)?.price ?? 0) * 2, 0);
 
 const LANG = "ar" as const;
 const BLEND_IMAGE = "/img/blends/sidr-mix.webp";
 
-async function renderPanel(game: BlendsGame, fixture: Fixture = makeFixture()) {
+async function renderPanel(game: BlendsGame, fixture: Fixture = DEFAULT_FIXTURE) {
   render(OrderPanelHost, {
     props: { game, lang: LANG, ...fixture, blendImage: BLEND_IMAGE },
   });
