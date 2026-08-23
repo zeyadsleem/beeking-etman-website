@@ -45,11 +45,14 @@
   };
 
   function snapshotMatchesGame(baseId: BaseHoneyOption["id"]): boolean {
-    return (
-      mixCache.baseId === baseId &&
-      mixCache.mixProgress === game.mixProgress &&
-      ADDITIVE_KEYS.every((key) => mixCache.doses[key] === game.doses[key])
-    );
+    if (mixCache.baseId !== baseId || mixCache.mixProgress !== game.mixProgress) {
+      return false;
+    }
+    for (let i = 0; i < ADDITIVE_KEYS.length; i++) {
+      const key = ADDITIVE_KEYS[i];
+      if (mixCache.doses[key] !== game.doses[key]) return false;
+    }
+    return true;
   }
 
   function normalizedHexKey(hex: string): string {
