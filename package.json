@@ -23,6 +23,7 @@
     "db:seed:d1": "tsx scripts/export-d1-seed.ts",
     "d1:migrate": "wrangler d1 migrations apply beeking --local",
     "d1:seed": "wrangler d1 execute beeking --local --file=d1-seed.sql",
+    "d1:clear-limits": "wrangler d1 execute beeking --local --command \"DELETE FROM store_rate_limit\"",
     "d1:reset": "pnpm run db:reset && pnpm run db:seed:d1 && pnpm run d1:migrate && pnpm run d1:seed",
     "auth:schema": "auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
   },

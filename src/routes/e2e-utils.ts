@@ -1,17 +1,69 @@
+import { spawnSync } from "node:child_process";
 import { test as base, type Page, type Response } from "@playwright/test";
+
+/**
+ * Clears auth rate-limit rows from the local D1 database.
+ *
+ * The register limiter allows 5/hour/IP in a fixed hourly bucket and the
+ * local D1 state outlives test runs, so any retried registration eats into
+ * a budget shared by later tests (and previous runs). The webServer chain
+ * wipes all buckets before the suite; this clears just `keyPrefix` rows
+ * mid-run, right before a test registers, so retries stay self-sufficient.
+ */
+export function clearRateLimitRows(keyPrefix: string): void {
+  const result = spawnSync(
+    "pnpm",
+    [
+      "exec",
+      "wrangler",
+      "d1",
+      "execute",
+      "beeking",
+      "--local",
+      "--command",
+      `DELETE FROM store_rate_limit WHERE key LIKE '${keyPrefix}%'`,
+    ],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+  if (result.status !== 0) {
+    throw new Error(`d1 rate-limit clear failed: ${result.stderr}`);
+  }
+}
 
 /**
  * Waits until the SvelteKit app is hydrated and its router is attached
  * (`+layout.svelte` sets `window.__appReady` in an `$effect` after mount).
  * Clicking before this point falls through to native navigation, which makes
  * client-side-routing assertions flaky against the slow wrangler dev server.
+ *
+ * Self-healing: when the preview server crashes mid-load the HTML arrives but
+ * module chunks fail, hydration never completes and __appReady never fires.
+ * After a short backoff the page is reloaded against the restarted server
+ * (retrying through connection refusals) and hydration is awaited again.
  */
-export async function waitForApp(page: Page, timeout = 30_000): Promise<void> {
-  await page.waitForFunction(
-    () => (window as unknown as { __appReady?: boolean }).__appReady === true,
-    undefined,
-    { timeout },
-  );
+export async function waitForApp(page: Page, timeout = 45_000): Promise<void> {
+  const hydrate = async (): Promise<void> => {
+    await page.waitForFunction(
+      () => (window as unknown as { __appReady?: boolean }).__appReady === true,
+      undefined,
+      { timeout },
+    );
+  };
+  try {
+    await hydrate();
+  } catch (error) {
+    const deadline = Date.now() + RESTART_WINDOW_MS;
+    for (;;) {
+      await page.waitForTimeout(RESTART_BACKOFF_MS);
+      try {
+        await page.reload({ waitUntil: "domcontentloaded" });
+        break;
+      } catch (reloadError) {
+        if (!isServerRestartError(reloadError) || Date.now() >= deadline) throw reloadError;
+      }
+    }
+    await hydrate();
+  }
 }
 
 /** Transient errors thrown while the wrangler preview restarts after a crash. */
