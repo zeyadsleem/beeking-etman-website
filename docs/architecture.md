@@ -65,7 +65,7 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `getDefaultAddress`/`createAddress`/`updateAddress`/`setDefaultAddress`/
   `deleteAddress`, all keyed `(db, userId)`); enforces the 10-address cap and
   the single-default invariant (default promotion runs as one atomic `batch`,
-  delete promotes the oldest survivor).
+  delete promotes the most recent survivor).
 - `src/lib/server/rate-limit.ts` — DB-backed fixed-window rate limiter for
   auth actions and checkout (`createDbRateLimiter`, `clientAddressKey`); busy
   retry + opportunistic global pruning of abandoned buckets.
