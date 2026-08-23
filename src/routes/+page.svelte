@@ -56,16 +56,38 @@
 
 <Hero lang={lang} featured={data.featured} productCount={data.products.length} />
 
-<div class="hidden border-y border-cocoa-100 bg-parchment/70 sm:block">
-  <div class="mx-auto grid max-w-3xl grid-cols-3 divide-x divide-cocoa-100 px-6 py-5 text-center">
-    <p class="text-sm font-semibold text-cocoa-700">{t(lang, "home.benefitShipping")}</p>
-    <p class="text-sm font-semibold text-cocoa-700">{t(lang, "home.benefitCod")}</p>
-    <p class="text-sm font-semibold text-cocoa-700">{t(lang, "home.benefitGift")}</p>
+<div class="border-y border-cocoa-100 bg-parchment/70">
+  <div class="mx-auto grid max-w-3xl grid-cols-3 px-4 py-4 text-center sm:px-6 sm:py-5">
+    <p class="flex flex-col items-center gap-1.5 text-xs font-semibold text-cocoa-700 sm:flex-row sm:justify-center sm:gap-2 sm:text-sm">
+      <svg class="h-5 w-5 shrink-0 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M13 18h-4M15 8h2.5a1 1 0 0 1 .78.38l3.44 4.35a1 1 0 0 1 .22.62V17a1 1 0 0 1-1 1h-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="6.5" cy="18" r="2" stroke="currentColor" stroke-width="1.8" />
+        <circle cx="17" cy="18" r="2" stroke="currentColor" stroke-width="1.8" />
+      </svg>
+      {t(lang, "home.benefitShipping")}
+    </p>
+    <p class="flex flex-col items-center gap-1.5 text-xs font-semibold text-cocoa-700 sm:flex-row sm:justify-center sm:gap-2 sm:text-sm">
+      <svg class="h-5 w-5 shrink-0 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="1.8" />
+        <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.8" />
+        <path d="M6 12h.01M18 12h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      {t(lang, "home.benefitCod")}
+    </p>
+    <p class="flex flex-col items-center gap-1.5 text-xs font-semibold text-cocoa-700 sm:flex-row sm:justify-center sm:gap-2 sm:text-sm">
+      <svg class="h-5 w-5 shrink-0 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3" y="8" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.8" />
+        <path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      {t(lang, "home.benefitGift")}
+    </p>
   </div>
 </div>
 
-<section class="mt-20">
-  <div class="flex items-end justify-between gap-4">
+<section class="mt-14 sm:mt-16 lg:mt-20">
+  <div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
     <div>
       <p class="eyebrow">{t(lang, "home.featuredEyebrow")}</p>
       <SectionTitle className="mt-2 text-3xl">{t(lang, "home.featuredTitle")}</SectionTitle>
@@ -79,7 +101,7 @@
   </div>
 </section>
 
-<section id="categories" class="mt-20 scroll-mt-24">
+<section id="categories" class="mt-14 scroll-mt-24 sm:mt-16 lg:mt-20">
   <div>
     <p class="eyebrow">{t(lang, "home.categoriesEyebrow")}</p>
     <SectionTitle className="mt-2 text-3xl">{t(lang, "home.categoriesTitle")}</SectionTitle>
@@ -106,15 +128,15 @@
 
 {#each rails as rail, r (r)}
   {#if bySlug(rail.slugs).length > 0}
-    <section class="mt-20">
-      <div class="flex items-end justify-between gap-4">
+    <section class="mt-14 sm:mt-16 lg:mt-20">
+      <div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div>
           <SectionTitle className="text-3xl">{t(lang, `home.rail${r + 1}.title`)}</SectionTitle>
           <p class="mt-1 text-sm text-cocoa-500">{t(lang, `home.rail${r + 1}.note`)}</p>
         </div>
         <Button variant="outline" href="/products" class="text-sm">{t(lang, "home.browseAll")}</Button>
       </div>
-      <div class="mt-8 grid grid-cols-2 gap-4 overflow-x-auto sm:grid-cols-3 lg:grid-cols-4">
+      <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {#each bySlug(rail.slugs) as product (product.id)}
           <ProductCard lang={lang} {product} />
         {/each}
@@ -123,7 +145,7 @@
   {/if}
 {/each}
 
-<section class="paper-panel mt-20 px-6 py-12 text-center sm:px-10">
+<section class="paper-panel mt-14 px-6 py-12 text-center sm:mt-16 sm:px-10 lg:mt-20">
   <SectionTitle className="mx-auto text-3xl">{t(lang, "home.whyTitle")}</SectionTitle>
   <div class="mx-auto mt-10 grid max-w-4xl gap-10 sm:grid-cols-3">
     <div>
