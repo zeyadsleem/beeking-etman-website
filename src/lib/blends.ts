@@ -145,6 +145,8 @@ export const DOSE_FOR: Record<AdditiveKey, Record<JarSize, number>> = {
 
 export const MAX_DOSE = 3;
 
+export const MAX_ORDER_QTY = 10;
+
 export function zeroDoses(): Record<AdditiveKey, number> {
   return Object.fromEntries(ADDITIVE_KEYS.map((k) => [k, 0])) as Record<AdditiveKey, number>;
 }
