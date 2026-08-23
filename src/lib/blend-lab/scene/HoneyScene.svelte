@@ -5,6 +5,8 @@
   import { t } from "$lib/i18n/messages";
   import { BlendsGame, provideBlendsGame } from "$lib/blend-lab/game-state.svelte";
   import CameraRig from "./CameraRig.svelte";
+  import GoalTable from "./stations/GoalTable.svelte";
+  import StepBar from "../ui/StepBar.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -22,6 +24,7 @@
     <ambientLight intensity={0.35}></ambientLight>
     <directionalLight position={[4, 6, 3]} intensity={1.4} castShadow></directionalLight>
     <CameraRig />
+    <GoalTable lang={data.lang} />
     <!-- Stations are added in Tasks 8–12 -->
   </Canvas>
 
@@ -29,6 +32,7 @@
   <div class="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
     <header class="text-center text-parchment">
       <h1 class="headline text-2xl font-bold drop-shadow">{t(data.lang, "blends.game.title")}</h1>
+      <StepBar lang={data.lang} />
     </header>
   </div>
 </div>
