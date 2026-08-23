@@ -12,6 +12,7 @@
   import StepBar from "../ui/StepBar.svelte";
   import InfoCard from "../ui/InfoCard.svelte";
   import MixSummary from "../ui/MixSummary.svelte";
+  import StirOverlay from "../ui/StirOverlay.svelte";
   import { blendUnitPrice } from "$lib/blend-lab/pricing";
 
   let { data }: { data: PageData } = $props();
@@ -65,6 +66,8 @@
         <MixSummary lang={data.lang} unitPrice={unitPrice} />
       </div>
     {/if}
+
+    <StirOverlay lang={data.lang} />
 
     {#if honeyInspection && game.step === "honey"}
       {@const current = honeyInspection}

@@ -22,6 +22,7 @@
   import GlassBowl from "../models/GlassBowl.svelte";
   import LiquidHoney from "../models/LiquidHoney.svelte";
   import IngredientCup from "../models/IngredientCup.svelte";
+  import WoodenSpoon from "../models/WoodenSpoon.svelte";
 
   let {
     lang,
@@ -134,6 +135,30 @@
     returnCup(key, droppedAt);
   }
 
+  let spoonAngle = $state(0);
+  let lastAngle: number | null = null;
+
+  function stirMove(e: PointerEvent): void {
+    if (game.step !== "stir") return;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight * 0.62;
+    const angle = Math.atan2(e.clientY - cy, e.clientX - cx);
+    if (lastAngle !== null) {
+      let d = angle - lastAngle;
+      if (d > Math.PI) d -= 2 * Math.PI;
+      if (d < -Math.PI) d += 2 * Math.PI;
+      if (e.buttons > 0 || e.pointerType !== "mouse") {
+        game.recordStir(d);
+        spoonAngle = angle;
+      }
+    }
+    lastAngle = angle;
+  }
+
+  function resetAngle(): void {
+    lastAngle = null;
+  }
+
   const byKey = $derived(new Map(additives));
 
   const inspection = $derived.by<IngredientInspection | null>(() => {
@@ -155,7 +180,20 @@
   });
 </script>
 
-<svelte:window onpointermove={move} onpointerup={end} onpointercancel={cancelDrag} />
+<svelte:window
+  onpointermove={(e) => {
+    move(e);
+    stirMove(e);
+  }}
+  onpointerup={(e) => {
+    end(e);
+    resetAngle();
+  }}
+  onpointercancel={(e) => {
+    cancelDrag(e);
+    resetAngle();
+  }}
+/>
 
 <T.Group>
   <T.Mesh position={[0, 0.4, 0]} receiveShadow>
@@ -176,4 +214,13 @@
       <IngredientCup color={INGREDIENT_COLORS[key]} label={key} />
     </T.Group>
   {/each}
+
+  {#if game.step === "stir"}
+    <T.Group
+      position={[Math.cos(spoonAngle) * 0.42, 0.62, Math.sin(spoonAngle) * 0.42]}
+      rotation={[0.9, 0, 0]}
+    >
+      <WoodenSpoon length={0.85} />
+    </T.Group>
+  {/if}
 </T.Group>
