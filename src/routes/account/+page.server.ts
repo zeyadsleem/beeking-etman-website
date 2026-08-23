@@ -4,6 +4,7 @@ import { auth } from "$lib/server/auth";
 import { db } from "$lib/server/db";
 import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
 import { getLang } from "$lib/server/lang";
+import { nameSchema } from "$lib/server/name-schema";
 import { t } from "$lib/i18n/messages";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -20,14 +21,17 @@ export const load: PageServerLoad = (event) => {
 export const actions: Actions = {
   updateName: async (event) => {
     const lang = getLang(event);
+    if (!(await accountLimiter.allow(`acct:${clientAddressKey(event)}`))) {
+      return fail(429, { nameError: t(lang, "errors.tooManyAttempts") });
+    }
     const form = Object.fromEntries(await event.request.formData());
-    const name = typeof form.name === "string" ? form.name.trim() : "";
-    if (name.length < 2 || name.length > 80) {
+    const parsed = nameSchema(lang).safeParse(typeof form.name === "string" ? form.name : "");
+    if (!parsed.success) {
       return fail(400, { nameError: t(lang, "schema.name") });
     }
     try {
       await auth.api.updateUser({
-        body: { name },
+        body: { name: parsed.data },
         headers: event.request.headers,
       });
     } catch (error) {

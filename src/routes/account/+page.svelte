@@ -39,22 +39,24 @@
       </p>
     {/if}
     {#if form?.nameSaved}<p class="mt-2 text-sm font-semibold text-honey-700">{t(lang, "account.nameSaved")}</p>{/if}
-    {#if form?.nameError}<p class="mt-2 text-sm font-semibold text-red-700">{form.nameError}</p>{/if}
+    {#if form?.nameError}<p role="alert" class="mt-2 text-sm font-semibold text-red-700">{form.nameError}</p>{/if}
   </section>
 
   <section class="mt-6 rounded-2xl border border-cocoa-200 bg-parchment p-6">
     <h2 class="text-xl font-bold text-cocoa-800">{t(lang, "account.changePassword")}</h2>
     <form method="POST" action="?/changePassword" class="mt-4 grid gap-3">
-      <input type="password" name="currentPassword" required autocomplete="current-password"
-        placeholder={t(lang, "account.currentPassword")}
-        class="rounded-xl border border-cocoa-300 bg-white px-4 py-2.5" />
-      <input type="password" name="newPassword" required minlength="8" autocomplete="new-password"
-        placeholder={t(lang, "account.newPassword")}
-        class="rounded-xl border border-cocoa-300 bg-white px-4 py-2.5" />
+      <label class="field-label">
+        {t(lang, "account.currentPassword")}
+        <input type="password" name="currentPassword" required autocomplete="current-password" class="field mt-1" />
+      </label>
+      <label class="field-label">
+        {t(lang, "account.newPassword")}
+        <input type="password" name="newPassword" required minlength="8" autocomplete="new-password" class="field mt-1" />
+      </label>
       <Button type="submit" variant="primary">{t(lang, "account.changePassword")}</Button>
     </form>
     {#if form?.passwordChanged}<p class="mt-2 text-sm font-semibold text-honey-700">{t(lang, "account.passwordChanged")}</p>{/if}
-    {#if form?.passwordError}<p class="mt-2 text-sm font-semibold text-red-700">{form.passwordError}</p>{/if}
+    {#if form?.passwordError}<p role="alert" class="mt-2 text-sm font-semibold text-red-700">{form.passwordError}</p>{/if}
   </section>
 
   <form method="POST" action="?/signOut" class="mt-8 mb-16">

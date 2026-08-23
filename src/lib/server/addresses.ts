@@ -3,6 +3,7 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { z } from "zod";
 import { t, type Lang } from "$lib/i18n/messages";
 import { formatZodErrors } from "$lib/server/checkout-schema";
+import { nameSchema } from "$lib/server/name-schema";
 import * as schema from "$lib/server/db/schema";
 
 export { formatZodErrors };
@@ -28,7 +29,7 @@ type Result<T> = { ok: true; value: T } | { ok: false; error: AddressError };
 export function addressSchema(lang: Lang = "ar"): z.ZodType<AddressInput> {
   return z.object({
     label: z.string().trim().min(2, t(lang, "schema.label")).max(40, t(lang, "schema.label")),
-    name: z.string().trim().min(2, t(lang, "schema.name")).max(80, t(lang, "schema.name")),
+    name: nameSchema(lang),
     phone: z
       .string()
       .trim()
