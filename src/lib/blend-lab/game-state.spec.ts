@@ -77,6 +77,16 @@ describe("BlendsGame flow", () => {
     expect(g.goBack()).toBe(true);
     expect(g.step).toBe("goal");
     expect(g.goBack()).toBe(false);
+
+    g.selectGoal("digestive");
+    g.selectHoney("marjoram");
+    g.startStir();
+    g.forceFinishStir();
+    expect(g.step).toBe("pour");
+    expect(g.goBack()).toBe(false);
+    g.completePour();
+    expect(g.step).toBe("order");
+    expect(g.goBack()).toBe(false);
   });
 
   it("reset returns everything to initial values", () => {
