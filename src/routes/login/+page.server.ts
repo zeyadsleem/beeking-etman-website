@@ -1,7 +1,9 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { APIError } from "better-auth/api";
+import { promoteAdminByEmail } from "$lib/server/admin/bootstrap";
 import { auth } from "$lib/server/auth";
 import { db } from "$lib/server/db";
+import { env } from "$env/dynamic/private";
 import { getLang } from "$lib/server/lang";
 import { AUTH_RATE_LIMITS, clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
 import { t } from "$lib/i18n/messages";
@@ -29,6 +31,7 @@ export const actions: Actions = {
         return fail(400, { message: t(lang, "errors.invalidCredentials") });
       return fail(500, { message: t(lang, "errors.unexpected") });
     }
+    await promoteAdminByEmail(db, email, { ADMIN_EMAIL: env.ADMIN_EMAIL });
     redirect(302, "/account");
   },
 };
