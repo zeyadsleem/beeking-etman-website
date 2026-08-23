@@ -89,6 +89,31 @@ describe("BlendsGame flow", () => {
     expect(g.goBack()).toBe(false);
   });
 
+  it("canBack tracks reversibility across the flow", () => {
+    const g = new BlendsGame();
+    expect(g.canBack).toBe(false);
+    g.selectGoal("digestive");
+    expect(g.canBack).toBe(true);
+    g.selectHoney("marjoram");
+    expect(g.canBack).toBe(true);
+    g.startStir();
+    expect(g.canBack).toBe(true);
+    g.forceFinishStir();
+    expect(g.canBack).toBe(false);
+    g.completePour();
+    expect(g.canBack).toBe(false);
+
+    g.reset();
+    g.selectGoal("digestive");
+    g.selectHoney("marjoram");
+    expect(g.goBack()).toBe(true);
+    expect(g.step).toBe("honey");
+    expect(g.canBack).toBe(true);
+    expect(g.goBack()).toBe(true);
+    expect(g.step).toBe("goal");
+    expect(g.canBack).toBe(false);
+  });
+
   it("reset returns everything to initial values", () => {
     const g = new BlendsGame();
     g.selectGoal("immunity");

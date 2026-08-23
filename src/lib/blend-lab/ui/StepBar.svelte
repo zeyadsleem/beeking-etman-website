@@ -7,9 +7,7 @@
 
   const STEPS = ["goal", "honey", "prep", "stir", "pour", "order"] as const;
 
-  const canBack = $derived(
-    game.step !== "goal" && game.step !== "pour" && game.step !== "order",
-  );
+  const canBack = $derived(game.canBack);
 </script>
 
 <div

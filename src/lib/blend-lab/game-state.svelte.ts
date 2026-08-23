@@ -39,6 +39,10 @@ export class BlendsGame {
     return stirProgress(this.stirTotal);
   }
 
+  get canBack(): boolean {
+    return PREV_STEP[this.step] !== null;
+  }
+
   selectGoal(id: BlendGoalId): void {
     const goal = BLEND_GOALS.find((g) => g.id === id);
     if (!goal) throw new Error(`Unknown blend goal: ${id}`);
