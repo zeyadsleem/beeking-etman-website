@@ -11,6 +11,10 @@
   let completionTimer: ReturnType<typeof setTimeout> | null = null;
   let completionLatched = false;
 
+  // Derived primitive: invalidates dependents only when the value flips, so raw
+  // stirTotal churn past full progress cannot re-run the effect below.
+  const mixed = $derived(game.mixProgress >= 1);
+
   const clearCompletionTimer = (): void => {
     if (completionTimer !== null) {
       clearTimeout(completionTimer);
@@ -23,7 +27,7 @@
       completionLatched = false;
       return clearCompletionTimer;
     }
-    if (!completionLatched && game.mixProgress >= 1) {
+    if (mixed && !completionLatched) {
       completionLatched = true;
       completionTimer = setTimeout(() => {
         completionTimer = null;

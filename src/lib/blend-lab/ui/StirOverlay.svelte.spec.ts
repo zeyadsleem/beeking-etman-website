@@ -82,4 +82,20 @@ describe("StirOverlay", () => {
       { timeout: 3000 },
     );
   });
+
+  it("auto-advances even when stirring continues past full progress", async () => {
+    const game = stirGame();
+    render(StirOverlayHost, { props: { game, lang: "ar" } });
+
+    // Exactly full: 24 * π/4 = 6π = FULL_STIR_RADIANS
+    for (let i = 0; i < 24; i++) game.recordStir(Math.PI / 4);
+    // Flush effects so the completion timer is armed before any post-completion churn
+    await expect.element(page.getByText(DONE_AR)).toBeInTheDocument();
+
+    // Pointer still down mid-motion: unclamped writes keep landing past the full mark
+    for (let i = 0; i < 12; i++) game.recordStir(Math.PI / 5);
+
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    expect(game.step).toBe("pour");
+  });
 });
