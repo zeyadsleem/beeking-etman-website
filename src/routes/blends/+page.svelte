@@ -27,10 +27,6 @@
   });
 </script>
 
-<svelte:head>
-  <title>Beeking &amp; Etman</title>
-</svelte:head>
-
 <div class="relative min-h-dvh bg-parchment" data-testid="blends-shell">
   {#if mode === "game" && Scene}
     <Scene {data} />
