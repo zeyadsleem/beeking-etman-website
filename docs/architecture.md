@@ -60,6 +60,12 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   retries order-number collisions with a fresh number; messages localized per
   `lang`. Expands each blend line into base-honey + additive order units
   (per-variant stock decrement, per-unit `store_order_item` rows).
+- `src/lib/server/addresses.ts` — per-user saved-address service
+  (`addressSchema(lang)` + `listAddresses`/`listAddressSummaries`/
+  `getDefaultAddress`/`createAddress`/`updateAddress`/`setDefaultAddress`/
+  `deleteAddress`, all keyed `(db, userId)`); enforces the 3-address cap and
+  the single-default invariant (default promotion runs as one atomic `batch`,
+  delete promotes the oldest survivor).
 - `src/lib/server/rate-limit.ts` — DB-backed fixed-window rate limiter for
   auth actions and checkout (`createDbRateLimiter`, `clientAddressKey`); busy
   retry + opportunistic global pruning of abandoned buckets.
@@ -75,8 +81,9 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `/blends` (blend-composition game: goal → honey + jar size → drag-and-drop
   mix → success; client-side, additives/base honeys loaded from the catalog),
   `/cart`, `/checkout` + `/checkout/success/[id]`, `/login`, `/register`,
-  `/account/orders` (signed-in user's orders), `/api/cart`, `/api/health`,
-  `/api/lang`.
+  `/account` (profile hub: name/password/sign-out), `/account/addresses`
+  (saved-address CRUD), `/account/orders` + `/account/orders/[id]`
+  (ownership-gated detail), `/api/cart`, `/api/health`, `/api/lang`.
 
 ## Data model
 
@@ -92,6 +99,11 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   creation idempotent per checkout attempt.
 - `store_order_item` — line items (order ref, product ref, name, `variant_name`,
   quantity, unit price in qirsh).
+- `store_address` — saved shipping addresses per user (`user_id` not null with
+  an index, deliberately **no FK** — mirrors `store_order.user_id`; deletion of
+  auth users never blocks), label, recipient name, phone, city, address
+  details, `is_default` flag (single default enforced in the service layer),
+  created/updated timestamps. Capped at 3 rows per user by `addresses.ts`.
 - `store_rate_limit` — fixed-window rate-limit buckets (key + window-start
   composite PK, count) for auth endpoints.
 - Better Auth tables — user/session/account, etc.

@@ -11,9 +11,9 @@ Major gaps agreed after the 2026-08-22 outage. Each item is an independent
 sub-project with its own spec → plan → implementation cycle; work them top to
 bottom unless the user reorders.
 
-1. [ ] **Customer account area** — profile page (name, email, password change),
+1. [x] **Customer account area** — profile page (name, email, password change),
        saved addresses (schema + checkout prefill), full order history with
-       status/detail view, sign-out everywhere. **← current focus**
+       status/detail view, sign-out everywhere (`93e21f2..e97fe7b`)
 2. [ ] **Admin dashboard** — `/admin` behind a role gate: orders list + status
        transitions, product/variant/image CRUD, stock adjustments, basic sales
        stats. Without it every operational task requires direct DB access.
@@ -131,6 +131,17 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] i18n: ~40 `blends.*` keys in ar + en.
 - [x] Unit + e2e coverage: cart/cookie/store/orders blend tests; `blends.e2e.ts`
       composes a blend end-to-end (goal → honey → mix → success → cart).
+
+### Customer account area (`2026-08-22-customer-account.md`)
+
+- [x] Task 1 — `store_address` table + migration 0007, no-FK per spec (`93e21f2`)
+- [x] Task 2 — Address service: 3-address cap, single default with atomic
+      batch promotion, ownership-scoped queries (`c84ced1`)
+- [x] Task 3 — Profile hub: name change, password change, sign-out (`219b6b3`)
+- [x] Task 4 — Saved-address CRUD page (`4f0cd93`)
+- [x] Task 5 — Order detail page, ownership-gated (404 on cross-user) (`d12333e`)
+- [x] Task 6 — Checkout saved-address picker + optional save-after-order (`69cac95`)
+- [x] Task 7 — E2E journey incl. IDOR negative; clean-run webServer chain (`e97fe7b`)
 
 ### Discovered
 
