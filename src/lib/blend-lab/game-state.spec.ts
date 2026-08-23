@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { ADDITIVE_KEYS, MAX_DOSE } from "$lib/blends";
+import { ADDITIVE_KEYS, BLEND_GOALS, MAX_DOSE, presetDoses } from "$lib/blends";
 import { BlendsGame } from "./game-state.svelte";
 
 describe("BlendsGame flow", () => {
@@ -18,6 +18,23 @@ describe("BlendsGame flow", () => {
     expect(g.step).toBe("honey");
     expect(g.goal).toBe("immunity");
     expect(Object.values(g.doses).some((v) => v > 0)).toBe(true);
+  });
+
+  it("setJarSize re-presets doses when a goal exists", () => {
+    const g = new BlendsGame();
+    g.selectGoal("immunity");
+    const before = { ...g.doses };
+    g.setJarSize("half");
+    expect(g.jarSize).toBe("half");
+    expect(g.doses).toEqual(presetDoses(BLEND_GOALS[1], "half"));
+    expect(g.doses).not.toEqual(before);
+  });
+
+  it("setJarSize keeps doses zeroed when no goal selected", () => {
+    const g = new BlendsGame();
+    g.setJarSize("half");
+    expect(g.jarSize).toBe("half");
+    expect(Object.values(g.doses).every((v) => v === 0)).toBe(true);
   });
 
   it("selectHoney advances to prep; addDose clamps at MAX_DOSE", () => {

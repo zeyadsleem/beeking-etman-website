@@ -3,10 +3,13 @@
   import { Environment } from "@threlte/extras";
   import type { PageData } from "../../../routes/blends/$types";
   import { t } from "$lib/i18n/messages";
+  import { JAR_SIZES } from "$lib/blends";
   import { BlendsGame, provideBlendsGame } from "$lib/blend-lab/game-state.svelte";
   import CameraRig from "./CameraRig.svelte";
   import GoalTable from "./stations/GoalTable.svelte";
+  import HoneyShelf, { type HoneyInspection } from "./stations/HoneyShelf.svelte";
   import StepBar from "../ui/StepBar.svelte";
+  import InfoCard from "../ui/InfoCard.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -16,6 +19,8 @@
   const reducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let honeyInspection = $state<HoneyInspection | null>(null);
 </script>
 
 <div class="relative h-dvh w-full overflow-hidden bg-cocoa-950" data-testid="blends-scene">
@@ -25,7 +30,11 @@
     <directionalLight position={[4, 6, 3]} intensity={1.4} castShadow></directionalLight>
     <CameraRig />
     <GoalTable lang={data.lang} />
-    <!-- Stations are added in Tasks 8–12 -->
+    <HoneyShelf
+      lang={data.lang}
+      baseHoneys={data.baseHoneys}
+      oninspect={(inspection) => (honeyInspection = inspection)}
+    />
   </Canvas>
 
   <!-- HTML overlay layer -->
@@ -34,5 +43,35 @@
       <h1 class="headline text-2xl font-bold drop-shadow">{t(data.lang, "blends.game.title")}</h1>
       <StepBar lang={data.lang} />
     </header>
+
+    {#if honeyInspection && game.step === "honey"}
+      {@const current = honeyInspection}
+      <div
+        class="pointer-events-auto absolute bottom-24 start-1/2 z-10 w-[min(92vw,26rem)] -translate-x-1/2 rtl:translate-x-1/2"
+        data-testid="honey-info-card"
+      >
+        <div class="mb-2 flex justify-center gap-2">
+          {#each JAR_SIZES as size (size)}
+            <button
+              class={`rounded-full border px-4 py-1.5 text-sm font-semibold backdrop-blur transition-colors ${
+                game.jarSize === size
+                  ? "border-honey-500 bg-honey-500 text-ink-950"
+                  : "border-parchment/40 bg-ink-950/60 text-parchment hover:bg-parchment/10"
+              }`}
+              onclick={() => game.setJarSize(size)}
+            >
+              {t(data.lang, size === "full" ? "blends.game.honey.sizeFull" : "blends.game.honey.sizeHalf")}
+            </button>
+          {/each}
+        </div>
+        <InfoCard
+          title={current.title}
+          body={current.body}
+          priceLabel={current.priceLabel}
+          actionLabel={t(data.lang, "blends.game.honey.viewBenefits")}
+          onaction={() => game.selectHoney(current.id)}
+        />
+      </div>
+    {/if}
   </div>
 </div>

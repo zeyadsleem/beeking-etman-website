@@ -56,6 +56,12 @@ export class BlendsGame {
     this.step = "prep";
   }
 
+  setJarSize(size: JarSize): void {
+    this.jarSize = size;
+    const goal = BLEND_GOALS.find((g) => g.id === this.goal);
+    if (goal) this.doses = presetDoses(goal, size);
+  }
+
   setInspected(key: AdditiveKey | null): void {
     this.inspected = key;
   }
