@@ -312,6 +312,40 @@ describe("admin edit product details action", () => {
     expect(row?.price).toBe(19_950);
   });
 
+  it("keeps the stored cover image across a field-only edit", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId, { image: "https://example.com/keep.jpg" });
+
+    await details(fakeEvent(id, { fields: { ...DETAILS_FIELDS, categoryId }, role: "admin" }));
+
+    // updateProduct rewrites the legacy image column on every write; the
+    // pipeline must carry the stored URL through or a price tweak wipes it.
+    const [row] = await currentDb()
+      .select({ image: schema.product.image })
+      .from(schema.product)
+      .where(eq(schema.product.id, id));
+    expect(row?.image).toBe("https://example.com/keep.jpg");
+  });
+
+  it("replaces the cover image with a pasted url on a field-only edit", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId, { image: "https://example.com/old.jpg" });
+    const pasted = "https://cdn.example.com/new-cover.jpg";
+
+    await details(
+      fakeEvent(id, {
+        fields: { ...DETAILS_FIELDS, categoryId, imageUrl: pasted },
+        role: "admin",
+      }),
+    );
+
+    const [row] = await currentDb()
+      .select({ image: schema.product.image })
+      .from(schema.product)
+      .where(eq(schema.product.id, id));
+    expect(row?.image).toBe(pasted);
+  });
+
   it("keeps an existing auto-suffixed slug when the submitted base derives from it", async () => {
     const categoryId = await seedCategory();
     // Storefront links point at the suffixed slug; a resubmit of the same base

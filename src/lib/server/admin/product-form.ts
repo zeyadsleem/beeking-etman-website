@@ -137,18 +137,36 @@ export async function applyProductForm(
     uploadedUrl = upload.url;
   }
 
+  // Cover resolution: an uploaded file wins, then a pasted URL. A field-only
+  // edit provides neither — and updateProduct rewrites the legacy image column
+  // on every write (productWriteValues hardcodes it) — so the stored URL is
+  // read before the write and re-persisted after; otherwise tweaking just a
+  // name or price would silently blank the cover.
+  let coverUrl: string;
+  if (uploadedUrl !== null) {
+    coverUrl = uploadedUrl;
+  } else if (pastedUrl !== "") {
+    coverUrl = pastedUrl;
+  } else if (productId === undefined) {
+    coverUrl = ""; // a new product without imagery starts blank
+  } else {
+    const [row] = await db
+      .select({ image: schema.product.image })
+      .from(schema.product)
+      .where(eq(schema.product.id, productId));
+    coverUrl = row?.image ?? "";
+  }
+
   const written =
     productId === undefined
       ? await createProduct(db, input, slugBase)
       : await updateProduct(db, productId, input, slugBase);
   if (!written.ok) return { ok: false, reason: written.reason };
 
-  // Manual paste fills in only where no upload happened; blank means untouched.
-  const imageUrl = uploadedUrl ?? pastedUrl ?? "";
-  if (imageUrl !== "") {
+  if (coverUrl !== "") {
     await db
       .update(schema.product)
-      .set({ image: imageUrl })
+      .set({ image: coverUrl })
       .where(eq(schema.product.id, written.id));
   }
 
