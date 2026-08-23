@@ -55,6 +55,7 @@
   let dragging = $state<AdditiveKey | null>(null);
   let draggedPos = $state<CupPos>({ x: 0, z: 0 });
   let startPx = $state<{ x: number; y: number } | null>(null);
+  let dragPointerId = $state<number | null>(null);
 
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -PLANE_Y);
   const hit = new THREE.Vector3();
@@ -77,14 +78,16 @@
   }
 
   function begin(key: AdditiveKey, e: PointerEvent): void {
+    if (dragging) return;
     dragging = key;
+    dragPointerId = e.pointerId;
     startPx = { x: e.clientX, y: e.clientY };
     const home = posOf(key);
     draggedPos = { x: home.x, z: home.z };
   }
 
   function move(e: PointerEvent): void {
-    if (!dragging || !startPx) return;
+    if (!dragging || !startPx || e.pointerId !== dragPointerId) return;
     pointer.set(
       (e.clientX / window.innerWidth) * 2 - 1,
       -(e.clientY / window.innerHeight) * 2 + 1,
@@ -95,12 +98,13 @@
   }
 
   function end(e: PointerEvent): void {
-    if (!dragging || !startPx) return;
+    if (!dragging || !startPx || e.pointerId !== dragPointerId) return;
     const key = dragging;
     const start = startPx;
     const droppedAt = draggedPos;
     dragging = null;
     startPx = null;
+    dragPointerId = null;
     const movedPx = Math.hypot(e.clientX - start.x, e.clientY - start.y);
     if (movedPx < TAP_PX) {
       game.setInspected(game.inspected === key ? null : key);
@@ -118,6 +122,16 @@
     if (!spring) return;
     spring.set({ x: from.x, z: from.z }, { instant: true });
     void spring.set(cupHome(ADDITIVE_KEYS.indexOf(key)), { instant: reducedMotion });
+  }
+
+  function cancelDrag(e: PointerEvent): void {
+    if (!dragging || e.pointerId !== dragPointerId) return;
+    const key = dragging;
+    const droppedAt = draggedPos;
+    dragging = null;
+    startPx = null;
+    dragPointerId = null;
+    returnCup(key, droppedAt);
   }
 
   const byKey = $derived(new Map(additives));
@@ -141,7 +155,7 @@
   });
 </script>
 
-<svelte:window onpointermove={move} onpointerup={end} />
+<svelte:window onpointermove={move} onpointerup={end} onpointercancel={cancelDrag} />
 
 <T.Group>
   <T.Mesh position={[0, 0.4, 0]} receiveShadow>

@@ -31,7 +31,10 @@
   );
 </script>
 
-<div class="relative h-dvh w-full overflow-hidden bg-cocoa-950" data-testid="blends-scene">
+<div
+  class="blends-scene relative h-dvh w-full overflow-hidden bg-cocoa-950"
+  data-testid="blends-scene"
+>
   <Canvas dpr={[1, 2]} renderMode={reducedMotion ? "on-demand" : "always"}>
     <Environment url="/hdr/studio.hdr" />
     <ambientLight intensity={0.35}></ambientLight>
@@ -109,3 +112,10 @@
     {/if}
   </div>
 </div>
+
+<style>
+  /* Prevent browser scroll/zoom gestures from hijacking drag pointers mid-gesture. */
+  .blends-scene :global(canvas) {
+    touch-action: none;
+  }
+</style>
