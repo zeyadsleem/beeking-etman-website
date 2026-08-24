@@ -878,3 +878,32 @@ without re-deriving them from git history or the plan doc. Rulings 3–4 trade
 strict consistency for D1-compatible simplicity, with the failure modes made
 observable rather than silent; ruling 5 leaves one known rough edge explicitly
 open instead of silently shipping it.
+
+## 2026-08-24: Product media pivots from R2 to Workers KV
+
+**Context:** R2 requires accepting updated Terms of Service with a payment card
+on file even on the free tier, and the owner has none — every R2 API route
+returned error 10042 (dashboard-only action), blocking the admin branch's media
+story. The free-tier Workers KV namespace `beeking-media`
+(`8b48e8ac78804d37bd07d229de466821`) needs no card and was created via API.
+
+**Decision:** Product images persist to the `MEDIA` KV binding instead of R2;
+`wrangler.jsonc` swaps `r2_buckets` for `kv_namespaces`. Keys keep the
+`products/<uuid>.<ext>` shape (fresh UUID ⇒ immutable objects), but stored urls
+are now RELATIVE (`/media/products/<uuid>.<ext>`) — `MEDIA_PUBLIC_BASE_URL` and
+its env validation are deleted entirely. A new serving route
+`src/routes/media/[...key]/+server.ts` pattern-validates keys against
+`^products/[0-9a-f-]{36}\.(jpg|png|webp)$` so the namespace can never act as an
+open read proxy, serves edge-cache-first (`caches.default` match + `waitUntil`
+background put), and sets `Cache-Control: public, max-age=31536000, immutable`.
+
+**Consequences:** Zero Cloudflare dashboard prerequisites remain before deploy.
+Known trade-offs accepted: (1) KV is eventually consistent (~60s propagation),
+so a just-uploaded image can 404 briefly — harmless for admin-authored catalog
+imagery that is viewed long after upload; (2) the orphaned-blob cost of
+upload-before-write now lands in KV (same accepted risk as 2026-08-23 #4);
+(3) KV values cap at 25 MB — well above the enforced 5 MB upload limit. The
+shared `KvLikeNamespace` structural type covers both the write half (uploads)
+and the arrayBuffer read half (serving route), keeping
+`@cloudflare/workers-types` globals out of client code per the app.d.ts
+convention.

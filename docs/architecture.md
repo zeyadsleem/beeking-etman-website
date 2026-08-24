@@ -50,9 +50,8 @@ BlendCartItem`, so a composed blend rides the cart as one line
   address, mock card fields with a past-date expiry check); messages via i18n.
 - `src/lib/server/env.ts` — production boot validation of `BETTER_AUTH_SECRET`
   and `ORDER_ACCESS_SECRET` (both length ≥ 32), `ORIGIN`, and well-formedness
-  of the optional vars `ADMIN_EMAIL` (plausible email) and
-  `MEDIA_PUBLIC_BASE_URL` (https:// URL); imported first by `auth.ts` and
-  `db/index.ts`.
+  of the optional var `ADMIN_EMAIL` (plausible email); imported first by
+  `auth.ts` and `db/index.ts`.
 - `src/lib/server/store.ts` — catalog/store queries; FTS5 search
   (`searchProductIds` via `MATCH` prefix tokens), server-side sort
   (`newest`/`price-asc`/`price-desc` via a `MIN(price)` variant subquery), and
@@ -78,7 +77,8 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `/blends` (blend-composition game: goal → honey + jar size → drag-and-drop
   mix → success; client-side, additives/base honeys loaded from the catalog),
   `/cart`, `/checkout` + `/checkout/success/[id]`, `/login`, `/register`,
-  `/account/orders` (signed-in user's orders), `/api/cart`, `/api/health`,
+  `/account/orders` (signed-in user's orders), `/media/[...key]` (product
+  images served from the MEDIA KV namespace), `/api/cart`, `/api/health`,
   `/api/lang`.
 
 ## Data model
@@ -150,11 +150,16 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
 - Services live under `src/lib/server/admin/`: `bootstrap` (`ADMIN_EMAIL`
   promotion of the matching sign-in email), `categories`, `orders` (lifecycle
   transition table + flip-first conditional update + restock), `products`,
-  `product-form`, `stats`, `upload` (magic-byte image validation → R2).
-- Media: an R2 bucket is bound as `MEDIA` in `wrangler.jsonc`; uploads are
-  stored at `products/<uuid>.<ext>` and persisted as
-  `<MEDIA_PUBLIC_BASE_URL>/…`. Upload happens before the product DB write so a
-  failed write cannot fork duplicate products on retry.
+  `product-form`, `stats`, `upload` (magic-byte image validation → Workers KV).
+- Media: a Workers KV namespace is bound as `MEDIA` in `wrangler.jsonc`;
+  uploads are stored at `products/<uuid>.<ext>` and persisted as RELATIVE
+  `/media/products/<uuid>.<ext>` urls. The serving route
+  `src/routes/media/[...key]/+server.ts` pattern-validates keys (so the KV
+  namespace can never act as an open read proxy), serves edge-cache-first via
+  `caches.default` (+ `waitUntil(cache.put)` background fill), and sets
+  `Cache-Control: public, max-age=31536000, immutable` — safe because fresh
+  UUID keys are never rewritten. Upload happens before the product DB write so
+  a failed write cannot fork duplicate products on retry.
 
 ## Deployment
 
@@ -172,8 +177,8 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   against `wrangler pages dev`. Deploy job uses `cloudflare/wrangler-action@v3`
   to push to Pages on merge to `main`.
 - Production boot validates `BETTER_AUTH_SECRET` and `ORDER_ACCESS_SECRET`
-  (length ≥ 32), `ORIGIN`, and the shape of optional `ADMIN_EMAIL` /
-  `MEDIA_PUBLIC_BASE_URL` via `src/lib/server/env.ts`; dev stays lenient.
+  (length ≥ 32), `ORIGIN`, and the shape of the optional `ADMIN_EMAIL` via
+  `src/lib/server/env.ts`; dev stays lenient.
 
 ## Cost posture (Cloudflare Free tier)
 
