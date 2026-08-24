@@ -23,6 +23,11 @@ describe("+error page", () => {
 
     render(ErrorPage, { data: { lang: "en" } });
 
+    const frame = page.getByTestId("error-frame");
+    await expect.element(frame).toContainElement(page.getByTestId("error-code"));
+    await expect
+      .element(page.getByTestId("error-frame-shape"))
+      .toHaveAttribute("stroke", "url(#error-hexagon-stroke)");
     await expect.element(page.getByTestId("error-code")).toHaveTextContent("404");
     await expect.element(page.getByTestId("error-title")).toHaveTextContent("Page not found");
     await expect.element(page.getByTestId("error-body")).toHaveTextContent("Product not found");

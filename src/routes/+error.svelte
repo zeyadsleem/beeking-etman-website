@@ -2,7 +2,6 @@
   import { page } from "$app/state";
   import { getDir, t } from "$lib/i18n/messages";
   import Button from "$lib/components/Button.svelte";
-  import HoneycombIcon from "$lib/components/HoneycombIcon.svelte";
 
   // Layout data is absent when the root layout load itself failed.
   let {
@@ -25,11 +24,25 @@
   class="flex flex-col items-center justify-center gap-6 py-20 text-center sm:py-28"
   dir={getDir(lang)}
 >
-  <div class="relative select-none" aria-hidden="true">
-    <HoneycombIcon size={150} class="absolute -top-9 start-1/2 -translate-x-1/2 text-honey-200 rtl:-scale-x-100" />
+  <div data-testid="error-frame" class="relative w-56 select-none sm:w-72" role="presentation">
+    <svg viewBox="0 0 260 300" fill="none" aria-hidden="true" class="h-auto w-full">
+      <defs>
+        <linearGradient id="error-hexagon-stroke" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="var(--color-honey-300)" />
+          <stop offset="55%" stop-color="var(--color-honey-600)" />
+          <stop offset="100%" stop-color="var(--color-honey-800)" />
+        </linearGradient>
+      </defs>
+      <path
+        data-testid="error-frame-shape"
+        d="M130 6l118 68v152l-118 68-118-68V74L130 6Z"
+        stroke="url(#error-hexagon-stroke)"
+        stroke-width="5"
+      />
+    </svg>
     <p
       data-testid="error-code"
-      class="headline bg-gradient-to-br from-honey-300 via-honey-600 to-honey-800 bg-clip-text text-[7rem] leading-none font-bold text-transparent sm:text-[10rem]"
+      class="headline absolute inset-0 flex items-center justify-center bg-gradient-to-br from-honey-300 via-honey-600 to-honey-800 bg-clip-text text-7xl font-bold text-transparent sm:text-8xl"
     >
       {status}
     </p>
