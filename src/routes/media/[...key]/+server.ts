@@ -7,7 +7,7 @@
  */
 import type { RequestHandler } from "./$types";
 
-const MEDIA_KEY_PATTERN = /^products\/[0-9a-f-]{36}\.(jpg|png|webp)$/i;
+const MEDIA_KEY_PATTERN = /^products\/[0-9a-f][0-9a-f-]{35}\.(jpg|png|webp)$/;
 
 /** Minimal structural view of the edge Cache API surface used here; kept
  * local (instead of DOM/workers-types) so the global surface stays as narrow
@@ -73,10 +73,19 @@ export const GET: RequestHandler = async (event) => {
 
   // Background-fill rides the Pages ExecutionContext (platform.ctx); where
   // either the edge cache or a waitUntil surface is absent — e.g. under unit
-  // tests — the route simply serves uncached.
+  // tests — the route simply serves uncached. The fill is best-effort: a
+  // rejecting (or synchronously throwing) put is logged and swallowed so it
+  // can never surface as an unhandled error after the response was returned.
   const ctx = event.platform?.ctx;
   if (cache !== undefined && ctx !== undefined) {
-    ctx.waitUntil(cache.put(request, response.clone()));
+    try {
+      const fill = cache
+        .put(request, response.clone())
+        .catch((error: unknown) => console.error("media cache put failed", error));
+      ctx.waitUntil(fill);
+    } catch (error) {
+      console.error("media cache put failed", error);
+    }
   }
   return response;
 };

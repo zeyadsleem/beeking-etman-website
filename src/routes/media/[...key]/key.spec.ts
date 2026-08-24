@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "vite-plus/test";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import type { RequestEvent } from "@sveltejs/kit";
 
 import type { KvLikeNamespace } from "$lib/server/admin/upload";
@@ -61,6 +61,19 @@ function makeMedia(value: ArrayBuffer | null): KvLikeNamespace & { gets: string[
   };
 }
 
+/** Cache whose background fills always reject, driving the failure path. */
+function makeCacheWithFailingFill(): FakeEdgeCache & { stats: { matches: number; puts: number } } {
+  const cache = makeCache();
+  return {
+    match: (request) => cache.match(request),
+    async put(): Promise<void> {
+      cache.stats.puts += 1;
+      return Promise.reject(new Error("edge cache unavailable"));
+    },
+    stats: cache.stats,
+  };
+}
+
 // vitest/node has no `caches` global; tests install a fake explicitly and
 // restore whatever was there so sibling spec files are unaffected.
 const ORIGINAL_CACHES = Object.getOwnPropertyDescriptor(globalThis, "caches");
@@ -113,6 +126,8 @@ describe("GET /media/[...key]", () => {
     { label: "a non-uuid filename", key: "products/not-a-uuid.png" },
     { label: "an unsupported extension", key: `products/${UUID}.gif` },
     { label: "an uppercase extension", key: `products/${UUID}.PNG` },
+    { label: "a non-hex leading character", key: `products/${"-".repeat(36)}.png` },
+    { label: "an uppercase hex filename", key: `products/${UUID.toUpperCase()}.png` },
     { label: "a traversal attempt", key: `../secrets/products/${UUID}.png` },
     { label: "a second path segment smuggle", key: `products/${UUID}/extra.png` },
   ])("404s on $label without touching kv or the edge cache", async ({ key }) => {
@@ -208,5 +223,24 @@ describe("GET /media/[...key]", () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(cachedBytes);
     expect(media.gets).toHaveLength(0);
     expect(deferred).toHaveLength(0);
+  });
+
+  it("serves the kv bytes even when the edge-cache background fill rejects", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const cache = makeCacheWithFailingFill();
+    installCaches(cache);
+    const bytes = new Uint8Array([0x89, 0x50]).buffer;
+    const media = makeMedia(bytes);
+    const { event, deferred } = mediaEvent(`products/${UUID}.png`, media);
+
+    const response = await GET(event);
+
+    expect(response.status).toBe(200);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array(bytes));
+    // The fill was attempted exactly once and its rejection was absorbed:
+    // awaiting it resolves (logged) instead of surfacing as an unhandled error.
+    expect(cache.stats.puts).toBe(1);
+    await Promise.all(deferred);
+    expect(errorSpy).toHaveBeenCalledWith("media cache put failed", expect.any(Error));
   });
 });

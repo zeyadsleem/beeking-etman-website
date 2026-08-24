@@ -52,7 +52,6 @@ Nothing remains in this section — merge is the only step left.
 - [ ] Slug-issue mapping exact-matches both constants.
 - [ ] Pasted image URLs restricted to `https:`.
 - [ ] `deleteVariant` scoped by `productId`.
-- [ ] `Content-Type` httpMetadata set on R2 `put`.
 
 ### Named follow-ups
 

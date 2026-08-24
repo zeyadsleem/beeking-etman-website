@@ -893,7 +893,7 @@ story. The free-tier Workers KV namespace `beeking-media`
 are now RELATIVE (`/media/products/<uuid>.<ext>`) — `MEDIA_PUBLIC_BASE_URL` and
 its env validation are deleted entirely. A new serving route
 `src/routes/media/[...key]/+server.ts` pattern-validates keys against
-`^products/[0-9a-f-]{36}\.(jpg|png|webp)$` so the namespace can never act as an
+`^products/[0-9a-f][0-9a-f-]{35}\.(jpg|png|webp)$` so the namespace can never act as an
 open read proxy, serves edge-cache-first (`caches.default` match + `waitUntil`
 background put), and sets `Cache-Control: public, max-age=31536000, immutable`.
 
