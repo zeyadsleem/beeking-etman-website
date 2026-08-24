@@ -325,10 +325,6 @@
   }
 </script>
 
-<svelte:head>
-  <title>{t(lang, "blends.pageTitle")}</title>
-</svelte:head>
-
 <section class="blend-bg relative overflow-hidden">
   <div
     aria-hidden="true"
