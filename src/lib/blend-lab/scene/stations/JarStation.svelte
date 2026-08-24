@@ -28,20 +28,26 @@
     ),
   );
 
-  useTask((delta) => {
-    if (game.step === "pour") {
-      elapsed += delta;
-      const t = Math.min(1, elapsed / POUR_SECONDS);
-      tilt = Math.min(Math.PI / 2.2, tilt + delta * 1.8);
-      game.setJarFill(t);
-      if (t >= 1 && game.jarFill >= 0.999) {
-        game.completePour();
+  // Pour/tilt state is reactive ($state read by the template), so those
+  // mutations invalidate frames themselves; disabling auto-invalidation stops
+  // this idle task from forcing continuous rendering in on-demand mode.
+  useTask(
+    (delta) => {
+      if (game.step === "pour") {
+        elapsed += delta;
+        const t = Math.min(1, elapsed / POUR_SECONDS);
+        tilt = Math.min(Math.PI / 2.2, tilt + delta * 1.8);
+        game.setJarFill(t);
+        if (t >= 1 && game.jarFill >= 0.999) {
+          game.completePour();
+        }
+      } else if (game.step !== "order") {
+        elapsed = 0;
+        tilt = Math.max(0, tilt - delta * 3);
       }
-    } else if (game.step !== "order") {
-      elapsed = 0;
-      tilt = Math.max(0, tilt - delta * 3);
-    }
-  });
+    },
+    { autoInvalidate: false },
+  );
 </script>
 
 <T.Group>
@@ -65,7 +71,7 @@
       rotation={[0, 0, -tilt]}
     >
       <GlassBowl radius={0.45} height={0.42} />
-      <LiquidHoney />
+      <LiquidHoney radius={0.45} height={0.42} />
     </T.Group>
 
     <!-- stream -->

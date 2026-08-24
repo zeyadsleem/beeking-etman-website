@@ -5,7 +5,7 @@
   import { STEP_CAMERAS } from "./cameras";
 
   const game = getBlendsGame();
-  const { camera } = useThrelte();
+  const { camera, invalidate } = useThrelte();
 
   const currentTarget = new THREE.Vector3(...STEP_CAMERAS.goal.target);
   const tmpPos = new THREE.Vector3();
@@ -18,11 +18,22 @@
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
 
-  useTask((delta) => {
-    const pose = STEP_CAMERAS[game.step];
-    const k = instant ? 1 : Math.min(1, delta * 2.5);
-    camera.current.position.lerp(tmpPos.set(...pose.position), ease(k));
-    currentTarget.lerp(tmpTarget.set(...pose.target), ease(k));
-    camera.current.lookAt(currentTarget);
+  // Without auto-invalidation this task cannot force frames; in reduced-motion
+  // (renderMode="on-demand") we invalidate once per step change so the snapped
+  // pose is rendered exactly once instead of continuously.
+  useTask(
+    (delta) => {
+      const pose = STEP_CAMERAS[game.step];
+      const k = instant ? 1 : Math.min(1, delta * 2.5);
+      camera.current.position.lerp(tmpPos.set(...pose.position), ease(k));
+      currentTarget.lerp(tmpTarget.set(...pose.target), ease(k));
+      camera.current.lookAt(currentTarget);
+    },
+    { autoInvalidate: false },
+  );
+
+  $effect(() => {
+    void game.step;
+    invalidate();
   });
 </script>

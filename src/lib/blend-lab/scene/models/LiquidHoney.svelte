@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { T, useTask } from "@threlte/core";
-  import { onDestroy } from "svelte";
+  import { T, useTask, useThrelte } from "@threlte/core";
   import * as THREE from "three";
   import {
     ADDITIVE_KEYS,
@@ -13,8 +12,11 @@
   import { mixIngredients, type WeightedColor } from "$lib/blend-lab/color-mix";
 
   const game = getBlendsGame();
-  const BOWL_R = 0.5;
-  const BOWL_H = 0.42;
+  const { invalidate } = useThrelte();
+
+  // Defaults mirror GlassBowl's defaults so unpaired usage still nests cleanly;
+  // call sites pass the same radius/height as their paired GlassBowl.
+  let { radius = 0.55, height = 0.5 }: { radius?: number; height?: number } = $props();
   const DEFAULT_BASE_ID: BaseHoneyOption["id"] = "clover";
 
   const uniforms = {
@@ -80,38 +82,68 @@
 
   let mesh: THREE.Mesh | undefined = $state();
 
-  const geometry = new THREE.CylinderGeometry(BOWL_R, BOWL_R * 0.7, BOWL_H, 40);
-
-  onDestroy(() => {
-    geometry.dispose();
-  });
-
-  useTask((delta) => {
-    elapsed += delta;
-    uniforms.uTime.value = elapsed;
-
-    const baseId = game.honeyId ?? DEFAULT_BASE_ID;
-    if (!snapshotMatchesGame(baseId)) {
-      applyMixColors(baseId, game.mixProgress);
+  // Honey hugs the bowl's lathe profile (same curve as GlassBowl) inset by a
+  // wall margin, so the surface never clips through the glass; the last two
+  // points close a flat top surface.
+  function createLiquidGeometry(bowlRadius: number, bowlHeight: number): THREE.LatheGeometry {
+    const segments = 24;
+    const inset = 0.025;
+    const points: THREE.Vector2[] = [];
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const wall = bowlRadius * Math.sin((t * Math.PI) / 2) ** 0.6;
+      points.push(new THREE.Vector2(Math.max(wall - inset, 0.02), t * bowlHeight));
     }
+    points.push(new THREE.Vector2(Math.max(bowlRadius * 0.5, 0.02), bowlHeight));
+    points.push(new THREE.Vector2(0.01, bowlHeight));
+    return new THREE.LatheGeometry(points, 48);
+  }
 
-    uniforms.uFill.value = Math.min(
-      1,
-      Math.max(0, uniforms.uFill.value + (game.jarFill - uniforms.uFill.value) * delta * 4),
-    );
-    uniforms.uStirVelocity.value = Math.max(
-      0,
-      uniforms.uStirVelocity.value +
-        (game.stirTotal - lastTotal) * 8 -
-        uniforms.uStirVelocity.value * delta * 6,
-    );
-    lastTotal = game.stirTotal;
+  const geometry = $derived(createLiquidGeometry(radius, height));
 
-    if (!mesh) return;
-    const f = Math.max(uniforms.uFill.value, 0.001);
-    mesh.scale.y = f;
-    mesh.position.y = 0.02 + (BOWL_H * f) / 2;
-  });
+  $effect(() => () => geometry.dispose());
+
+  // Uniform/mesh mutations bypass Threlte's reactive props, so in on-demand
+  // (reduced-motion) rendering this task invalidates frames itself — but only
+  // while values are actually settling, so idle scenes render no extra frames.
+  useTask(
+    (delta) => {
+      elapsed += delta;
+      uniforms.uTime.value = elapsed;
+
+      let dirty = false;
+
+      const baseId = game.honeyId ?? DEFAULT_BASE_ID;
+      if (!snapshotMatchesGame(baseId)) {
+        applyMixColors(baseId, game.mixProgress);
+        dirty = true;
+      }
+
+      const fillBefore = uniforms.uFill.value;
+      uniforms.uFill.value = Math.min(
+        1,
+        Math.max(0, fillBefore + (game.jarFill - fillBefore) * delta * 4),
+      );
+      if (Math.abs(uniforms.uFill.value - fillBefore) > 1e-4) dirty = true;
+
+      const stirBefore = uniforms.uStirVelocity.value;
+      uniforms.uStirVelocity.value = Math.max(
+        0,
+        stirBefore + (game.stirTotal - lastTotal) * 8 - stirBefore * delta * 6,
+      );
+      if (Math.abs(uniforms.uStirVelocity.value - stirBefore) > 1e-4) dirty = true;
+      lastTotal = game.stirTotal;
+
+      if (mesh) {
+        const f = Math.max(uniforms.uFill.value, 0.001);
+        mesh.scale.y = f;
+        mesh.position.y = 0.02 + (height * f) / 2;
+      }
+
+      if (dirty) invalidate();
+    },
+    { autoInvalidate: false },
+  );
 
   const vertexShader = /* glsl */ `
     uniform float uTime;
@@ -150,7 +182,7 @@
   `;
 </script>
 
-<T.Mesh bind:ref={mesh} position={[0, 0.02 + BOWL_H / 2, 0]} {geometry}>
+<T.Mesh bind:ref={mesh} position={[0, 0.02 + height / 2, 0]} {geometry}>
   <T.ShaderMaterial
     {uniforms}
     vertexShader={vertexShader}
