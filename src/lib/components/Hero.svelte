@@ -121,6 +121,7 @@
         aria-hidden="true"
       >
         <img
+          data-testid="hero-brand-mobile-img"
           src={lang === "ar" ? "/images/etman-wax-ar.png" : "/images/etman-wax-en.png"}
           alt=""
           draggable="false"
