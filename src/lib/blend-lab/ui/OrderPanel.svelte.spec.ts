@@ -5,16 +5,8 @@ import { BlendsGame } from "$lib/blend-lab/game-state.svelte";
 import { formatEGP } from "$lib/currency";
 import { jarLabel, type AdditiveKey, type BaseHoneyOption, type JarSize } from "$lib/blends";
 import { t } from "$lib/i18n/messages";
+import type { CatalogEntry } from "./catalog";
 import OrderPanelHost from "./OrderPanel.host.svelte";
-
-interface CatalogEntry {
-  productId: string;
-  variantId: string;
-  name: string;
-  image: string;
-  price: number;
-  stock: number;
-}
 
 type AdditiveEntry = CatalogEntry & { key: AdditiveKey; label: string };
 
@@ -232,6 +224,16 @@ describe("OrderPanel", () => {
     const add = page.getByTestId("add-to-cart-btn");
     await expect.element(add).toBeDisabled();
     await expect.element(add).toHaveTextContent(t(LANG, "blends.game.order.outOfStock"));
+  });
+
+  it("disables ordering when the selected base honey is missing from the catalog", async () => {
+    const game = orderGame();
+    const fixture = makeFixture();
+    fixture.baseHoneys.delete("sidr");
+    await renderPanel(game, fixture);
+
+    await expect.element(page.getByTestId("add-to-cart-btn")).toBeDisabled();
+    expect(addBlendMock).not.toHaveBeenCalled();
   });
 
   it("restarts the game from the panel", async () => {

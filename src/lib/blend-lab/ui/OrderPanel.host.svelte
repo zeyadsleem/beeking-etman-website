@@ -1,18 +1,8 @@
-<script module lang="ts">
-  export interface CatalogEntry {
-    productId: string;
-    variantId: string;
-    name: string;
-    image: string;
-    price: number;
-    stock: number;
-  }
-</script>
-
 <script lang="ts">
   import { provideBlendsGame, type BlendsGame } from "$lib/blend-lab/game-state.svelte";
   import type { AdditiveKey, BaseHoneyOption, JarSize } from "$lib/blends";
   import type { Lang } from "$lib/i18n/messages";
+  import type { CatalogEntry } from "./catalog";
   import OrderPanel from "./OrderPanel.svelte";
 
   let {
