@@ -194,4 +194,6 @@ Interactive 3D honey-blending game built with Threlte v9 (Three.js) on Svelte 5 
   `src/lib/blend-lab/` with vitest coverage.
 - Scene loads lazily client-side; devices without WebGL (or `?force2d=1`) fall back to the
   classic wizard preserved verbatim in `src/routes/blends/FallbackBlends.svelte`.
+- Environment lighting uses `static/hdr/studio.hdr` — Poly Haven's CC0 `studio_small_09`
+  (1k HDR), https://polyhaven.com/a/studio_small_09.
 - Ordering reuses the cart store `addBlend` contract unchanged; backend orders API untouched.
