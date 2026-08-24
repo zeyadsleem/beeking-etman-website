@@ -9,19 +9,12 @@
   } from "$lib/blends";
   import type { BlendCartItem } from "$lib/cart";
   import { getBlendsGame } from "$lib/blend-lab/game-state.svelte";
+  import { blendUnitPrice } from "$lib/blend-lab/pricing";
   import { addBlend, openDrawer } from "$lib/cart-store.svelte";
   import QuantityPicker from "$lib/components/QuantityPicker.svelte";
   import { formatEGP } from "$lib/currency";
   import { t, type Lang } from "$lib/i18n/messages";
-
-  interface CatalogEntry {
-    productId: string;
-    variantId: string;
-    name: string;
-    image: string;
-    price: number;
-    stock: number;
-  }
+  import type { CatalogEntry } from "./catalog";
 
   let {
     lang,
@@ -50,8 +43,7 @@
   );
 
   const unitPrice = $derived(
-    (base?.price ?? 0) +
-      selectedAdditives.reduce((sum, a) => sum + a.entry.price * a.qty, 0),
+    blendUnitPrice([...baseHoneys], [...additives], game.honeyId, game.jarSize, game.doses),
   );
 
   // stock of the composite line = min(base stock, each chosen additive stock floor)
@@ -122,7 +114,7 @@
 
   <button
     class="btn-primary mt-3 w-full disabled:opacity-50"
-    disabled={maxQty < 1}
+    disabled={!base || maxQty < 1}
     onclick={orderBlend}
     data-testid="add-to-cart-btn"
   >
