@@ -25,11 +25,26 @@ Agreed at the `feat/admin-dashboard` final review; none block the merge.
 
 ### Before production deploy
 
+- [x] Pre-check duplicate `(issuer, account_id)` pairs before migration 0008
+      runs against production data — **passed 2026-08-24**: prod D1 is still at
+      migration 0006, `user`/`account` tables are empty (0 rows each), so 0007
+      + 0008 apply cleanly with zero collision risk. Note: `issuer` itself is
+      added by 0008 (`DEFAULT 'local:credential'` backfill); the pre-0008
+      collision surface is duplicate `account_id` values, of which there are
+      none.
 - [ ] Enable Cloudflare R2, create bucket `beeking-media`, set
       `MEDIA_PUBLIC_BASE_URL` (validated as an https:// URL since
       `chore(admin): validate admin/media env vars`).
-- [ ] Pre-check duplicate `(issuer, account_id)` pairs before migration 0008
-      runs against production data.
+      **Blocked on one dashboard action** — R2 ToS acceptance cannot be done
+      via API (error 10042 on every R2 route; verified create/list/subscriptions).
+      After enabling R2 at <https://dash.cloudflare.com/?to=/:account/r2/overview>:
+      1. Create bucket `beeking-media` (or ask the agent — it will use the API).
+      2. In bucket Settings, allow the Public Development URL (`r2.dev`);
+            copy the `https://pub-<hash>.r2.dev` base.
+      3. Set `MEDIA_PUBLIC_BASE_URL` to that base in Pages project settings
+         (Production) and redeploy so the `MEDIA` binding resolves.
+      Deploys before step 1 fail binding resolution — do not ship the admin
+      branch until this checklist is done.
 
 ### One-liner batch
 
