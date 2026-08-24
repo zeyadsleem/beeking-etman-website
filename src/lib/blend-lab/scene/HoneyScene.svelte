@@ -6,6 +6,7 @@
   import { JAR_SIZES } from "$lib/blends";
   import { BlendsGame, provideBlendsGame } from "$lib/blend-lab/game-state.svelte";
   import CameraRig from "./CameraRig.svelte";
+  import Interactivity from "./Interactivity.svelte";
   import GoalTable from "./stations/GoalTable.svelte";
   import HoneyShelf, { type HoneyInspection } from "./stations/HoneyShelf.svelte";
   import WorkTable, { type IngredientInspection } from "./stations/WorkTable.svelte";
@@ -44,21 +45,23 @@
 >
   <Canvas dpr={[1, 2]} renderMode={reducedMotion ? "on-demand" : "always"}>
     <Environment url="/hdr/studio.hdr" />
-    <ambientLight intensity={0.35}></ambientLight>
-    <directionalLight position={[4, 6, 3]} intensity={1.4} castShadow></directionalLight>
-    <CameraRig />
-    <GoalTable lang={data.lang} />
-    <HoneyShelf
-      lang={data.lang}
-      baseHoneys={data.baseHoneys}
-      oninspect={(inspection) => (honeyInspection = inspection)}
-    />
-    <WorkTable
-      lang={data.lang}
-      additives={data.additives}
-      oninspect={(inspection) => (ingredientInspection = inspection)}
-    />
-    <JarStation />
+    <Interactivity>
+      <ambientLight intensity={0.35}></ambientLight>
+      <directionalLight position={[4, 6, 3]} intensity={1.4} castShadow></directionalLight>
+      <CameraRig />
+      <GoalTable lang={data.lang} />
+      <HoneyShelf
+        lang={data.lang}
+        baseHoneys={data.baseHoneys}
+        oninspect={(inspection) => (honeyInspection = inspection)}
+      />
+      <WorkTable
+        lang={data.lang}
+        additives={data.additives}
+        oninspect={(inspection) => (ingredientInspection = inspection)}
+      />
+      <JarStation />
+    </Interactivity>
   </Canvas>
 
   <!-- HTML overlay layer -->

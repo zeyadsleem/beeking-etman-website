@@ -13,6 +13,7 @@
 
 <script lang="ts">
   import { T, useThrelte } from "@threlte/core";
+  import type { IntersectionEvent } from "@threlte/extras";
   import * as THREE from "three";
   import { Spring } from "svelte/motion";
   import { ADDITIVE_KEYS, ADDITIVE_LABELS } from "$lib/blends";
@@ -210,7 +211,7 @@
     {@const p = posOf(key)}
     <T.Group
       position={[p.x, PLANE_Y, p.z]}
-      onpointerdown={(e: PointerEvent) => begin(key, e)}
+      onpointerdown={(e: IntersectionEvent<PointerEvent>) => begin(key, e.nativeEvent)}
     >
       <IngredientCup color={INGREDIENT_COLORS[key]} label={key} />
     </T.Group>
