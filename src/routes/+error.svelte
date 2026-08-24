@@ -3,14 +3,17 @@
   import { getDir, t } from "$lib/i18n/messages";
   import Button from "$lib/components/Button.svelte";
 
-  // Layout data is absent when the root layout load itself failed.
+  // Layout data is absent when the root layout load itself failed. Prefer the
+  // reactive `page.data.lang`: invalidateAll() (language switch) patches it
+  // live, while the `data` prop keeps the stale snapshot from the failed
+  // navigation that rendered this error page.
   let {
     data,
   }: {
     data?: { lang?: import("$lib/i18n/messages").Lang } | null;
   } = $props();
 
-  const lang = $derived(data?.lang ?? "ar");
+  const lang = $derived((page.data as { lang?: import("$lib/i18n/messages").Lang }).lang ?? data?.lang ?? "ar");
   const status = $derived(page.status);
   const isNotFound = $derived(status === 404);
   const thrownMessage = $derived(page.error?.message ?? "");

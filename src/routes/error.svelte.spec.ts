@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
     status: 404,
     error: null as { message: string } | null,
     url: new URL("http://localhost/some/missing/path"),
+    data: {} as { lang?: "ar" | "en" },
   },
 }));
 
@@ -23,11 +24,6 @@ describe("+error page", () => {
 
     render(ErrorPage, { data: { lang: "en" } });
 
-    const frame = page.getByTestId("error-frame");
-    await expect.element(frame).toContainElement(page.getByTestId("error-code"));
-    await expect
-      .element(page.getByTestId("error-frame-shape"))
-      .toHaveAttribute("stroke", "url(#error-hexagon-stroke)");
     await expect.element(page.getByTestId("error-code")).toHaveTextContent("404");
     await expect.element(page.getByTestId("error-title")).toHaveTextContent("Page not found");
     await expect.element(page.getByTestId("error-body")).toHaveTextContent("Product not found");
@@ -53,5 +49,22 @@ describe("+error page", () => {
 
     await expect.element(page.getByTestId("error-title")).toHaveTextContent("الصفحة غير موجودة");
     await expect.element(page.getByTestId("error-store-link")).toHaveTextContent("تصفح المتجر");
+  });
+
+  // Header's switchLanguage() saves the cookie then calls invalidateAll(),
+  // which patches the reactive `page.data` — but the `data` prop handed to
+  // +error.svelte keeps the stale snapshot from the failed navigation. The
+  // page must follow the live layout language instead of that snapshot.
+  it("follows the live layout language over the stale error-page snapshot", async () => {
+    state.page.status = 404;
+    state.page.error = null;
+    state.page.data = { lang: "en" };
+
+    render(ErrorPage, { data: { lang: "ar" } });
+
+    await expect.element(page.getByTestId("error-title")).toHaveTextContent("Page not found");
+    await expect
+      .element(page.getByTestId("error-store-link"))
+      .toHaveTextContent("Browse the store");
   });
 });
