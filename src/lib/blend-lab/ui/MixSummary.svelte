@@ -29,4 +29,13 @@
       </span>
     {/if}
   {/each}
+  {#if game.step === "prep"}
+    <button
+      class="btn-primary pointer-events-auto px-4 py-1 text-xs"
+      data-testid="start-stir-btn"
+      onclick={() => game.startStir()}
+    >
+      {t(lang, "blends.game.prep.toStir")}
+    </button>
+  {/if}
 </div>

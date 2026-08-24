@@ -337,6 +337,7 @@ const ar = {
   "blends.game.honey.viewBenefits": "شوف الفوائد",
   "blends.game.prep.title": "حط مكوناتك في الزبادية",
   "blends.game.prep.subtitle": "اسحب أي كوب وارميه في الزبادية الزجاج",
+  "blends.game.prep.toStir": "ابدأ التحريك",
   "blends.game.benefits.title": "الفوائد",
   "blends.game.stir.title": "حرّك الخلطة بإيدك!",
   "blends.game.stir.hint": "لفّ الماوس أو صبعتك حوالين الزبادية ٣ لفات",
@@ -349,6 +350,7 @@ const ar = {
   "blends.game.order.addToCart": "أضف للسلة",
   "blends.game.order.outOfStock": "الكمية المتاحة غير كافية",
   "blends.game.fallback.webgl": "جهازك مش بيدعم العرض ثلاثي الأبعاد، ففتحنا لك النسخة الكلاسيكية.",
+  "blends.game.fallback.force2d": "بنعرض لك النسخة الكلاسيكية من مختبر الخلطات.",
 } as const;
 
 export type MessageKey = keyof typeof ar;
@@ -658,6 +660,7 @@ const en: Record<MessageKey, string> = {
   "blends.game.honey.viewBenefits": "View benefits",
   "blends.game.prep.title": "Add your ingredients to the bowl",
   "blends.game.prep.subtitle": "Drag any cup and drop it into the glass bowl",
+  "blends.game.prep.toStir": "Start stirring",
   "blends.game.benefits.title": "Benefits",
   "blends.game.stir.title": "Stir the mix yourself!",
   "blends.game.stir.hint": "Circle your pointer around the bowl three times",
@@ -671,6 +674,7 @@ const en: Record<MessageKey, string> = {
   "blends.game.order.outOfStock": "Not enough stock available",
   "blends.game.fallback.webgl":
     "Your device does not support 3D, so we opened the classic version for you.",
+  "blends.game.fallback.force2d": "Showing the classic version of the Blend Lab.",
 };
 
 const catalogs: Record<Lang, Record<MessageKey, string>> = { ar, en };

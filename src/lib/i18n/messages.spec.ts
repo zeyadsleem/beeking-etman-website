@@ -22,6 +22,7 @@ const GAME_KEYS = [
   "blends.game.honey.viewBenefits",
   "blends.game.prep.title",
   "blends.game.prep.subtitle",
+  "blends.game.prep.toStir",
   "blends.game.benefits.title",
   "blends.game.stir.title",
   "blends.game.stir.hint",
@@ -34,6 +35,7 @@ const GAME_KEYS = [
   "blends.game.order.addToCart",
   "blends.game.order.outOfStock",
   "blends.game.fallback.webgl",
+  "blends.game.fallback.force2d",
 ] as const;
 
 function flatten(obj: unknown, prefix = ""): string[] {

@@ -10,8 +10,12 @@
   let mode: "loading" | "game" | "fallback" = $state("loading");
   let Scene: Component<{ data: PageData }> | null = $state(null);
 
+  const params =
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const forced2d = params?.has("force2d") ?? false;
+
   onMount(() => {
-    if (!hasWebGL()) {
+    if (forced2d || !hasWebGL()) {
       mode = "fallback";
       return;
     }
@@ -35,7 +39,7 @@
       class="mx-auto max-w-xl px-4 pt-6 text-center text-sm text-cocoa-700"
       data-testid="webgl-fallback-message"
     >
-      {t(data.lang, "blends.game.fallback.webgl")}
+      {t(data.lang, forced2d ? "blends.game.fallback.force2d" : "blends.game.fallback.webgl")}
     </p>
     <div data-testid="blends-fallback">
       <FallbackBlends {data} />
