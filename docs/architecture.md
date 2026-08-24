@@ -72,8 +72,8 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `SearchSuggestions` (bits-ui `Combobox`, `dir` follows the active language),
   `SectionTitle`, `Price`, `QuantityPicker`.
 - Routes: `/` (home), `/products` + `/products/[slug]` (catalog, server-paged),
-  `/blends` (blend-composition game: goal → honey + jar size → drag-and-drop
-  mix → success; client-side, additives/base honeys loaded from the catalog),
+  `/blends` (interactive 3D blend lab — see "Blend Lab (/blends)" below; the
+  classic goal → mix → success wizard survives as its no-WebGL fallback),
   `/cart`, `/checkout` + `/checkout/success/[id]`, `/login`, `/register`,
   `/account/orders` (signed-in user's orders), `/api/cart`, `/api/health`,
   `/api/lang`.
@@ -183,3 +183,15 @@ The site runs entirely on Cloudflare's Free plan at $0/month:
   hydrates and works normally. `vp env doctor` reports all checks passing; this
   is a Vite+ dev integration behavior, not an app bug. E2E therefore runs
   against the preview server.
+
+## Blend Lab (/blends)
+
+Interactive 3D honey-blending game built with Threlte v9 (Three.js) on Svelte 5 runes.
+
+- State: single `BlendsGame` runes class (`src/lib/blend-lab/game-state.svelte.ts`) drives steps
+  goal → honey → prep → stir → pour → order. All stations/components read state via context.
+- Pure logic (stir math, color mixing, pricing, benefits data) lives in plain TS modules under
+  `src/lib/blend-lab/` with vitest coverage.
+- Scene loads lazily client-side; devices without WebGL (or `?force2d=1`) fall back to the
+  classic wizard preserved verbatim in `src/routes/blends/FallbackBlends.svelte`.
+- Ordering reuses the cart store `addBlend` contract unchanged; backend orders API untouched.

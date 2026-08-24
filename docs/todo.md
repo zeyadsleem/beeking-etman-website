@@ -132,8 +132,38 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] Unit + e2e coverage: cart/cookie/store/orders blend tests; `blends.e2e.ts`
       composes a blend end-to-end (goal → honey → mix → success → cart).
 
+### Blends 3D game (`2026-08-23-blends-3d-game`)
+
+- [x] Threlte v9 3D lab at `/blends`: goal table → honey shelf (+ size chips
+      re-preset doses) → prep drag/tap → stir circles → pour → order panel;
+      architecture in `docs/architecture.md` ("Blend Lab (/blends)").
+- [x] Deterministic fallback: no WebGL or `?force2d=1` renders the classic
+      wizard verbatim with a notice; `blends.e2e.ts` pins `force2d`, new
+      `blends-3d.e2e.ts` covers scene-or-fallback + force2d + fallback flow.
+- [x] Reduced-motion rendering: `renderMode="on-demand"` with manual
+      `invalidate()` only while values settle (camera snap on step change,
+      fast pour); no continuous idle rendering.
+- [x] Liquid honey surface follows the bowl lathe profile (inset) so it no
+      longer clips through the glass walls; geometry derives from paired
+      GlassBowl radius/height.
+- [x] Hero mobile brand image testid fixed (`hero-brand-mobile-img`) — the old
+      spec asserted `src` on a wrapper div that has no attribute.
+
 ### Discovered
 
+- [ ] SEO: `/blends` is SSR spinner-only (game mounts client-side after the
+      WebGL check), so crawlers see just the loading shell — acceptable
+      tradeoff for now; revisit with static fallback content if /blends
+      becomes a search entry point.
+- [ ] Multi-jar cart epic: the order panel adds N identical quantity-1 blend
+      lines because `addBlend`'s schema keys a line by its composition;
+      merging into one line with quantity N needs a store/schema change
+      (`cart-store.svelte.ts` + `sanitizeCartLines`) — deliberate scope cut.
+- [ ] HoneyShelf sticky hover preview dismissal polish: the preview card can
+      linger when the pointer leaves the jar quickly; cosmetic.
+- [ ] Owner-editable benefit texts: goal/benefit copy lives in
+      `src/lib/blend-lab/benefits.ts`; move to DB/CMS if non-devs must edit it
+      without a deploy.
 - [ ] Investigate dev-mode hydration: `vp dev` serves HTML without client
       entry scripts (no hydration, clicks dead) in this environment; `vp
 preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
