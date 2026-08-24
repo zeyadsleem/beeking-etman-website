@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { MAX_UPLOAD_BYTES, detectImageType, saveProductImage } from "./upload";
+import {
+  MAX_UPLOAD_BYTES,
+  detectImageType,
+  saveProductImage,
+  type KvLikeNamespace,
+} from "./upload";
 
 // Magic bytes verbatim from the spec: jpeg FF D8 FF, png 89 50 4E 47 0D 0A 1A
 // 0A, webp "RIFF"???? "WEBP".
@@ -15,20 +20,20 @@ function asciiBytes(text: string): number[] {
 
 interface PutCall {
   key: string;
-  value: ReadableStream | ArrayBuffer;
+  value: ArrayBuffer;
 }
 
-/** Fake R2 bucket capturing every put so tests assert keys and payloads. */
-function makeBucket(): {
-  put(key: string, value: ReadableStream | ArrayBuffer): Promise<unknown>;
-  calls: PutCall[];
-} {
+/** Fake KV namespace recording every put so tests assert keys and payloads. */
+function makeNamespace(): KvLikeNamespace & { calls: PutCall[] } {
   const calls: PutCall[] = [];
   return {
     calls,
+    get(): Promise<ArrayBuffer | null> {
+      return Promise.resolve(null);
+    },
     put(key, value) {
       calls.push({ key, value });
-      return Promise.resolve(undefined);
+      return Promise.resolve();
     },
   };
 }
@@ -72,8 +77,12 @@ describe("detectImageType", () => {
 });
 
 describe("saveProductImage", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("rejects an oversized file before reading or uploading anything", async () => {
-    const bucket = makeBucket();
+    const ns = makeNamespace();
     // Valid jpeg header padded past the cap, so only the size check can fire.
     const file = new File(
       [new Uint8Array(JPEG_HEADER), new Uint8Array(MAX_UPLOAD_BYTES)],
@@ -81,76 +90,49 @@ describe("saveProductImage", () => {
     );
 
     expect(file.size).toBe(MAX_UPLOAD_BYTES + JPEG_HEADER.length);
-    await expect(saveProductImage(bucket, "https://media.example.com", file)).resolves.toEqual({
+    await expect(saveProductImage(ns, file)).resolves.toEqual({
       ok: false,
       reason: "too_large",
     });
-    expect(bucket.calls).toHaveLength(0);
+    expect(ns.calls).toHaveLength(0);
   });
 
   it("rejects non-image content declared as png with unsupported", async () => {
-    const bucket = makeBucket();
+    const ns = makeNamespace();
     const file = new File([new TextEncoder().encode("definitely not an image")], "x.png", {
       type: "image/png",
     });
 
-    await expect(saveProductImage(bucket, "https://media.example.com", file)).resolves.toEqual({
+    await expect(saveProductImage(ns, file)).resolves.toEqual({
       ok: false,
       reason: "unsupported",
     });
-    expect(bucket.calls).toHaveLength(0);
+    expect(ns.calls).toHaveLength(0);
   });
 
-  it("reports storage_unavailable and uploads nothing when publicBase is missing", async () => {
-    const bucket = makeBucket();
-    const file = fileFrom([...JPEG_HEADER, 0xe0], "honey.jpg", "image/jpeg");
-
-    await expect(saveProductImage(bucket, undefined, file)).resolves.toEqual({
-      ok: false,
-      reason: "storage_unavailable",
-    });
-    expect(bucket.calls).toHaveLength(0);
-  });
-
-  it("reports storage_unavailable instead of throwing when the bucket rejects the write", async () => {
-    let attempts = 0;
-    const failingBucket = {
-      put(): Promise<unknown> {
-        attempts += 1;
-        return Promise.reject(new Error("r2 unavailable"));
-      },
-    };
-    const file = fileFrom([...JPEG_HEADER, 0xe0], "honey.jpg", "image/jpeg");
-
-    await expect(
-      saveProductImage(failingBucket, "https://media.example.com", file),
-    ).resolves.toEqual({ ok: false, reason: "storage_unavailable" });
-    // Exactly one attempt: the failure is reported typed, not retried here.
-    expect(attempts).toBe(1);
-  });
-
-  it("stores a verified png under products/ with a uuid key and returns the joined URL", async () => {
-    const bucket = makeBucket();
+  it("stores a verified png under products/ with a uuid key and returns the relative /media url", async () => {
+    const ns = makeNamespace();
     const file = fileFrom(
       [...PNG_SIGNATURE, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52],
       "honey.png",
       "image/png",
     );
 
-    const result = await saveProductImage(bucket, "https://media.example.com", file);
+    const result = await saveProductImage(ns, file);
 
     expect(result).toEqual({ ok: true, url: expect.any(String) });
     if (!result.ok) return;
-    const call = bucket.calls[0];
+    const call = ns.calls[0];
     expect(call).toBeDefined();
-    if (!call || !(call.value instanceof ArrayBuffer)) return;
+    if (!call) return;
     expect(call.key).toMatch(/^products\/[0-9a-f-]{36}\.png$/);
-    expect(result.url).toBe(`https://media.example.com/${call.key}`);
+    // Relative on purpose: images are served by the first-party /media route.
+    expect(result.url).toBe(`/media/${call.key}`);
     expect(new Uint8Array(call.value)).toEqual(new Uint8Array(await file.arrayBuffer()));
   });
 
   it("derives the extension only from the verified signature, not the filename", async () => {
-    const bucket = makeBucket();
+    const ns = makeNamespace();
     // webp bytes smuggled in a .jpg-named file.
     const file = fileFrom(
       [...asciiBytes("RIFF"), 0x00, 0x00, 0x00, 0x00, ...asciiBytes("WEBP"), 0x56, 0x50, 0x38],
@@ -158,24 +140,36 @@ describe("saveProductImage", () => {
       "image/jpeg",
     );
 
-    const result = await saveProductImage(bucket, "https://cdn.etman.test", file);
+    const result = await saveProductImage(ns, file);
 
     expect(result.ok).toBe(true);
-    const call = bucket.calls[0];
+    const call = ns.calls[0];
     expect(call?.key).toMatch(/^products\/[0-9a-f-]{36}\.webp$/);
-    if (!result.ok) return;
-    expect(result.url).toBe(`https://cdn.etman.test/${call?.key}`);
+    if (!result.ok || !call) return;
+    expect(result.url).toBe(`/media/${call.key}`);
   });
 
-  it("strips trailing slashes from publicBase so stored urls never double the slash", async () => {
-    const bucket = makeBucket();
-    const file = fileFrom(PNG_SIGNATURE, "honey.png");
+  it("reports storage_unavailable instead of throwing when the kv write rejects", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    let attempts = 0;
+    const failingNamespace: KvLikeNamespace = {
+      get(): Promise<ArrayBuffer | null> {
+        return Promise.resolve(null);
+      },
+      put(): Promise<void> {
+        attempts += 1;
+        return Promise.reject(new Error("kv unavailable"));
+      },
+    };
+    const file = fileFrom([...JPEG_HEADER, 0xe0], "honey.jpg", "image/jpeg");
 
-    const result = await saveProductImage(bucket, "https://media.example.com/", file);
-
-    expect(result.ok).toBe(true);
-    const call = bucket.calls[0];
-    if (!result.ok || !call) return;
-    expect(result.url).toBe(`https://media.example.com/${call.key}`);
+    await expect(saveProductImage(failingNamespace, file)).resolves.toEqual({
+      ok: false,
+      reason: "storage_unavailable",
+    });
+    // Exactly one attempt: the failure is reported typed, not retried here.
+    expect(attempts).toBe(1);
+    // The raw cause is logged so a KV outage stays diagnosable.
+    expect(errorSpy).toHaveBeenCalledWith("media put failed", expect.any(Error));
   });
 });

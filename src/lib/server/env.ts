@@ -10,14 +10,6 @@ function isPlausibleEmail(value: string): boolean {
   return EMAIL_PATTERN.test(value);
 }
 
-function isHttpsUrl(value: string): boolean {
-  try {
-    return new URL(value).protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Pure production-env contract, exercised directly by unit tests and by the
  * boot-time check below. Throws on any misconfiguration so production fails
@@ -46,13 +38,6 @@ export function validateProductionEnv(vars: Record<string, string | undefined>):
   const adminEmail = vars.ADMIN_EMAIL;
   if (adminEmail !== undefined && !isPlausibleEmail(adminEmail)) {
     throw new Error("ADMIN_EMAIL must be a plausible email address when set");
-  }
-  // Stored media URLs are built as `${base}/${key}`; a blank or non-https base
-  // would corrupt every uploaded image URL (or leak an insecure scheme), so
-  // reject it at boot rather than per upload.
-  const mediaBase = vars.MEDIA_PUBLIC_BASE_URL;
-  if (mediaBase !== undefined && !isHttpsUrl(mediaBase)) {
-    throw new Error("MEDIA_PUBLIC_BASE_URL must be a non-empty https:// URL when set");
   }
 }
 

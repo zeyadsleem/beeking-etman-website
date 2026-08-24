@@ -1,7 +1,7 @@
 /**
- * Magic-byte image validation and R2 persistence for admin product uploads.
- * Content wins over client hints: the stored extension/MIME derive ONLY from
- * the verified byte signature — never from the filename or declared type.
+ * Magic-byte image validation and Workers KV persistence for admin product
+ * uploads. Content wins over client hints: the stored extension/MIME derive ONLY
+ * from the verified byte signature — never from the filename or declared type.
  */
 
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -51,11 +51,19 @@ export type UploadResult =
   | { ok: true; url: string }
   | { ok: false; reason: "too_large" | "unsupported" | "storage_unavailable" };
 
-export async function saveProductImage(
-  bucket: { put(key: string, value: ReadableStream | ArrayBuffer): Promise<unknown> },
-  publicBase: string | undefined,
-  file: File,
-): Promise<UploadResult> {
+/**
+ * Minimal structural view of a Cloudflare KV namespace covering what the app
+ * exercises today: arrayBuffer writes from admin uploads and reads from the
+ * /media/[...key] serving route. Exported so app.d.ts reuses it without
+ * pulling the @cloudflare/workers-types globals into client code (same
+ * rationale as D1Database there).
+ */
+export interface KvLikeNamespace {
+  put(key: string, value: ArrayBuffer): Promise<void>;
+  get(key: string, options: { type: "arrayBuffer" }): Promise<ArrayBuffer | null>;
+}
+
+export async function saveProductImage(ns: KvLikeNamespace, file: File): Promise<UploadResult> {
   // Reject oversize before reading anything into memory.
   if (file.size > MAX_UPLOAD_BYTES) return { ok: false, reason: "too_large" };
 
@@ -63,22 +71,19 @@ export async function saveProductImage(
   const detected = detectImageType(new Uint8Array(buffer));
   if (!detected) return { ok: false, reason: "unsupported" };
 
-  // Env config set with a trailing slash would otherwise persist "//" into
-  // every stored url.
-  const base = publicBase?.replace(/\/+$/, "");
-  if (!base) return { ok: false, reason: "storage_unavailable" };
-
   const key = `products/${crypto.randomUUID()}.${detected.ext}`;
   // Storage failures are an expected outcome of the typed union, not a crash:
   // convert the put rejection to storage_unavailable so callers answer with
   // the localized message instead of the request dying on an unhandled error.
   try {
-    await bucket.put(key, buffer);
+    await ns.put(key, buffer);
   } catch (error) {
     // The typed union keeps callers simple; the raw cause goes to the logs so
-    // an R2 outage is diagnosable instead of a silent storage_unavailable.
+    // a KV outage is diagnosable instead of a silent storage_unavailable.
     console.error("media put failed", error);
     return { ok: false, reason: "storage_unavailable" };
   }
-  return { ok: true, url: `${base}/${key}` };
+  // Relative on purpose: images are served by the first-party /media/[...key]
+  // route, so no public base URL exists anywhere in stored data.
+  return { ok: true, url: `/media/${key}` };
 }

@@ -16,10 +16,10 @@
       "migrations_dir": "drizzle",
     },
   ],
-  "r2_buckets": [
+  "kv_namespaces": [
     {
       "binding": "MEDIA",
-      "bucket_name": "beeking-media",
+      "id": "8b48e8ac78804d37bd07d229de466821",
     },
   ],
 }

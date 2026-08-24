@@ -1,4 +1,5 @@
 import type { auth } from "$lib/server/auth";
+import type { KvLikeNamespace } from "$lib/server/admin/upload";
 
 type AuthSession = typeof auth.$Infer.Session;
 
@@ -30,13 +31,6 @@ interface D1Database {
   dump(): Promise<ArrayBuffer>;
 }
 
-// Minimal structural view of Cloudflare's R2Bucket covering what the app
-// exercises today (media uploads). Same rationale as D1Database above: keep
-// @cloudflare/workers-types globals out of client code.
-interface R2LikeBucket {
-  put(key: string, value: ReadableStream | ArrayBuffer): Promise<unknown>;
-}
-
 declare global {
   namespace App {
     interface Locals {
@@ -50,9 +44,11 @@ declare global {
     interface Platform {
       env: {
         DB: D1Database;
-        MEDIA: R2LikeBucket;
-        MEDIA_PUBLIC_BASE_URL?: string;
+        MEDIA: KvLikeNamespace;
       };
+      /** Cloudflare Pages ExecutionContext surface used for background work
+       * (edge-cache fills); mirrors @sveltejs/adapter-cloudflare's shape. */
+      ctx?: { waitUntil(promise: Promise<unknown>): void };
     }
   }
 }

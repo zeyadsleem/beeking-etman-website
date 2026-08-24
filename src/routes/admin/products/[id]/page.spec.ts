@@ -151,12 +151,12 @@ async function seedVariant(
 
 interface PutCall {
   key: string;
-  value: ReadableStream | ArrayBuffer;
+  value: ArrayBuffer;
 }
 
-/** Fake R2 bucket capturing every put so tests assert keys and payloads. */
-function makeBucket(): {
-  put(key: string, value: ReadableStream | ArrayBuffer): Promise<unknown>;
+/** Fake KV namespace recording every put so tests assert keys and payloads. */
+function makeNamespace(): {
+  put(key: string, value: ArrayBuffer): Promise<void>;
   calls: PutCall[];
 } {
   const calls: PutCall[] = [];
@@ -164,12 +164,23 @@ function makeBucket(): {
     calls,
     put(key, value) {
       calls.push({ key, value });
-      return Promise.resolve(undefined);
+      return Promise.resolve();
     },
   };
 }
 
-const MEDIA_BASE = "https://media.example.com";
+/** KV double whose writes always fail, driving storage_unavailable paths. */
+function makeFailingNamespace(): unknown {
+  return {
+    get(): Promise<ArrayBuffer | null> {
+      return Promise.resolve(null);
+    },
+    put(): Promise<void> {
+      return Promise.reject(new Error("kv unavailable"));
+    },
+  };
+}
+
 const PNG_BYTES = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 function pngFile(name = "honey.png"): File {
@@ -182,7 +193,7 @@ interface EventOptions {
   fields?: Record<string, string>;
   files?: Record<string, File>;
   /** Omitted entirely when undefined — exercises the no-platform guard. */
-  platform?: { env: { MEDIA: unknown; MEDIA_PUBLIC_BASE_URL?: string } };
+  platform?: { env: { MEDIA: unknown } };
 }
 
 // The handlers read `params`, `locals.user?.role`, `cookies.get`, request
@@ -399,31 +410,30 @@ describe("admin edit product details action", () => {
   it("uploads a replacement image together with the field update", async () => {
     const categoryId = await seedCategory();
     const id = await seedProduct(categoryId);
-    const bucket = makeBucket();
+    const ns = makeNamespace();
 
     await details(
       fakeEvent(id, {
         fields: { ...DETAILS_FIELDS, categoryId },
         role: "admin",
         files: { image: pngFile() },
-        platform: { env: { MEDIA: bucket, MEDIA_PUBLIC_BASE_URL: MEDIA_BASE } },
+        platform: { env: { MEDIA: ns } },
       }),
     );
 
-    expect(bucket.calls).toHaveLength(1);
-    const call = bucket.calls[0];
+    expect(ns.calls).toHaveLength(1);
+    const call = ns.calls[0];
     expect(call?.key).toMatch(/^products\/[0-9a-f-]{36}\.png$/);
     const [row] = await currentDb()
       .select({ image: schema.product.image })
       .from(schema.product)
       .where(eq(schema.product.id, id));
-    expect(row?.image).toBe(`${MEDIA_BASE}/${call?.key}`);
+    expect(row?.image).toBe(`/media/${call?.key}`);
   });
 
-  it("aborts the whole update with 503 when storage is unavailable — fields stay untouched", async () => {
+  it("aborts the whole update with 503 when the kv write fails — fields stay untouched", async () => {
     const categoryId = await seedCategory();
     const id = await seedProduct(categoryId);
-    const bucket = makeBucket();
 
     const result = failureOf(
       await details(
@@ -431,14 +441,13 @@ describe("admin edit product details action", () => {
           fields: { ...DETAILS_FIELDS, categoryId },
           role: "admin",
           files: { image: pngFile() },
-          platform: { env: { MEDIA: bucket } }, // no MEDIA_PUBLIC_BASE_URL
+          platform: { env: { MEDIA: makeFailingNamespace() } },
         }),
       ),
     );
 
     expect(result.status).toBe(503);
     expect(result.message).toBe(t("ar", "errors.storageUnavailable"));
-    expect(bucket.calls).toHaveLength(0);
     const [row] = await currentDb()
       .select({ description: schema.product.description, image: schema.product.image })
       .from(schema.product)
@@ -483,7 +492,7 @@ describe("admin edit product uploadImage action", () => {
       await uploadImage(
         fakeEvent(id, {
           role: "admin",
-          platform: { env: { MEDIA: makeBucket(), MEDIA_PUBLIC_BASE_URL: MEDIA_BASE } },
+          platform: { env: { MEDIA: makeNamespace() } },
         }),
       ),
     );
@@ -495,13 +504,13 @@ describe("admin edit product uploadImage action", () => {
   it("updates only the cover image and reports uploaded", async () => {
     const categoryId = await seedCategory();
     const id = await seedProduct(categoryId);
-    const bucket = makeBucket();
+    const ns = makeNamespace();
 
     const result = await uploadImage(
       fakeEvent(id, {
         role: "admin",
         files: { image: pngFile() },
-        platform: { env: { MEDIA: bucket, MEDIA_PUBLIC_BASE_URL: MEDIA_BASE } },
+        platform: { env: { MEDIA: ns } },
       }),
     );
 
@@ -510,8 +519,8 @@ describe("admin edit product uploadImage action", () => {
       .select({ image: schema.product.image, description: schema.product.description })
       .from(schema.product)
       .where(eq(schema.product.id, id));
-    const call = bucket.calls[0];
-    expect(row?.image).toBe(`${MEDIA_BASE}/${call?.key}`);
+    const call = ns.calls[0];
+    expect(row?.image).toBe(`/media/${call?.key}`);
     expect(row?.description).toBe("وصف أصلي"); // details untouched by this action
   });
 
@@ -522,34 +531,36 @@ describe("admin edit product uploadImage action", () => {
         new File([new Uint8Array([0xff, 0xd8, 0xff]), new Uint8Array(5 * 1024 * 1024)], "big.jpg"),
       expectedStatus: 400,
       expectedMessage: t("ar", "errors.uploadTooLarge"),
+      failingStorage: false,
     },
     {
       label: "unsupported bytes",
       file: () => new File([new TextEncoder().encode("garbage")], "x.png"),
       expectedStatus: 400,
       expectedMessage: t("ar", "errors.uploadUnsupported"),
+      failingStorage: false,
     },
     {
-      label: "missing public base",
+      label: "failed kv write",
       file: () => pngFile(),
       expectedStatus: 503,
       expectedMessage: t("ar", "errors.storageUnavailable"),
+      failingStorage: true,
     },
   ])(
     "fails $expectedStatus on $label and keeps the stored image",
-    async ({ file, expectedStatus, expectedMessage }) => {
+    async ({ file, expectedStatus, expectedMessage, failingStorage }) => {
       const categoryId = await seedCategory();
       const id = await seedProduct(categoryId, { image: "https://example.com/keep.jpg" });
-      const bucket = makeBucket();
 
       const result = failureOf(
         await uploadImage(
           fakeEvent(id, {
             role: "admin",
             files: { image: file() },
-            ...(expectedStatus === 503
-              ? { platform: { env: { MEDIA: bucket } } }
-              : { platform: { env: { MEDIA: bucket, MEDIA_PUBLIC_BASE_URL: MEDIA_BASE } } }),
+            platform: {
+              env: { MEDIA: failingStorage ? makeFailingNamespace() : makeNamespace() },
+            },
           }),
         ),
       );

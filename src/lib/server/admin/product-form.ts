@@ -1,7 +1,7 @@
 /**
  * Shared form pipeline behind /admin/products/new and /admin/products/[id]:
  * untrusted multipart → validated ProductInput (+ EGP→qirsh price) → optional
- * R2 upload → create/update → cover-image persistence. Both routes must stay
+ * KV upload → create/update → cover-image persistence. Both routes must stay
  * behaviorally identical, so the sequencing lives here once.
  */
 import { eq } from "drizzle-orm";
@@ -96,7 +96,7 @@ export type ProductFormResult =
  * the database write: a storage failure then aborts with nothing persisted,
  * so resubmitting the same form can never fork a duplicate product (create)
  * or leave half-applied fields (edit). A successful upload followed by a DB
- * failure costs at most an unreferenced R2 blob — no row points at it.
+ * failure costs at most an unreferenced KV blob — no row points at it.
  */
 export async function applyProductForm(
   db: LibSQLDatabase<typeof schema>,
@@ -128,11 +128,7 @@ export async function applyProductForm(
   if (isBlankFile(file)) {
     const platform = event.platform;
     if (!platform) return { ok: false, reason: "storage_unavailable" };
-    const upload = await saveProductImage(
-      platform.env.MEDIA,
-      platform.env.MEDIA_PUBLIC_BASE_URL,
-      file,
-    );
+    const upload = await saveProductImage(platform.env.MEDIA, file);
     if (!upload.ok) return { ok: false, reason: upload.reason };
     uploadedUrl = upload.url;
   }

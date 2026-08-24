@@ -88,12 +88,12 @@ async function seedCategory(name = "برسيم", nameEn = ""): Promise<string> {
 
 interface PutCall {
   key: string;
-  value: ReadableStream | ArrayBuffer;
+  value: ArrayBuffer;
 }
 
-/** Fake R2 bucket capturing every put so tests assert keys and payloads. */
-function makeBucket(): {
-  put(key: string, value: ReadableStream | ArrayBuffer): Promise<unknown>;
+/** Fake KV namespace recording every put so tests assert keys and payloads. */
+function makeNamespace(): {
+  put(key: string, value: ArrayBuffer): Promise<void>;
   calls: PutCall[];
 } {
   const calls: PutCall[] = [];
@@ -101,12 +101,23 @@ function makeBucket(): {
     calls,
     put(key, value) {
       calls.push({ key, value });
-      return Promise.resolve(undefined);
+      return Promise.resolve();
     },
   };
 }
 
-const MEDIA_BASE = "https://media.example.com";
+/** KV double whose writes always fail, driving storage_unavailable paths. */
+function makeFailingNamespace(): unknown {
+  return {
+    get(): Promise<ArrayBuffer | null> {
+      return Promise.resolve(null);
+    },
+    put(): Promise<void> {
+      return Promise.reject(new Error("kv unavailable"));
+    },
+  };
+}
+
 const PNG_BYTES = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const JPEG_BYTES = [0xff, 0xd8, 0xff];
 
@@ -120,7 +131,7 @@ interface EventOptions {
   fields?: Record<string, string>;
   files?: Record<string, File>;
   /** Omitted entirely when undefined — exercises the no-platform guard. */
-  platform?: { env: { MEDIA: unknown; MEDIA_PUBLIC_BASE_URL?: string } };
+  platform?: { env: { MEDIA: unknown } };
 }
 
 // The loader reads `url`, `cookies.get`, and request headers (getLang); the
@@ -371,9 +382,9 @@ describe("admin new product default action", () => {
     expect(await productRows()).toHaveLength(0);
   });
 
-  it("uploads a png to r2 and persists the returned url onto the product", async () => {
+  it("uploads a png to kv and persists the returned relative url onto the product", async () => {
     const categoryId = await seedCategory();
-    const bucket = makeBucket();
+    const ns = makeNamespace();
 
     await expect(
       create(
@@ -381,16 +392,16 @@ describe("admin new product default action", () => {
           fields: baseFields(categoryId),
           files: { image: pngFile() },
           role: "admin",
-          platform: { env: { MEDIA: bucket, MEDIA_PUBLIC_BASE_URL: MEDIA_BASE } },
+          platform: { env: { MEDIA: ns } },
         }),
       ),
     ).rejects.toMatchObject({ status: 303 });
 
-    expect(bucket.calls).toHaveLength(1);
-    const call = bucket.calls[0];
+    expect(ns.calls).toHaveLength(1);
+    const call = ns.calls[0];
     expect(call?.key).toMatch(/^products\/[0-9a-f-]{36}\.png$/);
     const [row] = await productRows();
-    expect(row?.image).toBe(`${MEDIA_BASE}/${call?.key}`);
+    expect(row?.image).toBe(`/media/${call?.key}`);
   });
 
   it.each([
@@ -411,7 +422,7 @@ describe("admin new product default action", () => {
     "fails 400 on a $label file and creates nothing",
     async ({ file, expectedStatus, expectedMessage }) => {
       const categoryId = await seedCategory();
-      const bucket = makeBucket();
+      const ns = makeNamespace();
 
       const result = failureOf(
         await create(
@@ -419,21 +430,21 @@ describe("admin new product default action", () => {
             fields: baseFields(categoryId),
             files: { image: file() },
             role: "admin",
-            platform: { env: { MEDIA: bucket, MEDIA_PUBLIC_BASE_URL: MEDIA_BASE } },
+            platform: { env: { MEDIA: ns } },
           }),
         ),
       );
 
       expect(result.status).toBe(expectedStatus);
       expect(result.message).toBe(expectedMessage);
-      expect(bucket.calls).toHaveLength(0);
+      expect(ns.calls).toHaveLength(0);
       expect(await productRows()).toHaveLength(0);
     },
   );
 
-  it("reports storage_unavailable with 503 when no platform is bound, creating nothing", async () => {
+  it("reports storage_unavailable with 503 when the kv write fails, creating nothing", async () => {
     const categoryId = await seedCategory();
-    const bucket = makeBucket();
+    const ns = makeFailingNamespace();
 
     const result = failureOf(
       await create(
@@ -441,14 +452,13 @@ describe("admin new product default action", () => {
           fields: baseFields(categoryId),
           files: { image: pngFile() },
           role: "admin",
-          platform: { env: { MEDIA: bucket } },
+          platform: { env: { MEDIA: ns } },
         }),
       ),
     );
 
     expect(result.status).toBe(503);
     expect(result.message).toBe(t("ar", "errors.storageUnavailable"));
-    expect(bucket.calls).toHaveLength(0);
     expect(await productRows()).toHaveLength(0);
   });
 
@@ -466,7 +476,7 @@ describe("admin new product default action", () => {
 
   it("lets the uploaded file win over a simultaneously pasted url", async () => {
     const categoryId = await seedCategory();
-    const bucket = makeBucket();
+    const ns = makeNamespace();
 
     await expect(
       create(
@@ -474,14 +484,14 @@ describe("admin new product default action", () => {
           fields: { ...baseFields(categoryId), imageUrl: "https://cdn.example.com/pasted.jpg" },
           role: "admin",
           files: { image: pngFile() },
-          platform: { env: { MEDIA: bucket, MEDIA_PUBLIC_BASE_URL: MEDIA_BASE } },
+          platform: { env: { MEDIA: ns } },
         }),
       ),
     ).rejects.toMatchObject({ status: 303 });
 
-    const call = bucket.calls[0];
+    const call = ns.calls[0];
     const [row] = await productRows();
-    expect(row?.image).toBe(`${MEDIA_BASE}/${call?.key}`);
+    expect(row?.image).toBe(`/media/${call?.key}`);
   });
 
   it("rejects a malformed pasted url with 400 instead of storing garbage", async () => {

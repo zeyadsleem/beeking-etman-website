@@ -74,11 +74,7 @@ export const actions: Actions = {
 
     const platform = event.platform;
     if (!platform) return fail(503, { message: t(lang, "errors.storageUnavailable") });
-    const upload = await saveProductImage(
-      platform.env.MEDIA,
-      platform.env.MEDIA_PUBLIC_BASE_URL,
-      raw,
-    );
+    const upload = await saveProductImage(platform.env.MEDIA, raw);
     if (!upload.ok) {
       const failure = productFormFailure(upload.reason);
       return fail(failure.status, { message: t(lang, failure.messageKey) });
