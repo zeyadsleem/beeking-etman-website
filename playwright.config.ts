@@ -1,5 +1,12 @@
 /// <reference types="node" />
 import { defineConfig } from "@playwright/test";
+import path from "node:path";
+
+// Single source of truth for the isolated miniflare D1 directory: the
+// webServer chain and test-process helpers (clearRateLimitRows) must target
+// the same database.
+const E2E_D1_STATE = path.resolve(".wrangler/state/e2e");
+process.env.E2E_D1_STATE ??= E2E_D1_STATE;
 
 export default defineConfig({
   webServer: {
@@ -14,7 +21,7 @@ export default defineConfig({
       // server crashes workerd on the first D1 write ("Network connection
       // lost"). A fresh database also makes rate-limit budgets start at
       // zero, so no store_rate_limit wipe step is needed.
-      `fuser -k ${process.env.E2E_PORT ?? 4173}/tcp >/dev/null 2>&1 || true; sleep 1 && export E2E_D1_STATE="$PWD/.wrangler/state/e2e" && rm -rf "$E2E_D1_STATE" && mkdir -p "$E2E_D1_STATE" && pnpm run db:reset && pnpm run db:seed:d1 && cp .dev.vars.example .dev.vars && pnpm run build && pnpm exec wrangler d1 migrations apply beeking --local --persist-to "$E2E_D1_STATE" && pnpm exec wrangler d1 execute beeking --local --file=d1-seed.sql --persist-to "$E2E_D1_STATE" >/dev/null && sh -c 'while :; do pnpm exec wrangler pages dev .svelte-kit/cloudflare --port ${process.env.E2E_PORT ?? 4173} --persist-to "$E2E_D1_STATE"; echo "[webserver] preview exited, restarting" >&2; sleep 1; done'`,
+      `fuser -k ${process.env.E2E_PORT ?? 4173}/tcp >/dev/null 2>&1 || true; sleep 1 && rm -rf '${E2E_D1_STATE}' && mkdir -p '${E2E_D1_STATE}' && pnpm run db:reset && pnpm run db:seed:d1 && cp .dev.vars.example .dev.vars && pnpm run build && pnpm exec wrangler d1 migrations apply beeking --local --persist-to '${E2E_D1_STATE}' && pnpm exec wrangler d1 execute beeking --local --file=d1-seed.sql --persist-to '${E2E_D1_STATE}' >/dev/null && sh -c 'while :; do pnpm exec wrangler pages dev .svelte-kit/cloudflare --port ${process.env.E2E_PORT ?? 4173} --persist-to '${E2E_D1_STATE}'; echo "[webserver] preview exited, restarting" >&2; sleep 1; done'`,
     port: Number(process.env.E2E_PORT ?? 4173),
     reuseExistingServer: !process.env.CI,
     // Cold chain (reset + seed export + build + isolated-database setup) can
