@@ -49,7 +49,9 @@ BlendCartItem`, so a composed blend rides the cart as one line
   `createCheckoutSchema(lang)` (nonce, name, email, Egyptian phone, city,
   address, mock card fields with a past-date expiry check); messages via i18n.
 - `src/lib/server/env.ts` — production boot validation of `BETTER_AUTH_SECRET`
-  (length ≥ 32) and `ORIGIN`; imported first by `auth.ts` and `db/index.ts`.
+  and `ORDER_ACCESS_SECRET` (both length ≥ 32), `ORIGIN`, and well-formedness
+  of the optional var `ADMIN_EMAIL` (plausible email); imported first by
+  `auth.ts` and `db/index.ts`.
 - `src/lib/server/store.ts` — catalog/store queries; FTS5 search
   (`searchProductIds` via `MATCH` prefix tokens), server-side sort
   (`newest`/`price-asc`/`price-desc` via a `MIN(price)` variant subquery), and
@@ -78,12 +80,14 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `SearchSuggestions` (bits-ui `Combobox`, `dir` follows the active language),
   `SectionTitle`, `Price`, `QuantityPicker`.
 - Routes: `/` (home), `/products` + `/products/[slug]` (catalog, server-paged),
-  `/blends` (blend-composition game: goal → honey + jar size → drag-and-drop
-  mix → success; client-side, additives/base honeys loaded from the catalog),
+  `/blends` (interactive 3D blend lab — see "Blend Lab (/blends)" below; the
+  classic goal → mix → success wizard survives as its no-WebGL fallback),
   `/cart`, `/checkout` + `/checkout/success/[id]`, `/login`, `/register`,
   `/account` (profile hub: name/password/sign-out), `/account/addresses`
   (saved-address CRUD), `/account/orders` + `/account/orders/[id]`
-  (ownership-gated detail), `/api/cart`, `/api/health`, `/api/lang`.
+  (ownership-gated detail), `/media/[...key]` (product
+  images served from the MEDIA KV namespace), `/api/cart`, `/api/health`,
+  `/api/lang`.
 
 ## Data model
 
@@ -147,6 +151,30 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   stays opaque and the new page fades in over it (no white flash). Entrance
   animations are gated to the first full load via `html.has-nav`.
 
+## Admin dashboard
+
+- Route group `/admin` behind a role gate:
+  `src/routes/admin/+layout.server.ts` redirects anyone without
+  `locals.user.role === "admin"` to `/login` on page loads, and every mutating
+  form action re-checks the role server-side (defense-in-depth — layout guards
+  never cover POSTs). Pages: dashboard KPI/stats overview (`/admin`), orders
+  list + detail with status transitions (cancellation is confirm-gated in the
+  UI and restocks inventory server-side), product create/edit including
+  variants and image upload, and category CRUD.
+- Services live under `src/lib/server/admin/`: `bootstrap` (`ADMIN_EMAIL`
+  promotion of the matching sign-in email), `categories`, `orders` (lifecycle
+  transition table + flip-first conditional update + restock), `products`,
+  `product-form`, `stats`, `upload` (magic-byte image validation → Workers KV).
+- Media: a Workers KV namespace is bound as `MEDIA` in `wrangler.jsonc`;
+  uploads are stored at `products/<uuid>.<ext>` and persisted as RELATIVE
+  `/media/products/<uuid>.<ext>` urls. The serving route
+  `src/routes/media/[...key]/+server.ts` pattern-validates keys (so the KV
+  namespace can never act as an open read proxy), serves edge-cache-first via
+  `caches.default` (+ `waitUntil(cache.put)` background fill), and sets
+  `Cache-Control: public, max-age=31536000, immutable` — safe because fresh
+  UUID keys are never rewritten. Upload happens before the product DB write so
+  a failed write cannot fork duplicate products on retry.
+
 ## Deployment
 
 - **Cloudflare Pages** with `adapter-cloudflare`; build output `.svelte-kit/cloudflare`
@@ -162,8 +190,9 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
 - CI (`.github/workflows/ci.yml`) runs check + unit + build, then gated e2e
   against `wrangler pages dev`. Deploy job uses `cloudflare/wrangler-action@v3`
   to push to Pages on merge to `main`.
-- Production boot validates `BETTER_AUTH_SECRET` (length ≥ 32) and `ORIGIN`
-  via `src/lib/server/env.ts`; dev stays lenient.
+- Production boot validates `BETTER_AUTH_SECRET` and `ORDER_ACCESS_SECRET`
+  (length ≥ 32), `ORIGIN`, and the shape of the optional `ADMIN_EMAIL` via
+  `src/lib/server/env.ts`; dev stays lenient.
 
 ## Cost posture (Cloudflare Free tier)
 
@@ -196,3 +225,17 @@ The site runs entirely on Cloudflare's Free plan at $0/month:
   hydrates and works normally. `vp env doctor` reports all checks passing; this
   is a Vite+ dev integration behavior, not an app bug. E2E therefore runs
   against the preview server.
+
+## Blend Lab (/blends)
+
+Interactive 3D honey-blending game built with Threlte v9 (Three.js) on Svelte 5 runes.
+
+- State: single `BlendsGame` runes class (`src/lib/blend-lab/game-state.svelte.ts`) drives steps
+  goal → honey → prep → stir → pour → order. All stations/components read state via context.
+- Pure logic (stir math, color mixing, pricing, benefits data) lives in plain TS modules under
+  `src/lib/blend-lab/` with vitest coverage.
+- Scene loads lazily client-side; devices without WebGL (or `?force2d=1`) fall back to the
+  classic wizard preserved verbatim in `src/routes/blends/FallbackBlends.svelte`.
+- Environment lighting uses `static/hdr/studio.hdr` — Poly Haven's CC0 `studio_small_09`
+  (1k HDR), https://polyhaven.com/a/studio_small_09.
+- Ordering reuses the cart store `addBlend` contract unchanged; backend orders API untouched.

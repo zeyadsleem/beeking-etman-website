@@ -53,7 +53,9 @@ interface BatchWriteResult {
   meta?: { changes?: number };
 }
 
-function affectedRowCount(result: unknown): number {
+// Exported for sibling services (e.g. admin/orders) that must gate writes on
+// affected-row counts across both drivers.
+export function affectedRowCount(result: unknown): number {
   if (typeof result !== "object" || result === null) return 0;
   const { rowsAffected, meta } = result as BatchWriteResult;
   if (typeof rowsAffected === "number") return rowsAffected;

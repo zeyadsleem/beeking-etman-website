@@ -20,7 +20,7 @@
     user,
     lang = "ar",
   }: {
-    user?: { name?: string | null } | null;
+    user?: { name?: string | null; role?: string | null } | null;
     lang?: Lang;
   } = $props();
 
@@ -128,6 +128,16 @@
       </Button>
 
       {#if user}
+        {#if user.role === "admin"}
+          <Button
+            variant="outline"
+            href="/admin"
+            class="hidden shrink-0 items-center gap-2 px-4 py-2.5 lg:inline-flex"
+            aria-label={t(lang, "nav.admin")}
+          >
+            <span class="max-w-28 truncate text-sm font-semibold">{t(lang, "nav.admin")}</span>
+          </Button>
+        {/if}
         <Button
           variant="outline"
           href="/account"
@@ -240,6 +250,15 @@
             {t(lang, "lang.switchTo")}
           </button>
           {#if user}
+            {#if user.role === "admin"}
+              <a
+                href="/admin"
+                onclick={closeMobile}
+                class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800"
+              >
+                {t(lang, "nav.admin")}
+              </a>
+            {/if}
             <a href="/account" onclick={closeMobile} class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">
               <UserIcon size={18} />
               {user.name ?? t(lang, "nav.account")}

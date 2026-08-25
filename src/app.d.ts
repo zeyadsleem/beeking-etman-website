@@ -1,4 +1,7 @@
-import type { User, Session } from "better-auth";
+import type { auth } from "$lib/server/auth";
+import type { KvLikeNamespace } from "$lib/server/admin/upload";
+
+type AuthSession = typeof auth.$Infer.Session;
 
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
@@ -31,8 +34,8 @@ interface D1Database {
 declare global {
   namespace App {
     interface Locals {
-      user?: User;
-      session?: Session;
+      user?: AuthSession["user"];
+      session?: AuthSession["session"];
     }
 
     // interface Error {}
@@ -41,7 +44,11 @@ declare global {
     interface Platform {
       env: {
         DB: D1Database;
+        MEDIA: KvLikeNamespace;
       };
+      /** Cloudflare Pages ExecutionContext surface used for background work
+       * (edge-cache fills); mirrors @sveltejs/adapter-cloudflare's shape. */
+      ctx?: { waitUntil(promise: Promise<unknown>): void };
     }
   }
 }

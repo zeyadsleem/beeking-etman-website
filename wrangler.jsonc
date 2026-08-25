@@ -16,4 +16,10 @@
       "migrations_dir": "drizzle",
     },
   ],
+  "kv_namespaces": [
+    {
+      "binding": "MEDIA",
+      "id": "8b48e8ac78804d37bd07d229de466821",
+    },
+  ],
 }

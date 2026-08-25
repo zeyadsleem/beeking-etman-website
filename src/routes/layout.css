@@ -287,28 +287,51 @@ html:lang(en) body {
   }
 }
 
-/* ---------- animation ---------- */
+/* ---------- hero layout ---------- */
 
-/* Hero decorative icons: a soft radial mask keeps them dense around the
-   product image (end side) and lets them dissolve gradually toward the text
-   column (start side). The radial falloff is non-linear, so icons fade out
-   organically instead of a hard linear cut. */
-.hero-decor {
+/* Single responsive hero composition. Mobile-first: text, then product
+   image, then stats stacked in one column. From lg up: text + stats share
+   the start column while the image spans both rows on the end side. */
+.hero-grid {
   display: grid;
-  grid-template-columns: repeat(14, 1fr);
-  grid-template-rows: repeat(10, 1fr);
-  -webkit-mask-image: radial-gradient(
-    120% 120% at 50% 50%,
-    rgba(0, 0, 0, 0.45) 0%,
-    rgba(0, 0, 0, 0.8) 55%,
-    #000 78%
-  );
-  mask-image: radial-gradient(
-    120% 120% at 50% 50%,
-    rgba(0, 0, 0, 0.45) 0%,
-    rgba(0, 0, 0, 0.8) 55%,
-    #000 78%
-  );
+  grid-template-areas:
+    "text"
+    "image"
+    "stats";
+}
+
+@media (min-width: 64rem) {
+  .hero-grid {
+    position: relative;
+    grid-template-columns: 1.05fr 1fr;
+    grid-template-areas:
+      "text"
+      "stats";
+  }
+
+  /* Explicit placement: the arch below is taken out of flow, which frees its
+     auto-placement slot — without explicit coordinates the stats would slide
+     up into it, beside the text. */
+  .hero-grid > .grid-area-text {
+    grid-area: 1 / 1;
+  }
+
+  .hero-grid > .grid-area-stats {
+    grid-area: 2 / 1;
+    margin-top: 0;
+  }
+
+  /* The arch is out of flow on desktop: a 4/5 portrait is taller than the
+     text column, and an in-flow item inflates the text row and pushes the
+     stats away from the CTAs. Centered on the grid box; the section's
+     vertical padding absorbs the overhang (including the wax seal above). */
+  .hero-grid > .grid-area-image {
+    position: absolute;
+    top: calc(50% + 0.5rem);
+    inset-inline-end: 2rem;
+    translate: 0 -50%;
+    width: min(100%, 25rem);
+  }
 }
 
 @keyframes fade-up {

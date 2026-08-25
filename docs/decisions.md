@@ -842,6 +842,72 @@ via `resolveCartItems` missing-reporting. Migration applies during a deploy
 window (writes between INSERT…SELECT and cutover are lost). pnpm 11 ignores
 `package.json#pnpm.overrides` — overrides must live in `pnpm-workspace.yaml`.
 
+## 2026-08-23: Admin dashboard
+
+**Context:** The admin dashboard branch (order management, product/category
+CRUD with variants, dashboard stats, R2 media) went through spec → plan →
+implementation → final whole-branch review. Five rulings made during that work
+are load-bearing and need a durable record beyond the plan document.
+
+**Decision:**
+
+1. **Branch topology:** `feat/admin-dashboard` was cut from
+   `feat/customer-account`, not `main`, and merges land in order account →
+   admin; the admin work builds directly on the user/role columns and auth
+   plugin setup introduced by the account branch.
+2. **Auth schema source of truth:** better-auth v1.7.1's generator output
+   supersedes the plan document's illustrative SQL — including the hand-fixed
+   `account` issuer default `'local:credential'` and the nullable `user.role`
+   column. Migrations follow the generated DDL; the plan's SQL is prose only.
+3. **Order transitions without transactions:** D1 has no interactive
+   transactions, so `transitionOrderStatus` flips the status first with a
+   conditional UPDATE guarded on the current status, then performs the
+   cancellation restock. Accepted residual risk: a crash between flip and
+   restock leaves an under-restoration window; the failure is logged loudly on
+   the write path and surfaced to the admin as a retryable 500.
+4. **Upload-before-write:** product image upload to R2 happens BEFORE the
+   product row write so that a failed DB write cannot fork duplicate products
+   when the admin retries the form. Accepted cost: the failed write can leave
+   an orphaned R2 blob.
+5. **Vanished-order mapping:** a POST targeting an order that no longer exists
+   maps to the same 409 invalid-transition failure today; mapping it to 404 is
+   the recommended follow-up (tracked in `docs/todo.md`).
+
+**Consequences:** Admin features can be reviewed against these five points
+without re-deriving them from git history or the plan doc. Rulings 3–4 trade
+strict consistency for D1-compatible simplicity, with the failure modes made
+observable rather than silent; ruling 5 leaves one known rough edge explicitly
+open instead of silently shipping it.
+
+## 2026-08-24: Product media pivots from R2 to Workers KV
+
+**Context:** R2 requires accepting updated Terms of Service with a payment card
+on file even on the free tier, and the owner has none — every R2 API route
+returned error 10042 (dashboard-only action), blocking the admin branch's media
+story. The free-tier Workers KV namespace `beeking-media`
+(`8b48e8ac78804d37bd07d229de466821`) needs no card and was created via API.
+
+**Decision:** Product images persist to the `MEDIA` KV binding instead of R2;
+`wrangler.jsonc` swaps `r2_buckets` for `kv_namespaces`. Keys keep the
+`products/<uuid>.<ext>` shape (fresh UUID ⇒ immutable objects), but stored urls
+are now RELATIVE (`/media/products/<uuid>.<ext>`) — `MEDIA_PUBLIC_BASE_URL` and
+its env validation are deleted entirely. A new serving route
+`src/routes/media/[...key]/+server.ts` pattern-validates keys against
+`^products/[0-9a-f][0-9a-f-]{35}\.(jpg|png|webp)$` so the namespace can never act as an
+open read proxy, serves edge-cache-first (`caches.default` match + `waitUntil`
+background put), and sets `Cache-Control: public, max-age=31536000, immutable`.
+
+**Consequences:** Zero Cloudflare dashboard prerequisites remain before deploy.
+Known trade-offs accepted: (1) KV is eventually consistent (~60s propagation),
+so a just-uploaded image can 404 briefly — harmless for admin-authored catalog
+imagery that is viewed long after upload; (2) the orphaned-blob cost of
+upload-before-write now lands in KV (same accepted risk as 2026-08-23 #4);
+(3) KV values cap at 25 MB — well above the enforced 5 MB upload limit. The
+shared `KvLikeNamespace` structural type covers both the write half (uploads)
+and the arrayBuffer read half (serving route), keeping
+`@cloudflare/workers-types` globals out of client code per the app.d.ts
+convention.
+
 ## 2026-08-23: better-auth 1.7 account.issuer + e2e restart resilience (Task 7)
 
 **Context:** Task 7's e2e suite was the first automated coverage of `/register`;

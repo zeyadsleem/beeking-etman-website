@@ -14,13 +14,57 @@ bottom unless the user reorders.
 1. [x] **Customer account area** — profile page (name, email, password change),
        saved addresses (schema + checkout prefill), full order history with
        status/detail view, sign-out everywhere (`93e21f2..e97fe7b`)
-2. [ ] **Admin dashboard** — `/admin` behind a role gate: orders list + status
+2. [x] **Admin dashboard** — `/admin` behind a role gate: orders list + status
        transitions, product/variant/image CRUD, stock adjustments, basic sales
        stats. Without it every operational task requires direct DB access.
+       (shipped on `feat/admin-dashboard`)
 3. [ ] **Transactional email** — order confirmation + status updates
        (Cloudflare Email Service or Resend), triggered post-checkout.
 4. [ ] **Real payment gateway** — replace mock payment (Paymob/Fawry for EGP).
        Deferred by user decision 2026-08-22 until items 1–3 land.
+
+## Post-merge follow-ups (admin dashboard, 2026-08-23)
+
+Agreed at the `feat/admin-dashboard` final review; none block the merge.
+
+### Before production deploy
+
+Nothing remains in this section — merge is the only step left.
+
+- [x] Pre-check duplicate `(issuer, account_id)` pairs before migration 0008
+      runs against production data — **passed 2026-08-24**: prod D1 is still at
+      migration 0006, `user`/`account` tables are empty (0 rows each), so 0007 + 0008 apply cleanly with zero collision risk. Note: `issuer` itself is
+      added by 0008 (`DEFAULT 'local:credential'` backfill); the pre-0008
+      collision surface is duplicate `account_id` values, of which there are
+      none.
+- [x] Media storage enablement — **superseded 2026-08-24 by the R2→KV pivot**
+      (see `docs/decisions.md`): R2 ToS acceptance needed a payment card the
+      owner does not have, so product media moved to Workers KV instead. The
+      free-tier KV namespace `beeking-media`
+      (`8b48e8ac78804d37bd07d229de466821`) was created via API and is bound as
+      `MEDIA` in `wrangler.jsonc`; no `MEDIA_PUBLIC_BASE_URL` exists anymore —
+      images are served by the first-party `/media/[...key]` route.
+
+### One-liner batch
+
+- [ ] `.finite()` + `MAX_SAFE_INTEGER` cap on the `?page` schemas in the admin
+      orders/products loaders.
+- [ ] Vanished-product image upload returns `fail(404)` instead of a false
+      success.
+- [ ] Corrupt stored order status logs `console.error` on the write path.
+- [ ] `not_found` transition results map to 404 (see decisions 2026-08-23 #5).
+- [ ] Slug-issue mapping exact-matches both constants.
+- [ ] Pasted image URLs restricted to `https:`.
+- [ ] `deleteVariant` scoped by `productId`.
+
+### Named follow-ups
+
+- [ ] Native-speaker pass on new Arabic copy.
+- [ ] E2E cases: authenticated-non-admin guard + dashboard KPI render.
+- [ ] Shared client-side `STATUS_ORDER` constant.
+- [ ] `lowStock` query LIMIT.
+- [ ] Move the third copy of `retryOnBusy` into `$lib/server/sqlite`.
+- [ ] Surface form failure messages inside dialog content (house-wide).
 
 Incident note (2026-08-22): production outage (Error 1101) — security commit
 `6749196` added fail-hard `ORDER_ACCESS_SECRET` validation while the Pages
@@ -143,8 +187,39 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] Task 6 — Checkout saved-address picker + optional save-after-order (`69cac95`)
 - [x] Task 7 — E2E journey incl. IDOR negative; clean-run webServer chain (`e97fe7b`)
 
+### Blends 3D game (`2026-08-23-blends-3d-game`)
+
+- [x] Threlte v9 3D lab at `/blends`: goal table → honey shelf (+ size chips
+      re-preset doses) → prep drag/tap → stir circles → pour → order panel;
+      architecture in `docs/architecture.md` ("Blend Lab (/blends)").
+- [x] Deterministic fallback: no WebGL or `?force2d=1` renders the classic
+      wizard verbatim with a notice; `blends.e2e.ts` pins `force2d`, new
+      `blends-3d.e2e.ts` covers scene-or-fallback + force2d + fallback flow.
+- [x] Reduced-motion rendering: `renderMode="on-demand"` with manual
+      `invalidate()` only while values settle (camera snap on step change,
+      fast pour); no continuous idle rendering.
+- [x] Liquid honey surface follows the bowl lathe profile (inset) so it no
+      longer clips through the glass walls; geometry derives from paired
+      GlassBowl radius/height.
+- [x] Hero mobile brand image testid fixed so the spec asserts `src` on the
+      `<img>` itself, not a wrapper div — merged resolution adopts the admin
+      rework's `hero-brand-img-inline` naming.
+
 ### Discovered
 
+- [ ] SEO: `/blends` is SSR spinner-only (game mounts client-side after the
+      WebGL check), so crawlers see just the loading shell — acceptable
+      tradeoff for now; revisit with static fallback content if /blends
+      becomes a search entry point.
+- [ ] Multi-jar cart epic: the order panel adds N identical quantity-1 blend
+      lines because `addBlend`'s schema keys a line by its composition;
+      merging into one line with quantity N needs a store/schema change
+      (`cart-store.svelte.ts` + `sanitizeCartLines`) — deliberate scope cut.
+- [ ] HoneyShelf sticky hover preview dismissal polish: the preview card can
+      linger when the pointer leaves the jar quickly; cosmetic.
+- [ ] Owner-editable benefit texts: goal/benefit copy lives in
+      `src/lib/blend-lab/benefits.ts`; move to DB/CMS if non-devs must edit it
+      without a deploy.
 - [ ] Investigate dev-mode hydration: `vp dev` serves HTML without client
       entry scripts (no hydration, clicks dead) in this environment; `vp
 preview` works. `vp env doctor` passes. Likely a Vite+ dev integration

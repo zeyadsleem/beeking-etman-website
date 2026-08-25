@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "1aef2e3c-abcd-417d-8059-afe44cc1eb40",
+  "id": "630e61f5-5ead-47a5-96ca-f7d4e85316b4",
   "prevId": "00abb610-49a0-418f-aa15-4526596015fc",
   "tables": {
     "store_address": {
@@ -643,6 +643,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "issuer": {
+          "name": "issuer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "account_id": {
           "name": "account_id",
           "type": "text",
@@ -656,14 +663,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "issuer": {
-          "name": "issuer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'local:credential'"
         },
         "user_id": {
           "name": "user_id",
@@ -738,15 +737,15 @@
         }
       },
       "indexes": {
-        "account_userId_idx": {
-          "name": "account_userId_idx",
-          "columns": ["user_id"],
-          "isUnique": false
-        },
         "account_issuer_accountId_uidx": {
           "name": "account_issuer_accountId_uidx",
           "columns": ["issuer", "account_id"],
           "isUnique": true
+        },
+        "account_userId_idx": {
+          "name": "account_userId_idx",
+          "columns": ["user_id"],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -822,6 +821,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "impersonated_by": {
+          "name": "impersonated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         }
       },
@@ -906,6 +912,35 @@
           "notNull": true,
           "autoincrement": false,
           "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "banned": {
+          "name": "banned",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "ban_reason": {
+          "name": "ban_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ban_expires": {
+          "name": "ban_expires",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {

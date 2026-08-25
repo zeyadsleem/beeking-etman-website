@@ -59,7 +59,7 @@ describe("Hero", () => {
       .element(page.getByTestId("hero-brand-img"))
       .toHaveAttribute("src", "/images/etman-wax-ar.png");
     await expect
-      .element(page.getByTestId("hero-brand-mobile"))
+      .element(page.getByTestId("hero-brand-img-inline"))
       .toHaveAttribute("src", "/images/etman-wax-ar.png");
   });
 
@@ -70,7 +70,7 @@ describe("Hero", () => {
       .element(page.getByTestId("hero-brand-img"))
       .toHaveAttribute("src", "/images/etman-wax-en.png");
     await expect
-      .element(page.getByTestId("hero-brand-mobile"))
+      .element(page.getByTestId("hero-brand-img-inline"))
       .toHaveAttribute("src", "/images/etman-wax-en.png");
   });
 });

@@ -4,11 +4,11 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   webServer: {
     command:
-      // A crashed run can leave a detached workerd squatting :4173; reusing it
-      // would skip the reset chain and test a stale build. Free the port first
-      // so every invocation runs db:reset + seeds + d1:clear-limits.
-      "fuser -k 4173/tcp >/dev/null 2>&1 || true; sleep 1 && pnpm run db:reset && pnpm run db:seed:d1 && cp .dev.vars.example .dev.vars && pnpm run build && pnpm run d1:migrate && pnpm run d1:seed && pnpm run d1:clear-limits && sh -c 'while :; do pnpm run preview; echo \"[webserver] preview exited, restarting\" >&2; sleep 1; done'",
-    port: 4173,
+      // A crashed run can leave a detached workerd squatting the e2e port;
+      // reusing it would skip the reset chain and test a stale build. Free the
+      // port first so every invocation runs db:reset + seeds + d1:clear-limits.
+      `fuser -k ${process.env.E2E_PORT ?? 4173}/tcp >/dev/null 2>&1 || true; sleep 1 && pnpm run db:reset && pnpm run db:seed:d1 && cp .dev.vars.example .dev.vars && pnpm run build && pnpm run d1:migrate && pnpm run d1:seed && pnpm run d1:clear-limits && sh -c 'while :; do pnpm run preview -- --port ${process.env.E2E_PORT ?? 4173}; echo "[webserver] preview exited, restarting" >&2; sleep 1; done'`,
+    port: Number(process.env.E2E_PORT ?? 4173),
     reuseExistingServer: !process.env.CI,
     // d1:clear-limits wipes store_rate_limit (register/login/address buckets)
     // because local D1 outlives runs: without it, the register limit of
