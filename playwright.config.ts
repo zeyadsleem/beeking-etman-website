@@ -5,15 +5,19 @@ export default defineConfig({
   webServer: {
     command:
       // A crashed run can leave a detached workerd squatting the e2e port;
-      // reusing it would skip the reset chain and test a stale build. Free the
-      // port first so every invocation runs db:reset + seeds + d1:clear-limits.
-      `fuser -k ${process.env.E2E_PORT ?? 4173}/tcp >/dev/null 2>&1 || true; sleep 1 && pnpm run db:reset && pnpm run db:seed:d1 && cp .dev.vars.example .dev.vars && pnpm run build && pnpm run d1:migrate && pnpm run d1:seed && pnpm run d1:clear-limits && sh -c 'while :; do pnpm run preview -- --port ${process.env.E2E_PORT ?? 4173}; echo "[webserver] preview exited, restarting" >&2; sleep 1; done'`,
+      // reusing it would skip the reset chain and test a stale build. Free
+      // the port first so every invocation runs the full reset chain.
+      //
+      // The miniflare D1 lives in an isolated, wiped-every-run directory
+      // (--persist-to) instead of the default .wrangler/state/v3: sharing
+      // that SQLite WAL between this server and a concurrently running dev
+      // server crashes workerd on the first D1 write ("Network connection
+      // lost"). A fresh database also makes rate-limit budgets start at
+      // zero, so no store_rate_limit wipe step is needed.
+      `fuser -k ${process.env.E2E_PORT ?? 4173}/tcp >/dev/null 2>&1 || true; sleep 1 && export E2E_D1_STATE="$PWD/.wrangler/state/e2e" && rm -rf "$E2E_D1_STATE" && mkdir -p "$E2E_D1_STATE" && pnpm run db:reset && pnpm run db:seed:d1 && cp .dev.vars.example .dev.vars && pnpm run build && pnpm exec wrangler d1 migrations apply beeking --local --persist-to "$E2E_D1_STATE" && pnpm exec wrangler d1 execute beeking --local --file=d1-seed.sql --persist-to "$E2E_D1_STATE" >/dev/null && sh -c 'while :; do pnpm exec wrangler pages dev .svelte-kit/cloudflare --port ${process.env.E2E_PORT ?? 4173} --persist-to "$E2E_D1_STATE"; echo "[webserver] preview exited, restarting" >&2; sleep 1; done'`,
     port: Number(process.env.E2E_PORT ?? 4173),
     reuseExistingServer: !process.env.CI,
-    // d1:clear-limits wipes store_rate_limit (register/login/address buckets)
-    // because local D1 outlives runs: without it, the register limit of
-    // 5/hour/IP makes the suite fail on any second run within the hour.
-    // Cold chain (reset + seed export + build ×2 + migrations + seeds) can
+    // Cold chain (reset + seed export + build + isolated-database setup) can
     // take several minutes before preview answers on the port.
     timeout: 600_000,
   },
