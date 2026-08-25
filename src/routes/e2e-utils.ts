@@ -2,13 +2,13 @@ import { spawnSync } from "node:child_process";
 import { test as base, type Page, type Response } from "@playwright/test";
 
 /**
- * Clears auth rate-limit rows from the local D1 database.
+ * Clears auth rate-limit rows from the e2e D1 database.
  *
- * The register limiter allows 5/hour/IP in a fixed hourly bucket and the
- * local D1 state outlives test runs, so any retried registration eats into
- * a budget shared by later tests (and previous runs). The webServer chain
- * wipes all buckets before the suite; this clears just `keyPrefix` rows
- * mid-run, right before a test registers, so retries stay self-sufficient.
+ * The register limiter allows 5/hour/IP in a fixed hourly bucket and retried
+ * registrations within one run share that budget, so this clears `keyPrefix`
+ * rows mid-run, right before a test registers. It must target the same
+ * isolated miniflare directory the webServer chain seeds (see
+ * E2E_D1_STATE in playwright.config.ts).
  */
 export function clearRateLimitRows(keyPrefix: string): void {
   const result = spawnSync(
@@ -20,6 +20,8 @@ export function clearRateLimitRows(keyPrefix: string): void {
       "execute",
       "beeking",
       "--local",
+      "--persist-to",
+      process.env.E2E_D1_STATE ?? ".wrangler/state/e2e",
       "--command",
       `DELETE FROM store_rate_limit WHERE key LIKE '${keyPrefix}%'`,
     ],
