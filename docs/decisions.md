@@ -940,3 +940,114 @@ exiting mid-run.
 session in one call). Future better-auth upgrades must regenerate/verify the
 account schema. e2e remains sensitive to machine load (crash cascades under
 heavy parallel CPU work) but recovers via retry+fixture instead of failing.
+
+## 2026-08-25: Migration-collision repair + single-deployer architecture (production hotfix)
+
+**Context:** Merging `feat/admin-dashboard` collided two independently
+generated `0008_*` migrations (both added `account.issuer` + its unique
+index). The merged journal replayed the admin variant as 0008 and main's
+original as a renamed 0009, so every environment that had already applied
+main's 0008 — including **production D1** — failed with
+`duplicate column name: issuer` on deploy, and CI e2e died replaying on a
+fresh database. Root cause of the class: two branches generated migrations
+independently and no gate detected the collision before merge.
+
+**Decision:**
+
+- **Migrations:** restored `0008_graceful_maggott.sql` (+ snapshot) verbatim
+  from the original main commit so remote tracking names match; moved only
+  the admin-column deltas (`session.impersonated_by`,
+  `user.role/banned/ban_reason/ban_expires`) into new
+  `0009_admin_plugin_columns.sql`. Verified by fresh-DB replay and
+  `drizzle-kit generate` producing "nothing to migrate".
+- **Deployer split:** Cloudflare Pages git integration is the **only** site
+  deployer. The GitHub Actions deploy job became a `migrate`-only job
+  (`wrangler d1 migrations apply beeking --remote`) gated on `[test, e2e]`
+  and `refs/heads/main`, so migrations run _before_ Pages ships new code.
+  The Actions build/Pages-deploy steps were deleted (they raced Pages).
+- **Migration-replay guard:** the test job now replays the full journal on a
+  throwaway SQLite file before building, so a colliding/duplicated migration
+  fails CI in seconds instead of surfacing at deploy time.
+- **e2e isolation:** the Playwright webServer uses a wiped-every-run
+  `--persist-to .wrangler/state/e2e` miniflare directory. Sharing the default
+  `.wrangler/state/v3` WAL with a concurrently running dev server crashed
+  workerd on the first D1 write ("Network connection lost"); fresh state also
+  makes rate-limit budgets start clean (dropped the clear-limits step).
+- **Phantom deps declared:** `@threlte/core`, `@threlte/extras`, `three`
+  (+ `@types/three`) are imported by the blend-lab scene but were never in
+  package.json; a strict reinstall dropped their hoisted symlinks and broke
+  svelte-check. Declared with store-resolved versions.
+
+**Consequences:** Production deploys can never apply a migration after code
+that needs it within the same push (migrate job runs first; Pages follows).
+Two branches generating the same revision still collide — the replay guard
+catches it pre-merge instead of post-deploy. Local e2e can now run alongside
+`vp dev`. The Actions CLOUDFLARE_API_TOKEN can be narrowed to D1-edit scope
+only.
+
+## 2026-08-25: Roadmap reordering — SEO/polish and analytics first, payments last
+
+**Context:** A full completeness audit against a 13-domain e-commerce checklist
+found strong engineering foundations (idempotent checkout, guarded stock
+decrements, auth, admin, i18n, tests) but zero monetization (checkout writes
+`status:"paid"` with no gateway), zero communications (no email/SMS anywhere),
+near-zero SEO surface (title tags only; no OG/JSON-LD/sitemap/canonical). The
+audit recommended payments first; the owner explicitly overrode: improve and
+expose what exists before monetizing.
+
+**Decision:** Strict phase order recorded in `docs/todo.md` Roadmap
+(2026-08-25): Phase 1 SEO & polish → Phase 2 PostHog → Phase 3 two-storefront
+catalog expansion → Phase 4 transactional email → Phase 5 ops hardening →
+Phase 6 payment gateway LAST.
+
+**Consequences:** Orders continue to be created as `status:"paid"` without
+collecting money until Phase 6; the store stays non-transactable while traffic,
+analytics, and catalog groundwork proceed.
+
+## 2026-08-25: PostHog adopted for product analytics
+
+**Context:** No behavioral analytics exist. Funnel visibility
+(view→cart→checkout→purchase) is required before any marketing spend.
+
+**Decision:** Adopt PostHog via posthog-js in SvelteKit with an explicit event
+taxonomy (`product_view`, `add_to_cart`, `remove_from_cart`, `begin_checkout`,
+`purchase`, `search`); key supplied through Pages env vars; form-input
+masking enabled.
+
+**Consequences:** Third-party script on all pages (bundle-size + privacy review
+due at implementation); `purchase` events reflect mock payment until Phase 6.
+
+## 2026-08-25: Catalog splits into two storefronts; owner price list is the seed source
+
+**Context:** The business sells retail honey AND beekeeping equipment; the flat
+8-category / 43-variant tree cannot express it. Owner supplied the live
+203-row pricing list (EGP).
+
+**Decision:** Expand to two departments — honey retail and beekeeping supplies
+— under ONE cart/checkout. Raw list preserved verbatim at
+`docs/catalog/pricing-list-2026-08-25.md` with flagged data issues: one
+negative price (مصنعيه شمع خام −345), two rows missing names, near-duplicate
+container names to dedupe, `[1001]`/`[1002]`/`[300]` codes promoted to SKUs,
+`XXX` typo prefix, and per-unit "بالكمية" wholesale rows excluded from v1
+e-commerce until units are defined.
+
+**Consequences:** Schema migration required (department dimension + sku +
+published + optional costPrice/salePrice/weightGrams); bilingual `nameEn` pass
+needed for ~200 new lines; admin gains a bulk-import workflow.
+
+## 2026-08-25: Stay on D1 in production; Neon (Postgres) documented as evaluated contingency
+
+**Context:** Owner asked whether free-tier Neon would be better for production.
+The codebase leans on SQLite/D1 specifics: FTS5 MATCH search, atomic
+`db.batch()` compensation logic (D1 has no interactive transactions), epoch-ms
+integer timestamps, and D1-specific limits worked around in code (100-param
+cap, ~50-byte LIKE cap).
+
+**Decision:** Remain on D1 (colocated with Workers = lowest latency, zero
+migration risk at current scale). Re-evaluate triggers only if: interactive
+transactions/reporting SQL become necessary, data outgrows practical D1 size,
+or FTS5 proves inadequate for Arabic search even after normalization.
+
+**Consequences:** A Neon move is a sub-project, not a config flip (tsvector
+search rewrite, batch→transaction port, timestamp/type migrations, Hyperdrive
+pooling latency tradeoff); no effort is spent on it now.
