@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { waitForApp } from "./e2e-utils";
+import { expect } from "@playwright/test";
+import { test, waitForApp } from "./e2e-utils";
 
 test.use({ locale: "ar-EG" });
 

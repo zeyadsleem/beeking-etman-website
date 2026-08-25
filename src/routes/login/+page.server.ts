@@ -5,6 +5,7 @@ import { auth } from "$lib/server/auth";
 import { db } from "$lib/server/db";
 import { env } from "$env/dynamic/private";
 import { getLang } from "$lib/server/lang";
+import { safeRedirectTarget } from "$lib/server/login-redirect";
 import { AUTH_RATE_LIMITS, clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
 import { t } from "$lib/i18n/messages";
 import type { Actions, PageServerLoad } from "./$types";
@@ -12,7 +13,9 @@ import type { Actions, PageServerLoad } from "./$types";
 const loginLimiter = createDbRateLimiter(db, AUTH_RATE_LIMITS.login);
 
 export const load: PageServerLoad = (event) => {
-  if (event.locals.user) redirect(302, "/account");
+  const redirectTo = event.url.searchParams.get("redirectTo");
+  if (event.locals.user) redirect(302, safeRedirectTarget(redirectTo));
+  return { redirectTo: safeRedirectTarget(redirectTo) };
 };
 
 export const actions: Actions = {
@@ -32,6 +35,6 @@ export const actions: Actions = {
       return fail(500, { message: t(lang, "errors.unexpected") });
     }
     await promoteAdminByEmail(db, email, { ADMIN_EMAIL: env.ADMIN_EMAIL });
-    redirect(302, "/account");
+    redirect(302, safeRedirectTarget(event.url.searchParams.get("redirectTo")));
   },
 };

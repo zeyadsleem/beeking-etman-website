@@ -52,6 +52,30 @@ export async function listAddresses(db: Db, userId: string): Promise<SavedAddres
     .orderBy(asc(schema.address.createdAt));
 }
 
+export type AddressSummary = Pick<
+  SavedAddress,
+  "id" | "label" | "name" | "phone" | "address" | "city" | "isDefault"
+>;
+
+// Column projection for contexts that only display saved addresses (e.g. the
+// checkout picker) so timestamps and ownership columns are never serialized
+// into page data.
+export async function listAddressSummaries(db: Db, userId: string): Promise<AddressSummary[]> {
+  return db
+    .select({
+      id: schema.address.id,
+      label: schema.address.label,
+      name: schema.address.name,
+      phone: schema.address.phone,
+      address: schema.address.address,
+      city: schema.address.city,
+      isDefault: schema.address.isDefault,
+    })
+    .from(schema.address)
+    .where(eq(schema.address.userId, userId))
+    .orderBy(asc(schema.address.createdAt));
+}
+
 export async function getDefaultAddress(db: Db, userId: string): Promise<SavedAddress | null> {
   const rows = await db
     .select()

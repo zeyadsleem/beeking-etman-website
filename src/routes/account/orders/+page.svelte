@@ -28,16 +28,22 @@
   {:else}
     <ul class="mt-8 space-y-4">
       {#each data.orders as order (order.id)}
-        <li class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cocoa-100 bg-parchment p-5 shadow-warm-sm transition hover:border-cocoa-200">
-          <div>
-            <a href={`/checkout/success/${order.id}`} class="headline text-lg text-honey-700 hover:underline" data-testid="order-link">{order.number}</a>
-            <p class="mt-0.5 text-sm text-cocoa-500">{formatDate(lang, order.createdAt)}</p>
-          </div>
-          <div class="text-start">
-            <span class="text-sm text-cocoa-500">{t(lang, "orders.status")}</span>
-            <span class="ms-2 badge-ok">{#if order.status === "paid"}{t(lang, "orders.paid")}{:else}{t(lang, "orders.unknown")}{/if}</span>
-          </div>
-          <span class="font-extrabold text-cocoa-900">{formatEGP(order.total, lang)}</span>
+        <li>
+          <a
+            href={`/account/orders/${order.id}`}
+            class="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cocoa-100 bg-parchment p-5 shadow-warm-sm transition hover:border-cocoa-200"
+            data-testid="order-link"
+          >
+            <div>
+              <span class="headline text-lg text-honey-700 group-hover:underline">{order.number}</span>
+              <p class="mt-0.5 text-sm text-cocoa-500">{formatDate(lang, order.createdAt)}</p>
+            </div>
+            <div class="text-start">
+              <span class="text-sm text-cocoa-500">{t(lang, "orders.status")}</span>
+              <span class="ms-2 badge-ok">{#if order.status === "paid"}{t(lang, "orders.paid")}{:else}{t(lang, "orders.unknown")}{/if}</span>
+            </div>
+            <span class="font-extrabold text-cocoa-900">{formatEGP(order.total, lang)}</span>
+          </a>
         </li>
       {/each}
     </ul>

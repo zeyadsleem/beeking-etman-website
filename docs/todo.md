@@ -11,12 +11,16 @@ Major gaps agreed after the 2026-08-22 outage. Each item is an independent
 sub-project with its own spec → plan → implementation cycle; work them top to
 bottom unless the user reorders.
 
-1. [ ] **Customer account area** — profile page (name, email, password change),
+1. [x] **Customer account area** — profile page (name, email, password change),
        saved addresses (schema + checkout prefill), full order history with
-       status/detail view, sign-out everywhere. **← current focus**
-2. [ ] **Transactional email** — order confirmation + status updates
+       status/detail view, sign-out everywhere (`93e21f2..e97fe7b`)
+2. [x] **Admin dashboard** — `/admin` behind a role gate: orders list + status
+       transitions, product/variant/image CRUD, stock adjustments, basic sales
+       stats. Without it every operational task requires direct DB access.
+       (shipped on `feat/admin-dashboard`)
+3. [ ] **Transactional email** — order confirmation + status updates
        (Cloudflare Email Service or Resend), triggered post-checkout.
-3. [ ] **Real payment gateway** — replace mock payment (Paymob/Fawry for EGP).
+4. [ ] **Real payment gateway** — replace mock payment (Paymob/Fawry for EGP).
        Deferred by user decision 2026-08-22 until items 1–3 land.
 
 ## Post-merge follow-ups (admin dashboard, 2026-08-23)
@@ -172,6 +176,17 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] Unit + e2e coverage: cart/cookie/store/orders blend tests; `blends.e2e.ts`
       composes a blend end-to-end (goal → honey → mix → success → cart).
 
+### Customer account area (`2026-08-22-customer-account.md`)
+
+- [x] Task 1 — `store_address` table + migration 0007, no-FK per spec (`93e21f2`)
+- [x] Task 2 — Address service: 10-address cap, single default with atomic
+      batch promotion, ownership-scoped queries (`c84ced1`)
+- [x] Task 3 — Profile hub: name change, password change, sign-out (`219b6b3`)
+- [x] Task 4 — Saved-address CRUD page (`4f0cd93`)
+- [x] Task 5 — Order detail page, ownership-gated (404 on cross-user) (`d12333e`)
+- [x] Task 6 — Checkout saved-address picker + optional save-after-order (`69cac95`)
+- [x] Task 7 — E2E journey incl. IDOR negative; clean-run webServer chain (`e97fe7b`)
+
 ### Blends 3D game (`2026-08-23-blends-3d-game`)
 
 - [x] Threlte v9 3D lab at `/blends`: goal table → honey shelf (+ size chips
@@ -186,8 +201,9 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] Liquid honey surface follows the bowl lathe profile (inset) so it no
       longer clips through the glass walls; geometry derives from paired
       GlassBowl radius/height.
-- [x] Hero mobile brand image testid fixed (`hero-brand-mobile-img`) — the old
-      spec asserted `src` on a wrapper div that has no attribute.
+- [x] Hero mobile brand image testid fixed so the spec asserts `src` on the
+      `<img>` itself, not a wrapper div — merged resolution adopts the admin
+      rework's `hero-brand-img-inline` naming.
 
 ### Discovered
 

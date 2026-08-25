@@ -907,3 +907,38 @@ shared `KvLikeNamespace` structural type covers both the write half (uploads)
 and the arrayBuffer read half (serving route), keeping
 `@cloudflare/workers-types` globals out of client code per the app.d.ts
 convention.
+||||||| 4f0cd93
+=======
+
+## 2026-08-23: better-auth 1.7 account.issuer + e2e restart resilience (Task 7)
+
+**Context:** Task 7's e2e suite was the first automated coverage of `/register`;
+it exposed that `signUpEmail` 500'd after inserting the user row. better-auth
+1.7 scopes account identities by a new required `issuer` field, and its drizzle
+adapter throws `BetterAuthError` when the schema lacks it — the committed
+auth schema predated 1.7. Separately, full e2e runs died to the preview server
+exiting mid-run.
+
+**Decision:**
+
+- **Migration `0008`:** `account.issuer TEXT NOT NULL DEFAULT 'local:credential'`
+  - `UNIQUE(issuer, account_id)` per the better-auth 1.7 upgrade guide. The
+    default exists because SQLite cannot ADD COLUMN NOT NULL without one; every
+    account this app creates is credential-scoped so the value is semantically
+    exact. No data backfill needed (`account` had zero rows in every env).
+- **e2e resilience:** wrangler ≥4.114 exits on benign client-side request
+  aborts during page loads (upstream cloudflare/workers-sdk#14926, unfixed as
+  of 4.125; miniflare 5-alpha affected too; downgrading wrangler breaks our
+  compatibility_date). Instead of pinning versions, `src/routes/e2e-utils.ts`
+  exports a Playwright fixture whose `page.goto` retries through ~15–30s
+  restart windows; local retries raised to 2. Store guest-checkout reaches
+  checkout via the cart page because the drawer button unmounts its own anchor
+  mid-click and can swallow the navigation.
+- **pnpm-workspace:** resolved the pending `sharp` build decision to `false`
+  (prebuilt binaries are used) — an unresolved decision made pnpm's
+  verify-deps-before-run fail any script after dependency changes.
+
+**Consequences:** Registration works again (user + credential account +
+session in one call). Future better-auth upgrades must regenerate/verify the
+account schema. e2e remains sensitive to machine load (crash cascades under
+heavy parallel CPU work) but recovers via retry+fixture instead of failing.
