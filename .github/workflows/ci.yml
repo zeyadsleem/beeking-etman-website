@@ -20,6 +20,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
       - run: pnpm run test:unit -- --run --project server
+      # Replay the full migration chain against a throwaway SQLite file so a
+      # duplicate/conflicting migration fails here, seconds after push.
+      - run: pnpm exec drizzle-kit migrate
+        env:
+          DATABASE_URL: file:/tmp/migration-replay.db
       - run: pnpm run build
 
   e2e:
@@ -40,13 +45,13 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm exec playwright test
 
-  deploy:
+  migrate:
+    # Cloudflare Pages (git integration) is the only deployer for the site.
+    # This job exists solely to apply D1 schema migrations to production
+    # before the new Worker code goes live, and is gated on e2e passing.
     if: github.ref == 'refs/heads/main'
-    needs: test
+    needs: [test, e2e]
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      deployments: write
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -57,19 +62,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      # Apply D1 schema migrations to the remote database BEFORE deploying the
-      # new Worker code, so the code never runs against an outdated schema.
       # Idempotent: applied migrations are tracked in the remote d1_migrations
-      # table and skipped on subsequent deploys.
+      # table and skipped on subsequent runs.
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: d1 migrations apply beeking --remote
-      - uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .svelte-kit/cloudflare --project-name=beeking-etman-website
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
