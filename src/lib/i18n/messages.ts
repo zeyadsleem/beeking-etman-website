@@ -456,6 +456,7 @@ const ar = {
   "blends.game.order.outOfStock": "الكمية المتاحة غير كافية",
   "blends.game.fallback.webgl": "جهازك مش بيدعم العرض ثلاثي الأبعاد، ففتحنا لك النسخة الكلاسيكية.",
   "blends.game.fallback.force2d": "بنعرض لك النسخة الكلاسيكية من مختبر الخلطات.",
+  "blends.game.bootError": "حصلت مشكلة وإحنا بنشغّل مختبر الخلطات. جرّب تاني أو زور المتجر.",
   "blends.game.action.goals": "اختيارات الخلطة",
   "blends.game.action.honeys": "أنواع العسل",
   "blends.game.action.jarHalf": "نص كيلو",
@@ -895,6 +896,8 @@ const en: Record<MessageKey, string> = {
   "blends.game.fallback.webgl":
     "Your device does not support 3D, so we opened the classic version for you.",
   "blends.game.fallback.force2d": "Showing the classic version of the Blend Lab.",
+  "blends.game.bootError":
+    "Something went wrong while starting the Blend Lab. Try again or visit the store.",
   "blends.game.action.goals": "Blend goals",
   "blends.game.action.honeys": "Honey types",
   "blends.game.action.jarHalf": "Half kilo",

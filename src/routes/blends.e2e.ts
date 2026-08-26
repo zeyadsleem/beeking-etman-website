@@ -9,8 +9,8 @@ test.use({ locale: "ar-EG" });
  * pointer clicks would be hit-tested against whatever overlays it (the sticky
  * header) instead of reaching the button.
  */
-function pressAction(page: Page, testId: string): void {
-  void page.getByTestId(testId).dispatchEvent("click");
+async function pressAction(page: Page, testId: string): Promise<void> {
+  await page.getByTestId(testId).dispatchEvent("click");
 }
 
 test("customer composes a blend in the phaser game and adds it to the cart", async ({ page }) => {
@@ -22,25 +22,25 @@ test("customer composes a blend in the phaser game and adds it to the cart", asy
   await expect(scene.locator("canvas")).toBeVisible();
   await expect(page.getByTestId("blends-boot-spinner")).toBeHidden();
 
-  pressAction(page, "action-goal-vitality");
+  await pressAction(page, "action-goal-vitality");
 
-  pressAction(page, "action-jar-half");
+  await pressAction(page, "action-jar-half");
   await expect(page.getByTestId("action-jar-half")).toHaveAttribute("aria-pressed", "true");
-  pressAction(page, "action-jar-full");
+  await pressAction(page, "action-jar-full");
   await expect(page.getByTestId("action-jar-full")).toHaveAttribute("aria-pressed", "true");
-  pressAction(page, "action-honey-clover");
+  await pressAction(page, "action-honey-clover");
 
   const addGinseng = page.getByTestId("action-dose-add-ginseng");
   await expect(addGinseng).toBeEnabled();
-  pressAction(page, "action-dose-add-ginseng");
+  await pressAction(page, "action-dose-add-ginseng");
   await expect(page.getByTestId("action-dose-remove-ginseng")).toBeEnabled();
-  pressAction(page, "action-stir-start");
+  await pressAction(page, "action-stir-start");
 
   await expect(page.getByTestId("stir-progress-ring")).toBeVisible();
-  pressAction(page, "action-stir-finish");
+  await pressAction(page, "action-stir-finish");
 
   await expect(page.getByTestId("blends-pour-hint")).toBeVisible();
-  pressAction(page, "action-pour");
+  await pressAction(page, "action-pour");
 
   await expect(page.getByRole("heading", { name: "خلطتك جاهزة!" })).toBeVisible();
 

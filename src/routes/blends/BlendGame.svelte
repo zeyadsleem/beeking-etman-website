@@ -146,7 +146,7 @@
 		<div class="absolute inset-0 grid place-items-center p-6" data-testid="blends-boot-error">
 			<div class="max-w-md rounded-xl bg-white/95 p-6 text-center shadow-xl">
 				<p class="mb-4 font-semibold text-cocoa-900">
-					{t(data.lang, "blends.game.fallback.webgl")}
+					{t(data.lang, "blends.game.bootError")}
 				</p>
 				<a class="btn-primary" href="/products">{t(data.lang, "nav.store")}</a>
 			</div>

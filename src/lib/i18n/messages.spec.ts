@@ -36,6 +36,7 @@ const GAME_KEYS = [
   "blends.game.order.outOfStock",
   "blends.game.fallback.webgl",
   "blends.game.fallback.force2d",
+  "blends.game.bootError",
   "blends.game.action.goals",
   "blends.game.action.honeys",
   "blends.game.action.jarHalf",
