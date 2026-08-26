@@ -1,10 +1,11 @@
-import { and, asc, desc, eq, inArray, like, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { jarLabel, ADDITIVE_LABELS, isAdditiveKey } from "$lib/blends";
 import type { BlendCartItem, CartEntry, CartItem, CartLine } from "$lib/cart";
 import { isBlendEntry } from "$lib/cart";
 import { localized, type Lang } from "$lib/i18n/messages";
 import * as schema from "$lib/server/db/schema";
+import { ftsNormalizeSqlExpr, normalizeArabic } from "$lib/server/arabic";
 
 export interface ProductVariantSummary {
   id: string;
@@ -110,7 +111,12 @@ function minPriceOf(rows: readonly { price: number }[], fallback: number): numbe
 }
 
 function categoryNameCondition(q: string): SQL {
-  const condition = or(like(schema.category.name, q), like(schema.category.nameEn, q));
+  // Both sides are normalized so diacritic/alef/taa variants match, mirroring
+  // the FTS index folding (see arabic.ts).
+  const condition = or(
+    sql`${sql.raw(ftsNormalizeSqlExpr('"store_category"."name"'))} LIKE ${q}`,
+    sql`${sql.raw(ftsNormalizeSqlExpr('"store_category"."name_en"'))} LIKE ${q}`,
+  );
   if (condition === undefined) {
     throw new Error("category name condition unexpectedly empty");
   }
@@ -193,7 +199,7 @@ export async function findCategoryByQuery(
   db: LibSQLDatabase<typeof schema>,
   query: string,
 ): Promise<{ id: string; slug: string } | null> {
-  const q = `%${truncateQueryToByteLimit(query.trim())}%`;
+  const q = `%${normalizeArabic(truncateQueryToByteLimit(query.trim()))}%`;
   const row = await db.select().from(schema.category).where(categoryNameCondition(q)).get();
   return row ? { id: row.id, slug: row.slug } : null;
 }
@@ -218,10 +224,14 @@ export async function getFeaturedProducts(
 }
 
 function toFtsQuery(query: string): string {
+  // Tokens are normalized with the same folding the FTS triggers apply at
+  // index time (arabic.ts), so undiacritized/alef-unified user input matches.
   return query
     .trim()
     .split(/\s+/)
     .filter(Boolean)
+    .map((token) => normalizeArabic(token))
+    .filter((token) => token.length > 0)
     .map((token) => `"${token.replaceAll('"', '""')}"*`)
     .join(" ");
 }

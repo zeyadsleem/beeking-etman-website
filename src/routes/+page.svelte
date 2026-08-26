@@ -3,6 +3,8 @@
   import Hero from "$lib/components/Hero.svelte";
   import ProductCard from "$lib/components/ProductCard.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
+  import Seo from "$lib/components/Seo.svelte";
+  import { organizationJsonLd, websiteJsonLd } from "$lib/seo";
   import { t } from "$lib/i18n/messages";
   import type { ProductSummary } from "$lib/server/store";
   import type { PageData } from "./$types";
@@ -52,7 +54,13 @@
   ];
 </script>
 
-<svelte:head><title>{t(lang, "home.title")}</title></svelte:head>
+<Seo
+  title={t(lang, "home.title")}
+  description={t(lang, "meta.home.description")}
+  path="/"
+  siteName={t(lang, "brand.name")}
+  jsonLd={[organizationJsonLd(lang), websiteJsonLd(lang)]}
+/>
 
 <Hero lang={lang} featured={data.featured} productCount={data.products.length} />
 

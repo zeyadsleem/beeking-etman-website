@@ -8,6 +8,7 @@ import * as schema from "$lib/server/db/schema";
 import { isBlendItem } from "$lib/cart";
 import { getProductWithVariants, listProducts, resolveCartItems } from "./store";
 import { clampLimit, findCategoryByQuery, truncateQueryToByteLimit } from "./store";
+import { ftsNormalizeSqlExpr } from "./arabic";
 
 const DB_FILE = "store-test.db";
 
@@ -65,7 +66,13 @@ async function buildDb() {
   await db.run(`
     CREATE TRIGGER store_product_fts_ai AFTER INSERT ON store_product BEGIN
       INSERT INTO store_product_fts(product_id, name, description, name_en, description_en)
-      VALUES (new.id, new.name, new.description, new.name_en, new.description_en);
+      VALUES (
+        new.id,
+        ${ftsNormalizeSqlExpr("new.name")},
+        ${ftsNormalizeSqlExpr("new.description")},
+        ${ftsNormalizeSqlExpr("new.name_en")},
+        ${ftsNormalizeSqlExpr("new.description_en")}
+      );
     END`);
   await db.run(`
     CREATE TRIGGER store_product_fts_ad AFTER DELETE ON store_product BEGIN
@@ -75,7 +82,13 @@ async function buildDb() {
     CREATE TRIGGER store_product_fts_au AFTER UPDATE ON store_product BEGIN
       DELETE FROM store_product_fts WHERE product_id = old.id;
       INSERT INTO store_product_fts(product_id, name, description, name_en, description_en)
-      VALUES (new.id, new.name, new.description, new.name_en, new.description_en);
+      VALUES (
+        new.id,
+        ${ftsNormalizeSqlExpr("new.name")},
+        ${ftsNormalizeSqlExpr("new.description")},
+        ${ftsNormalizeSqlExpr("new.name_en")},
+        ${ftsNormalizeSqlExpr("new.description_en")}
+      );
     END`);
   const cat = (
     await db
@@ -183,6 +196,16 @@ describe("store queries with variants", () => {
     const rows = await listProducts(db, { query: "سدر" });
     expect(rows).toHaveLength(1);
     expect(rows[0].name).toBe("عسل سدر مصري");
+  });
+
+  it("matches diacritized and alef-variant queries against normalized index", async () => {
+    const { db } = await buildDb();
+    // Index holds "عسل سدر مصري" (plain); queries arrive with harakat and a
+    // hamza-carrying alef form that must fold to the same tokens.
+    for (const query of ["سِدْر", "مَـصر", "عَسَل"]) {
+      const rows = await listProducts(db, { query });
+      expect(rows.map((r) => r.slug)).toContain("sidr-egyptian");
+    }
   });
 
   it("localizes to English when lang=en", async () => {

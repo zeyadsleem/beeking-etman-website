@@ -9,7 +9,10 @@
   const lang = $derived(data.lang);
 </script>
 
-<svelte:head><title>{t(lang, "success.title")}</title></svelte:head>
+<svelte:head>
+  <title>{t(lang, "success.title")}</title>
+  <meta name="robots" content="noindex, nofollow" />
+</svelte:head>
 
 <div class="mx-auto max-w-2xl pt-10 text-center motion-safe:animate-fade-up">
   <div class="mx-auto grid h-20 w-20 place-items-center rounded-full border border-honey-200 bg-honey-50">

@@ -21,7 +21,10 @@
   });
 </script>
 
-<svelte:head><title>{t(lang, "cart.pageTitle")}</title></svelte:head>
+<svelte:head>
+  <title>{t(lang, "cart.pageTitle")}</title>
+  <meta name="robots" content="noindex, nofollow" />
+</svelte:head>
 
 <div class="mt-8">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "cart.title")}</SectionTitle>

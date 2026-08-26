@@ -5,6 +5,7 @@
   import HoneycombIcon from "$lib/components/HoneycombIcon.svelte";
   import ProductCard from "$lib/components/ProductCard.svelte";
   import SearchSuggestions from "$lib/components/SearchSuggestions.svelte";
+  import Seo from "$lib/components/Seo.svelte";
   import { goto } from "$app/navigation";
   import { getDir, t } from "$lib/i18n/messages";
   import type { SortOrder } from "$lib/server/store";
@@ -43,7 +44,13 @@
   }
 </script>
 
-<svelte:head><title>{t(lang, "products.pageTitle")}</title></svelte:head>
+<Seo
+  title={t(lang, "products.pageTitle")}
+  description={t(lang, "meta.store.description")}
+  path="/products"
+  siteName={t(lang, "brand.name")}
+  noindex={Boolean(data.filters.q)}
+/>
 
 <section class="mt-8">
   <p class="eyebrow">{t(lang, "brand.name")}</p>

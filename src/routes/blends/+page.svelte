@@ -2,6 +2,7 @@
   import { onMount, type Component } from "svelte";
   import { hasWebGL } from "$lib/blend-lab/webgl";
   import { t } from "$lib/i18n/messages";
+  import Seo from "$lib/components/Seo.svelte";
   import FallbackBlends from "./FallbackBlends.svelte";
   import type { PageData } from "./$types";
 
@@ -31,9 +32,12 @@
   });
 </script>
 
-<svelte:head>
-  <title>{t(data.lang, "blends.pageTitle")}</title>
-</svelte:head>
+<Seo
+  title={t(data.lang, "blends.pageTitle")}
+  description={t(data.lang, "blends.subtitle")}
+  path="/blends"
+  siteName={t(data.lang, "brand.name")}
+/>
 
 <div class="relative min-h-dvh bg-parchment" data-testid="blends-shell">
   {#if mode === "game" && Scene}

@@ -5,23 +5,96 @@ Ordered work items with status. The original storefront shipped under
 under `docs/superpowers/plans/2026-08-14-mamlakat-alnahl.md` (spec
 `docs/superpowers/specs/2026-08-14-mamlakat-alnahl-design.md`).
 
-## Roadmap (2026-08-22)
+## Roadmap (2026-08-25)
 
-Major gaps agreed after the 2026-08-22 outage. Each item is an independent
-sub-project with its own spec → plan → implementation cycle; work them top to
-bottom unless the user reorders.
+Owner-approved reordering after the full store-completeness audit (2026-08-25):
+polish + SEO of what already exists comes first, PostHog analytics lands early,
+the catalog expands into TWO storefronts (honey retail + beekeeping supplies,
+203-item owner price list captured at
+`docs/catalog/pricing-list-2026-08-25.md`), and the real payment gateway moves
+to LAST by explicit owner decision. Work phases strictly top to bottom; each
+phase keeps its own spec → plan → implementation cycle.
 
-1. [x] **Customer account area** — profile page (name, email, password change),
-       saved addresses (schema + checkout prefill), full order history with
-       status/detail view, sign-out everywhere (`93e21f2..e97fe7b`)
-2. [x] **Admin dashboard** — `/admin` behind a role gate: orders list + status
-       transitions, product/variant/image CRUD, stock adjustments, basic sales
-       stats. Without it every operational task requires direct DB access.
-       (shipped on `feat/admin-dashboard`)
-3. [ ] **Transactional email** — order confirmation + status updates
-       (Cloudflare Email Service or Resend), triggered post-checkout.
-4. [ ] **Real payment gateway** — replace mock payment (Paymob/Fawry for EGP).
-       Deferred by user decision 2026-08-22 until items 1–3 land.
+### Phase 1 — SEO & polish of what exists (top priority) — SHIPPED 2026-08-26
+
+1. [x] Meta description (AR/EN): home + store via `meta.*.description` i18n
+       keys; product detail derives from the description (`metaDescription()`).
+2. [x] Open Graph + Twitter card tags via shared `Seo.svelte`
+       (home, store, detail, blends; private routes get `noindex` instead).
+3. [x] JSON-LD: Product/Offer + BreadcrumbList on detail pages,
+       Organization + WebSite on home. SearchAction deferred until site
+       search is a first-class landing page.
+4. [x] Dynamic `/sitemap.xml` (static entries + all products, lastmod from
+       createdAt) + robots.txt sitemap pointer and private-path disallows.
+5. [x] Canonical URLs via `PUBLIC_SITE_URL` (defaults to pages.dev origin).
+       hreflang NOT applicable: language is cookie-based, not path-based —
+       revisit only if AR/EN get distinct URLs.
+6. [x] Arabic FTS normalization: `arabic.ts` (TS + SQL REPLACE mirror),
+       migration 0010 rebuilds index with normalized triggers, query path
+       normalizes tokens + category LIKE; sync tests prove TS/SQL/migration
+       never drift.
+7. [x] Media route already emitted `Cache-Control: immutable` (verified;
+       audit item was stale). Prerendering deferred — pages are per-cookie
+       (lang/user), so prerender needs an anonymous-layout split first.
+8. [x] No stray test DBs remained in git (audit item was stale);
+       `.gitignore` now blocks `*.db` / `*.sqlite` / `*.db-journal`.
+
+Quality gate: `vp check` 0 errors, `vp test` 438/438, `vp build` clean.
+
+### Phase 2 — PostHog product analytics
+
+1. [ ] posthog-js wired through SvelteKit, key from Pages env; input masking
+       on; `lang` recorded as a person property.
+2. [ ] Event taxonomy: `product_view`, `add_to_cart`, `remove_from_cart`,
+       `begin_checkout`, `purchase` (total + item count), `search`
+       (query length + result count). Purchase capture stays mock-aware until
+       Phase 6.
+3. [ ] Funnel dashboard (view → cart → checkout → success) as the baseline
+       before any marketing spend.
+
+### Phase 3 — Catalog expansion: honey store + beekeeping-tools store
+
+Seed source of truth: `docs/catalog/pricing-list-2026-08-25.md`. Cleanup pass
+FIRST (issues flagged in that file): fix the negative price, park wholesale
+"بالكمية" per-unit rows, resolve near-duplicate jar/container names, promote
+`[1001]`/`[1002]`/`[300]` codes to real SKUs, drop the `XXX` typo prefix.
+
+1. [ ] Schema migration: department dimension on category (`honey` |
+       `equipment`) or parentId; `product.sku` unique-nullable;
+       `product.published` flag; optional `costPrice`/`salePrice`; optional
+       `weightGrams` (future zone shipping depends on it).
+2. [ ] Category tree: عسل (برسيم/موالح/سدر/حبة البركة/بردقوش/خلطات
+       ومكسرات/منتجات الخلية) + أدوات النحالين (خلايا وأجزاؤها/فرازات
+       واستخراج/ملابس وقاية/أدوات تشغيل/تعبئة وتغليف/شمع أساس/علاج فاروا).
+3. [ ] Seed pipeline importing the ~200 new sellable lines as products +
+       variants; bilingual `nameEn` pass (currently empty for seeds).
+4. [ ] Storefront split UX: department switcher + landing routes sharing ONE
+       cart/checkout; blends studio untouched.
+5. [ ] Admin: department filter + bulk-import review screen.
+
+### Phase 4 — Transactional email (support flows unblocked)
+
+Order confirmation + status-change emails (Cloudflare Email Service or
+Resend), password reset via Better Auth SMTP (reset is currently impossible),
+and a Cron Trigger skeleton reserved for abandoned-cart recovery.
+
+### Phase 5 — Operations hardening
+
+Invoice PDF (basic), admin CSV export, Cairo-timezone reporting buckets (the
+dashboard's UTC day bucketing splits the business day), admin audit log,
+KV media guardrails (cache headers + usage alerts against free-tier caps).
+
+### Phase 6 — Real payment gateway (LAST — owner decision 2026-08-25)
+
+Paymob/Fawry evaluation for EGP, COD toggle, separate `paymentStatus` vs
+`fulfillmentStatus`, idempotent webhook handling, refund policy. Revisit
+stock-decrement semantics (at-order vs at-payment) during spec.
+
+### Superseded
+
+- ~~Roadmap (2026-08-22)~~: items 1 (customer account area) and 2 (admin
+  dashboard) shipped; items 3 (email) and 4 (payments) are absorbed above as
+  Phases 4 and 6 respectively.
 
 ## Post-merge follow-ups (admin dashboard, 2026-08-23)
 

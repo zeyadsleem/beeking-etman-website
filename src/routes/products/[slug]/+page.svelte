@@ -7,6 +7,8 @@
   import ProductImageGallery from "$lib/components/ProductImageGallery.svelte";
   import QuantityPicker from "$lib/components/QuantityPicker.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
+  import Seo from "$lib/components/Seo.svelte";
+  import { breadcrumbJsonLd, metaDescription, productJsonLd } from "$lib/seo";
   import { addToCart } from "$lib/cart-store.svelte";
   import { regularItemPayload } from "$lib/cart";
   import { formatEGP } from "$lib/currency";
@@ -43,7 +45,29 @@
   }
 </script>
 
-<svelte:head><title>{t(lang, "detail.pageTitle", { name: data.product.name })}</title></svelte:head>
+<Seo
+  title={t(lang, "detail.pageTitle", { name: data.product.name })}
+  description={metaDescription(data.product.description)}
+  path={`/products/${data.product.slug}`}
+  siteName={t(lang, "brand.name")}
+  image={data.product.image}
+  ogType="product"
+  jsonLd={[
+    productJsonLd({
+      slug: data.product.slug,
+      name: data.product.name,
+      description: data.product.description,
+      image: data.product.image,
+      minPrice: data.product.minPrice,
+      inStock: data.product.variants.some((v) => v.stock > 0),
+    }),
+    breadcrumbJsonLd([
+      { name: t(lang, "nav.home"), path: "/" },
+      { name: t(lang, "nav.store"), path: "/products" },
+      { name: data.product.name },
+    ]),
+  ]}
+/>
 
 {#key data.product.id}
 <Breadcrumb

@@ -52,7 +52,10 @@
   });
 </script>
 
-<svelte:head><title>{t(lang, "checkout.pageTitle")}</title></svelte:head>
+<svelte:head>
+  <title>{t(lang, "checkout.pageTitle")}</title>
+  <meta name="robots" content="noindex, nofollow" />
+</svelte:head>
 
 <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
   <form
