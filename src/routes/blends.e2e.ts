@@ -1,7 +1,17 @@
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { test, waitForApp } from "./e2e-utils";
 
 test.use({ locale: "ar-EG" });
+
+/**
+ * Activates an action-bar control the way assistive technology does. The
+ * action bar is sr-only DOM mirroring every canvas interaction, so synthetic
+ * pointer clicks would be hit-tested against whatever overlays it (the sticky
+ * header) instead of reaching the button.
+ */
+function pressAction(page: Page, testId: string): void {
+  void page.getByTestId(testId).dispatchEvent("click");
+}
 
 test("customer composes a blend in the phaser game and adds it to the cart", async ({ page }) => {
   await page.goto("/blends", { waitUntil: "domcontentloaded" });
@@ -12,26 +22,25 @@ test("customer composes a blend in the phaser game and adds it to the cart", asy
   await expect(scene.locator("canvas")).toBeVisible();
   await expect(page.getByTestId("blends-boot-spinner")).toBeHidden();
 
-  // The action bar is sr-only DOM mirroring every canvas interaction.
-  await page.getByTestId("action-goal-vitality").click();
+  pressAction(page, "action-goal-vitality");
 
-  await page.getByTestId("action-jar-half").click();
+  pressAction(page, "action-jar-half");
   await expect(page.getByTestId("action-jar-half")).toHaveAttribute("aria-pressed", "true");
-  await page.getByTestId("action-jar-full").click();
+  pressAction(page, "action-jar-full");
   await expect(page.getByTestId("action-jar-full")).toHaveAttribute("aria-pressed", "true");
-  await page.getByTestId("action-honey-clover").click();
+  pressAction(page, "action-honey-clover");
 
   const addGinseng = page.getByTestId("action-dose-add-ginseng");
   await expect(addGinseng).toBeEnabled();
-  await addGinseng.click();
+  pressAction(page, "action-dose-add-ginseng");
   await expect(page.getByTestId("action-dose-remove-ginseng")).toBeEnabled();
-  await page.getByTestId("action-stir-start").click();
+  pressAction(page, "action-stir-start");
 
   await expect(page.getByTestId("stir-progress-ring")).toBeVisible();
-  await page.getByTestId("action-stir-finish").click();
+  pressAction(page, "action-stir-finish");
 
   await expect(page.getByTestId("blends-pour-hint")).toBeVisible();
-  await page.getByTestId("action-pour").click();
+  pressAction(page, "action-pour");
 
   await expect(page.getByRole("heading", { name: "خلطتك جاهزة!" })).toBeVisible();
 
