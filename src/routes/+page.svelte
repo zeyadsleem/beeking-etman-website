@@ -5,7 +5,7 @@
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import Seo from "$lib/components/Seo.svelte";
   import { organizationJsonLd, websiteJsonLd } from "$lib/seo";
-  import { t } from "$lib/i18n/messages";
+  import { hasMessage, t } from "$lib/i18n/messages";
   import type { ProductSummary } from "$lib/server/store";
   import type { PageData } from "./$types";
 
@@ -17,6 +17,8 @@
     const wanted = new Set(slugs);
     return data.products.filter((p) => wanted.has(p.slug));
   };
+
+  const hasStory = (slug: string): boolean => hasMessage(`category.story.${slug}`);
 
   const rails = [
     {
@@ -122,7 +124,11 @@
       >
         <span class="eyebrow">{t(lang, "brand.name")}</span>
         <h3 class="headline mt-2 text-2xl text-cocoa-900">{cat.name}</h3>
-        <p class="mt-2 text-sm leading-relaxed text-cocoa-500">{t(lang, `category.story.${cat.slug}`)}</p>
+        {#if hasStory(cat.slug)}
+          <p class="mt-2 text-sm leading-relaxed text-cocoa-500">
+            {t(lang, `category.story.${cat.slug}`)}
+          </p>
+        {/if}
         <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-honey-700 transition-all duration-300 group-hover:gap-3">
           {t(lang, "home.shopNow")}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">

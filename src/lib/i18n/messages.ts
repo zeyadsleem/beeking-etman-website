@@ -140,6 +140,8 @@ const ar = {
   "category.story.comb": "طازج من الفرازات، يُقطع ويُؤكل كما هو",
   "category.story.bee-supplements": "غذاء ملكات وبروبليس وطلع النخل — كنوز الخلية",
   "category.story.nuts": "سناكات صحية وملكية من أجود المحاصيل",
+  "category.story.vib": "برسيم وموالح بخامة مختارة من مناحلنا — عسل يومي بنكهة مشرقة",
+  "category.story.nuts-honey": "لوز وفستق وكاجو غارقة في عسل خام — سناك فاخر وقوي",
   "products.title": "متجر العسل الطبيعي",
   "products.pageTitle": "المتجر — مملكة النحل",
   "products.subtitle": "من مناحلنا إلى بيتك — تصفّح الأصناف، وصنّف حسب ذوقك.",
@@ -578,6 +580,9 @@ const en: Record<MessageKey, string> = {
   "category.story.comb": "Fresh from the extractor, cut and eaten as is",
   "category.story.bee-supplements": "Royal jelly, propolis and palm pollen — treasures of the hive",
   "category.story.nuts": "Healthy premium snacks from the finest crops",
+  "category.story.vib": "Clover and citrus from our apiaries — bright everyday honey",
+  "category.story.nuts-honey":
+    "Almonds, pistachios and cashews folded into raw honey — a rich premium snack",
   "products.title": "Natural Honey Store",
   "products.pageTitle": "Store — Kingdom of Honey",
   "products.subtitle": "From our apiaries to your home — browse and sort to your taste.",
@@ -920,4 +925,8 @@ export function t(lang: Lang, key: string, params?: Record<string, string | numb
   return template.replace(/\{(\w+)\}/g, (match, name: string) =>
     name in params ? String(params[name]) : match,
   );
+}
+
+export function hasMessage(key: string): boolean {
+  return key in ar;
 }
