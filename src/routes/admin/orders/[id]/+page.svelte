@@ -15,6 +15,7 @@
   // Cancellation is terminal and restocks inventory, so it never fires from a
   // bare submit — the trigger only opens the confirmation dialog below.
   let cancelConfirmOpen = $state(false);
+  let cancelError = $state<string | null>(null);
 
   // Mirrors the .btn-primary shape but with the clay danger tone — cancelling
   // is the one destructive transition in the lifecycle.
@@ -64,7 +65,7 @@
           <input type="hidden" name="id" value={data.order.id} />
           <input type="hidden" name="status" value={next} />
           {#if next === "cancelled"}
-            <button type="button" class={CANCEL_BUTTON_CLASS} onclick={() => (cancelConfirmOpen = true)}>
+            <button type="button" class={CANCEL_BUTTON_CLASS} onclick={() => { cancelConfirmOpen = true; cancelError = null; }}>
               {t(lang, "admin.order.cancel")}
             </button>
           {:else if next === "shipped"}
@@ -146,12 +147,20 @@
       </Dialog.Title>
       <Dialog.Description class="sr-only">{data.order.number}</Dialog.Description>
       <p class="mt-3 text-sm text-cocoa-700">{t(lang, "admin.order.confirmCancel")}</p>
+      {#if cancelError}
+        <p role="alert" class="mt-2 text-sm font-semibold text-red-700">{cancelError}</p>
+      {/if}
       <form
         method="POST"
         action="?/update"
         use:enhance={() => {
           return async ({ result, update }) => {
-            if (result.type === "success") cancelConfirmOpen = false;
+            if (result.type === "success") {
+              cancelConfirmOpen = false;
+              cancelError = null;
+            } else if (result.type === "failure") {
+              cancelError = (result.data as { message?: string })?.message ?? null;
+            }
             await update();
           };
         }}
