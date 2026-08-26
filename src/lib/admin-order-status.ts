@@ -1,6 +1,10 @@
 import type { MessageKey } from "$lib/i18n/messages";
 import type { OrderStatus } from "$lib/server/admin/orders";
 
+// Same lifecycle vocabulary as ORDER_STATUSES in $lib/server/admin/orders,
+// but safe for client-side imports (no drizzle/DB deps).
+export const STATUS_ORDER = ["paid", "shipped", "delivered", "cancelled"] as const;
+
 // Single source of truth for admin order-status presentation, shared by the
 // orders list and the order detail page.
 export const ADMIN_ORDER_STATUS_LABEL_KEY: Record<OrderStatus, MessageKey> = {

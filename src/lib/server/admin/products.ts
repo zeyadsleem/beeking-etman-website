@@ -51,7 +51,7 @@ export const variantInputSchema: z.ZodType<VariantInput> = z.object({
   stock: z.number().int().min(0),
   // The gallery field is optional at intake: "" means "no image pasted yet",
   // anything non-empty must be a real URL.
-  image: z.union([z.literal(""), z.string().url()]).default(""),
+  image: z.union([z.literal(""), z.string().url().startsWith("https://")]).default(""),
   sortOrder: z.number().int().default(0),
 });
 
@@ -474,10 +474,14 @@ export async function upsertVariant(
 export async function deleteVariant(
   db: LibSQLDatabase<typeof schema>,
   id: string,
+  productId?: string,
 ): Promise<{ ok: true } | { ok: false; reason: "not_found" }> {
+  const condition = productId
+    ? and(eq(schema.productVariant.id, id), eq(schema.productVariant.productId, productId))
+    : eq(schema.productVariant.id, id);
   const deleted = await db
     .delete(schema.productVariant)
-    .where(eq(schema.productVariant.id, id))
+    .where(condition)
     .returning({ id: schema.productVariant.id });
   if (deleted[0]) return { ok: true };
   return { ok: false, reason: "not_found" };

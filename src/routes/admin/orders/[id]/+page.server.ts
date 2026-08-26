@@ -45,8 +45,10 @@ export const actions: Actions = {
       // loudly by the service; surface it as a retryable server failure.
       return fail(500, { message: t(getLang(event), "errors.unexpected") });
     }
-    if (!result.ok)
+    if (!result.ok) {
+      if (result.reason === "not_found") error(404, t(getLang(event), "order.notFound"));
       return fail(409, { message: t(getLang(event), "admin.order.invalidTransition") });
+    }
 
     return { success: t(getLang(event), "admin.order.updated") };
   },

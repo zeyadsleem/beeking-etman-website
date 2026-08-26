@@ -10,10 +10,12 @@ import type { Actions, PageServerLoad } from "./$types";
 
 // URL search params are untrusted input: normalize `page` here so a malformed
 // value (e.g. "?page=abc" → NaN) can never reach listAdminProducts' offset math.
+const MAX_SAFE_INTEGER = 2 ** 53 - 1;
 const pageParam = z.coerce
   .number()
+  .finite()
   .catch(1)
-  .transform((value) => Math.max(1, Math.trunc(value)));
+  .transform((value) => Math.min(Math.max(1, Math.trunc(value)), MAX_SAFE_INTEGER));
 
 export const load: PageServerLoad = async (event) => {
   const lang = getLang(event);

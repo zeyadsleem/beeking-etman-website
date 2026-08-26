@@ -170,7 +170,8 @@ export async function getDashboardStats(
       asc(schema.productVariant.stock),
       asc(schema.product.name),
       asc(schema.productVariant.name),
-    );
+    )
+    .limit(50);
 
   return {
     kpis: {

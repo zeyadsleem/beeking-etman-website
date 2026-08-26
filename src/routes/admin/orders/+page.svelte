@@ -2,15 +2,13 @@
   import { formatEGP } from "$lib/currency";
   import AdminOrderStatusBadge from "$lib/components/AdminOrderStatusBadge.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
-  import { ADMIN_ORDER_STATUS_LABEL_KEY } from "$lib/admin-order-status";
+  import { ADMIN_ORDER_STATUS_LABEL_KEY, STATUS_ORDER } from "$lib/admin-order-status";
   import { formatDate, t } from "$lib/i18n/messages";
   import type { OrderStatus } from "$lib/server/admin/orders";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
   const lang = $derived(data.lang);
-
-  const FILTER_STATUSES: readonly OrderStatus[] = ["paid", "shipped", "delivered", "cancelled"];
 
   function filterHref(status: OrderStatus): string {
     return `/admin/orders?status=${status}`;
@@ -42,7 +40,7 @@
     >
       {t(lang, "admin.orders.all")}
     </a>
-    {#each FILTER_STATUSES as status (status)}
+    {#each STATUS_ORDER as status (status)}
       <a
         href={filterHref(status)}
         class="chip {data.status === status ? 'chip-active' : ''}"

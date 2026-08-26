@@ -80,10 +80,12 @@ export const actions: Actions = {
       return fail(failure.status, { message: t(lang, failure.messageKey) });
     }
 
-    await db
+    const updated = await db
       .update(schema.product)
       .set({ image: upload.url })
-      .where(eq(schema.product.id, event.params.id));
+      .where(eq(schema.product.id, event.params.id))
+      .returning({ id: schema.product.id });
+    if (updated.length === 0) return fail(404, { message: t(lang, "errors.unexpected") });
     return { uploaded: t(lang, "admin.products.uploadedImage") };
   },
 
@@ -121,7 +123,7 @@ export const actions: Actions = {
     const id = typeof rawId === "string" ? rawId.trim() : "";
     if (id === "") return fail(400, { message: t(lang, "errors.unexpected") });
 
-    const result = await deleteVariant(db, id);
+    const result = await deleteVariant(db, id, event.params.id);
     if (!result.ok) return fail(404, { message: t(lang, "errors.unexpected") });
     return { variantDeleted: t(lang, "admin.products.variantDeleted") };
   },
