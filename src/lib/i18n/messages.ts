@@ -456,6 +456,16 @@ const ar = {
   "blends.game.order.outOfStock": "الكمية المتاحة غير كافية",
   "blends.game.fallback.webgl": "جهازك مش بيدعم العرض ثلاثي الأبعاد، ففتحنا لك النسخة الكلاسيكية.",
   "blends.game.fallback.force2d": "بنعرض لك النسخة الكلاسيكية من مختبر الخلطات.",
+  "blends.game.action.goals": "اختيارات الخلطة",
+  "blends.game.action.honeys": "أنواع العسل",
+  "blends.game.action.jarHalf": "نص كيلو",
+  "blends.game.action.jarFull": "كيلو",
+  "blends.game.action.doseAdd": "زد جرعة",
+  "blends.game.action.doseRemove": "قلل جرعة",
+  "blends.game.action.startStir": "ابدأ التقليب",
+  "blends.game.action.finishStir": "خلص التقليب",
+  "blends.game.action.pour": "املأ البرطمان",
+  "blends.game.action.restart": "ابدأ من جديد",
 } as const;
 
 export type MessageKey = keyof typeof ar;
@@ -885,6 +895,16 @@ const en: Record<MessageKey, string> = {
   "blends.game.fallback.webgl":
     "Your device does not support 3D, so we opened the classic version for you.",
   "blends.game.fallback.force2d": "Showing the classic version of the Blend Lab.",
+  "blends.game.action.goals": "Blend goals",
+  "blends.game.action.honeys": "Honey types",
+  "blends.game.action.jarHalf": "Half kilo",
+  "blends.game.action.jarFull": "Full kilo",
+  "blends.game.action.doseAdd": "Add a scoop",
+  "blends.game.action.doseRemove": "Remove a scoop",
+  "blends.game.action.startStir": "Start stirring",
+  "blends.game.action.finishStir": "Finish stirring",
+  "blends.game.action.pour": "Fill the jar",
+  "blends.game.action.restart": "Start over",
 };
 
 const catalogs: Record<Lang, Record<MessageKey, string>> = { ar, en };
