@@ -23,6 +23,9 @@ export class LabScene extends Phaser.Scene {
   private snapshot: GameSnapshot | null = null;
   private pourCompleting = false;
   private stirLastAngle: number | null = null;
+  private stirLiquid!: Phaser.GameObjects.Image;
+  private orderJar!: Phaser.GameObjects.Image;
+  private sparkleEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor() {
     super(SCENE_KEYS.lab);
@@ -60,6 +63,13 @@ export class LabScene extends Phaser.Scene {
       const active = step === snapshot.step;
       group.setVisible(active);
       group.setActive(active);
+    }
+    this.stirLiquid.setTint(this.mixedColorHex());
+    this.orderJar.setTint(this.mixedColorHex());
+    if (snapshot.step === "order") {
+      this.sparkleEmitter?.start();
+    } else {
+      this.sparkleEmitter?.stop();
     }
   }
 
@@ -143,6 +153,7 @@ export class LabScene extends Phaser.Scene {
   private buildStirStation(): void {
     const group = this.add.container(0, 0);
     const liquid = this.add.image(LAYOUT.stir.x, LAYOUT.stir.y + 6, TEX.liquid);
+    liquid.setTint(this.mixedColorHex());
     const bowl = this.add.image(LAYOUT.stir.x, LAYOUT.stir.y, TEX.bowl);
     const spoon = this.add.image(LAYOUT.stir.x, LAYOUT.stir.y, TEX.spoon);
     spoon.setOrigin(0.5, 0.95);
@@ -166,12 +177,13 @@ export class LabScene extends Phaser.Scene {
       }
       this.stirLastAngle = angle;
       spoon.setRotation(angle + Math.PI / 2);
+      liquid.setTint(this.mixedColorHex());
     });
     hitZone.on(Phaser.Input.Events.DRAG_END, () => {
       this.stirLastAngle = null;
     });
     group.add(hitZone);
-    group.setData("liquid", liquid);
+    this.stirLiquid = liquid;
     this.registerStep("stir", group);
   }
 
@@ -214,10 +226,11 @@ export class LabScene extends Phaser.Scene {
   private buildOrderStation(): void {
     const group = this.add.container(0, 0);
     const jar = this.add.image(LAYOUT.pour.jarX, LAYOUT.pour.jarY, TEX.pourJar);
+    this.orderJar = jar;
     jar.setTint(this.mixedColorHex());
     group.add(jar);
     if (!this.reducedMotion) {
-      this.add.particles(LAYOUT.pour.jarX, LAYOUT.pour.jarY - 110, TEX.drop, {
+      const sparkle = this.add.particles(LAYOUT.pour.jarX, LAYOUT.pour.jarY - 110, TEX.drop, {
         speedY: { min: -60, max: -20 },
         speedX: { min: -25, max: 25 },
         lifespan: 1200,
@@ -226,6 +239,9 @@ export class LabScene extends Phaser.Scene {
         scale: { min: 0.5, max: 1 },
         alpha: { start: 0.9, end: 0 },
       });
+      sparkle.stop();
+      group.add(sparkle);
+      this.sparkleEmitter = sparkle;
     }
     this.registerStep("order", group);
   }
