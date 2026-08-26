@@ -9,6 +9,7 @@
 	import StirOverlay from "$lib/blend-lab/ui/StirOverlay.svelte";
 	import InfoCard from "$lib/blend-lab/ui/InfoCard.svelte";
 	import OrderPanel from "$lib/blend-lab/ui/OrderPanel.svelte";
+	import ActionBar from "$lib/blend-lab/ui/ActionBar.svelte";
 	import {
 		ADDITIVE_LABELS,
 		BASE_HONEY_OPTIONS,
@@ -219,6 +220,8 @@
 			/>
 		</div>
 	{/if}
+
+	<ActionBar lang={data.lang} />
 
 	{#if game.step === "order"}
 		<OrderPanel
