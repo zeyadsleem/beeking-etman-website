@@ -48,6 +48,9 @@ export class LabScene extends Phaser.Scene {
       if (event.type === "snapshot") this.applySnapshot(event.snapshot);
     });
 
+    const initial: GameSnapshot | null = this.bridge.snapshot;
+    if (initial) this.applySnapshot(initial);
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribe?.();
       this.input.removeAllListeners();
