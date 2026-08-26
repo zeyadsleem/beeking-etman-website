@@ -181,7 +181,6 @@ export class LabScene extends Phaser.Scene {
     const fill = this.add.image(glassX, glassY + glassH / 2 - 8, TEX.fillLevel);
     fill.setOrigin(0.5, 1);
     const fillBaseWidth = fill.width;
-    const fillBaseHeight = fill.height;
     fill.setDisplaySize(fillBaseWidth, 1);
     const glass = this.add.image(glassX, glassY, TEX.glass);
     const jar = this.add.image(jarX, jarY, TEX.pourJar);
