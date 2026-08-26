@@ -1051,3 +1051,46 @@ or FTS5 proves inadequate for Arabic search even after normalization.
 **Consequences:** A Neon move is a sub-project, not a config flip (tsvector
 search rewrite, batch→transaction port, timestamp/type migrations, Hyperdrive
 pooling latency tradeoff); no effort is spent on it now.
+
+## 2026-08-26: Blends game rebuilt on Phaser 3; Threlte/Three.js removed
+
+**Context:** The `/blends` lab shipped twice as a 3D Threlte scene plus a
+separate DOM fallback wizard for no-WebGL devices (`?force2d=1`). Two parallel
+experiences doubled maintenance, the 3D path needed a 1.5 MB HDR asset and a
+heavy three.js dependency graph, and e2e coverage had to drive raw canvas pixel
+coordinates. A rebuild was specced
+(`docs/superpowers/specs/2026-08-25-blends-phaser-game-design.md`) and executed
+task-by-task on this branch.
+
+**Decision:**
+
+- **One engine for everyone:** Phaser 3.90 with `Phaser.AUTO` — WebGL when
+  available, automatic Canvas fallback — replaces both the Threlte scene and
+  the fallback wizard. `hasWebGL`, `force2d`, `FallbackBlends.svelte`, the
+  Threlte scene tree, and `static/hdr/studio.hdr` are deleted;
+  three/@threlte deps removed.
+- **Concern split:** Phaser renders the world only (procedural Graphics/canvas
+  textures in `src/lib/blend-lab/phaser/textures.ts`; zero canvas text). All
+  copy, commerce, and i18n UI stay in Svelte DOM overlays
+  (`src/routes/blends/BlendGame.svelte`), keeping RTL Arabic and cart flows
+  out of the canvas.
+- **Typed bridge over shared mutable state:** Svelte→Phaser via immutable
+  snapshots pushed by `$effect` through `BlendsBridge`
+  (`phaser/bridge.ts`); Phaser→Svelte via direct typed `BlendsGame` calls +
+  inspect events. The bridge is node-safe (type-only imports) so its spec runs
+  in the node test project. LabScene applies the current snapshot on create,
+  closing the boot race where `createGame()` resolves before the scene's first
+  subscription.
+- **Accessibility/e2e contract:** every canvas action has an sr-only DOM twin
+  in `ActionBar.svelte` (testids `action-*`); e2e drives those instead of
+  calibrated pointer coordinates, and `blends-3d.e2e.ts` is deleted.
+- **Same commerce spine:** steps, pricing (`blendUnitPrice`), presets, cart
+  (`addBlend`), i18n keys, and the orders API are unchanged from the previous
+  game.
+
+**Consequences:** One code path to maintain; bundle drops three/threlte and
+the HDR asset for phaser (~1.2 MB gzipped total). Art is fully procedural —
+hand-drawn sprites are tracked as a todo candidate. E2E was rewritten but not
+yet executed locally: this host lacks Playwright's OS libraries
+(libicu74/libxml2/libflite1) without passwordless sudo — run
+`sudo pnpm exec playwright install-deps && pnpm run test:e2e` before release.

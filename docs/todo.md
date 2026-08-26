@@ -260,36 +260,35 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] Task 6 — Checkout saved-address picker + optional save-after-order (`69cac95`)
 - [x] Task 7 — E2E journey incl. IDOR negative; clean-run webServer chain (`e97fe7b`)
 
-### Blends 3D game (`2026-08-23-blends-3d-game`)
+### Blends game engine migration (`2026-08-25-blends-phaser-game`)
 
-- [x] Threlte v9 3D lab at `/blends`: goal table → honey shelf (+ size chips
-      re-preset doses) → prep drag/tap → stir circles → pour → order panel;
-      architecture in `docs/architecture.md` ("Blend Lab (/blends)").
-- [x] Deterministic fallback: no WebGL or `?force2d=1` renders the classic
-      wizard verbatim with a notice; `blends.e2e.ts` pins `force2d`, new
-      `blends-3d.e2e.ts` covers scene-or-fallback + force2d + fallback flow.
-- [x] Reduced-motion rendering: `renderMode="on-demand"` with manual
-      `invalidate()` only while values settle (camera snap on step change,
-      fast pour); no continuous idle rendering.
-- [x] Liquid honey surface follows the bowl lathe profile (inset) so it no
-      longer clips through the glass walls; geometry derives from paired
-      GlassBowl radius/height.
-- [x] Hero mobile brand image testid fixed so the spec asserts `src` on the
-      `<img>` itself, not a wrapper div — merged resolution adopts the admin
-      rework's `hero-brand-img-inline` naming.
+- [x] Threlte/Three.js 3D lab replaced by a single Phaser 3 game for every
+      device (`Phaser.AUTO`: WebGL with automatic Canvas fallback) — no more
+      `?force2d` wizard fork; spec `docs/superpowers/specs/
+  2026-08-25-blends-phaser-game-design.md`.
+- [x] Procedural art only (Graphics + canvas textures); Threlte scene,
+      fallback wizard, WebGL probe, and `static/hdr/studio.hdr` deleted;
+      three/@threlte deps removed.
+- [x] Typed Svelte↔Phaser bridge: snapshots pushed Svelte→Phaser via `$effect`,
+      Phaser→Svelte via direct `BlendsGame` calls + inspect events; initial
+      snapshot applied on scene create (boot race fixed).
+- [x] Accessible DOM action bar (`ActionBar.svelte`) mirrors every canvas
+      action for keyboard + e2e; `blends.e2e.ts` rewritten against it,
+      `blends-3d.e2e.ts` deleted.
+- [ ] Art pack candidate: procedural Graphics read fine but hand-drawn
+      sprite sheets (jars, cups, spoon) would lift visual quality — needs an
+      artist pass before swapping `textures.ts`.
 
 ### Discovered
 
-- [ ] SEO: `/blends` is SSR spinner-only (game mounts client-side after the
-      WebGL check), so crawlers see just the loading shell — acceptable
+- [ ] SEO: `/blends` is SSR spinner-only (the Phaser game boots client-side),
+      so crawlers see just the loading shell — acceptable
       tradeoff for now; revisit with static fallback content if /blends
       becomes a search entry point.
 - [ ] Multi-jar cart epic: the order panel adds N identical quantity-1 blend
       lines because `addBlend`'s schema keys a line by its composition;
       merging into one line with quantity N needs a store/schema change
       (`cart-store.svelte.ts` + `sanitizeCartLines`) — deliberate scope cut.
-- [ ] HoneyShelf sticky hover preview dismissal polish: the preview card can
-      linger when the pointer leaves the jar quickly; cosmetic.
 - [ ] Owner-editable benefit texts: goal/benefit copy lives in
       `src/lib/blend-lab/benefits.ts`; move to DB/CMS if non-devs must edit it
       without a deploy.

@@ -80,8 +80,7 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `SearchSuggestions` (bits-ui `Combobox`, `dir` follows the active language),
   `SectionTitle`, `Price`, `QuantityPicker`.
 - Routes: `/` (home), `/products` + `/products/[slug]` (catalog, server-paged),
-  `/blends` (interactive 3D blend lab — see "Blend Lab (/blends)" below; the
-  classic goal → mix → success wizard survives as its no-WebGL fallback),
+  `/blends` (interactive Phaser blend lab — see "Blend Lab (/blends)" below),
   `/cart`, `/checkout` + `/checkout/success/[id]`, `/login`, `/register`,
   `/account` (profile hub: name/password/sign-out), `/account/addresses`
   (saved-address CRUD), `/account/orders` + `/account/orders/[id]`
@@ -228,14 +227,21 @@ The site runs entirely on Cloudflare's Free plan at $0/month:
 
 ## Blend Lab (/blends)
 
-Interactive 3D honey-blending game built with Threlte v9 (Three.js) on Svelte 5 runes.
+Interactive honey-blending game built with Phaser 3 (v3.90) on Svelte 5 runes. One game serves
+every device: `Phaser.AUTO` uses WebGL when available and falls back to Canvas automatically.
 
 - State: single `BlendsGame` runes class (`src/lib/blend-lab/game-state.svelte.ts`) drives steps
   goal → honey → prep → stir → pour → order. All stations/components read state via context.
 - Pure logic (stir math, color mixing, pricing, benefits data) lives in plain TS modules under
   `src/lib/blend-lab/` with vitest coverage.
-- Scene loads lazily client-side; devices without WebGL (or `?force2d=1`) fall back to the
-  classic wizard preserved verbatim in `src/routes/blends/FallbackBlends.svelte`.
-- Environment lighting uses `static/hdr/studio.hdr` — Poly Haven's CC0 `studio_small_09`
-  (1k HDR), https://polyhaven.com/a/studio_small_09.
+- Rendering is split by concern: Phaser owns the world only (`src/lib/blend-lab/phaser/` —
+  `constants.ts`, `textures.ts` procedural art, `bridge.ts`, `scenes/`, `create-game.ts`);
+  all text, commerce, and i18n UI stay in Svelte DOM overlays
+  (`src/routes/blends/BlendGame.svelte`) so RTL Arabic and cart flows never touch canvas text.
+- The two worlds talk through a typed bridge: Svelte→Phaser via immutable snapshots pushed on a
+  `$effect`; Phaser→Svelte via direct `BlendsGame` calls plus typed inspect events.
+- Every canvas action has an accessible DOM twin in the sr-only action bar
+  (`src/lib/blend-lab/ui/ActionBar.svelte`) — keyboard users and e2e tests drive it instead of
+  pixel coordinates.
+- Art is fully procedural (Graphics + canvas textures); no binary assets ship for the lab.
 - Ordering reuses the cart store `addBlend` contract unchanged; backend orders API untouched.
