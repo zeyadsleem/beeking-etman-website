@@ -3,44 +3,52 @@ import { test, waitForApp } from "./e2e-utils";
 
 test.use({ locale: "ar-EG" });
 
-test("customer composes a blend and adds it to the cart", async ({ page }) => {
-  // The 3D lab owns /blends; force2d pins the classic wizard so this flow
-  // stays deterministic regardless of WebGL availability in the runner.
-  await page.goto("/blends?force2d=1", { waitUntil: "domcontentloaded" });
+test("customer composes a blend in the phaser game and adds it to the cart", async ({ page }) => {
+  await page.goto("/blends", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 
-  await expect(page.getByTestId("blends-fallback")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("اصنع خلطتك");
+  // Phaser boots asynchronously; the canvas replaces the spinner once ready.
+  const scene = page.getByTestId("blends-scene");
+  await expect(scene.locator("canvas")).toBeVisible();
+  await expect(page.getByTestId("blends-boot-spinner")).toBeHidden();
 
-  await page.getByRole("button", { name: /قوة وحيوية/ }).click({ force: true });
+  // The action bar is sr-only DOM mirroring every canvas interaction.
+  await page.getByTestId("action-goal-vitality").click();
 
-  await expect(page.getByRole("heading", { name: "اختار عسلك" })).toBeVisible();
-  await page
-    .getByRole("button", { name: /برسيم/ })
-    .first()
-    .click();
+  await page.getByTestId("action-jar-half").click();
+  await expect(page.getByTestId("action-jar-half")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("action-jar-full").click();
+  await expect(page.getByTestId("action-jar-full")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("action-honey-clover").click();
 
-  await expect(page.getByRole("heading", { name: "كوّن خلطتك" })).toBeVisible();
-  await expect(page.getByText("غذاء ملكات × 2")).toBeVisible();
-  await expect(page.getByText("البرطمان · كيلو")).toBeVisible();
+  const addGinseng = page.getByTestId("action-dose-add-ginseng");
+  await expect(addGinseng).toBeEnabled();
+  await addGinseng.click();
+  await expect(page.getByTestId("action-dose-remove-ginseng")).toBeEnabled();
+  await page.getByTestId("action-stir-start").click();
 
-  const addRoyalJelly = page.getByRole("button", { name: "إضافة" }).first();
-  await addRoyalJelly.click();
-  await expect(page.getByText("غذاء ملكات × 3")).toBeVisible();
+  await expect(page.getByTestId("stir-progress-ring")).toBeVisible();
+  await page.getByTestId("action-stir-finish").click();
 
-  await page.getByRole("button", { name: "شوف خلطتك" }).click();
+  await expect(page.getByTestId("blends-pour-hint")).toBeVisible();
+  await page.getByTestId("action-pour").click();
 
   await expect(page.getByRole("heading", { name: "خلطتك جاهزة!" })).toBeVisible();
-  await expect(page.getByText("التركيب")).toBeVisible();
 
-  await page.getByRole("button", { name: "اطلب دي" }).click();
-
-  await expect(page.getByTestId("cart-drawer")).toBeVisible();
-  await expect(page.getByTestId("cart-drawer")).toContainText("برسيم");
-  await expect(page.getByTestId("cart-drawer")).toContainText("غذاء ملكات");
+  await page.getByTestId("add-to-cart-btn").click();
+  const drawer = page.getByTestId("cart-drawer");
+  await expect(drawer).toContainText("برسيم");
+  await expect(drawer).toContainText("غذاء ملكات");
 
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "English" }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Craft your own blend");
   await expect(page.getByRole("heading", { name: "Your blend is ready!" })).toBeVisible();
+});
+
+test("boots the phaser scene without the fallback error surface", async ({ page }) => {
+  await page.goto("/blends", { waitUntil: "domcontentloaded" });
+  await waitForApp(page);
+
+  await expect(page.getByTestId("blends-scene").locator("canvas")).toBeVisible();
+  await expect(page.getByTestId("blends-boot-error")).toHaveCount(0);
 });
