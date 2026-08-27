@@ -108,6 +108,7 @@ export async function applyProductForm(
   const featured = form.get("featured") !== null;
   const priceQirsh = priceToQirsh(stringField(form, "price"));
   const pastedUrl = pastedUrlOrEmpty(form);
+  const departmentRaw = stringField(form, "department").trim();
   const parsed = productInputSchema.safeParse({
     name: stringField(form, "name"),
     nameEn: stringField(form, "nameEn"),
@@ -116,6 +117,7 @@ export async function applyProductForm(
     price: priceQirsh ?? -1,
     categoryId: stringField(form, "categoryId"),
     featured,
+    department: /^(honey|equipment)$/.test(departmentRaw) ? departmentRaw : "honey",
   });
   if (!parsed.success || pastedUrl === null) return { ok: false, reason: "invalid" };
   const input: ProductInput = parsed.data;

@@ -14,6 +14,12 @@ import {
   type BaseHoneyOption,
   type JarSize,
 } from "$lib/blends";
+import { getAllBenefits } from "$lib/server/admin/blend-benefits";
+import {
+  DEFAULT_HONEY_BENEFITS,
+  DEFAULT_ADDITIVE_BENEFITS,
+  type BenefitText,
+} from "$lib/blend-lab/benefits";
 
 export interface BlendBaseHoney {
   optionId: BaseHoneyOption["id"];
@@ -109,11 +115,26 @@ export const load: PageServerLoad = async (event) => {
   const sidrImage = baseHoneys.get("sidr")?.full.image;
   if (!sidrImage) error(500, t(lang, "products.unavailable"));
 
+  // Fetch benefit texts from DB, falling back to hardcoded defaults.
+  const dbBenefits = await getAllBenefits(db);
+  const honeyBenefits: Record<string, BenefitText> = { ...DEFAULT_HONEY_BENEFITS };
+  const additiveBenefits: Record<string, BenefitText> = { ...DEFAULT_ADDITIVE_BENEFITS };
+
+  for (const [key, row] of dbBenefits) {
+    if (key in honeyBenefits) {
+      honeyBenefits[key] = { ar: row.valueAr, en: row.valueEn };
+    } else if (key in additiveBenefits) {
+      additiveBenefits[key] = { ar: row.valueAr, en: row.valueEn };
+    }
+  }
+
   return {
     lang,
     blendImage: sidrImage,
     baseHoneys: [...baseHoneys.entries()],
     additives: [...additives.entries()],
+    honeyBenefits: honeyBenefits as Record<BaseHoneyOption["id"], BenefitText>,
+    additiveBenefits: additiveBenefits as Record<AdditiveKey, BenefitText>,
   };
 };
 

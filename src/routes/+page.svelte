@@ -96,6 +96,58 @@
   </div>
 </div>
 
+<section class="mx-auto mt-12 max-w-4xl px-4 sm:mt-14 sm:px-6 lg:mt-16">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <a
+      href="/products?dept=honey"
+      class="group relative overflow-hidden rounded-2xl border border-honey-200 bg-gradient-to-br from-honey-50 to-parchment p-8 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-honey-300 hover:shadow-warm"
+    >
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="eyebrow text-honey-700">{t(lang, "brand.name")}</p>
+          <h2 class="headline mt-2 text-2xl text-cocoa-900">{t(lang, "home.deptShopHoney")}</h2>
+          <p class="mt-2 text-sm leading-relaxed text-cocoa-500">{t(lang, "home.deptShopHoneyDesc")}</p>
+        </div>
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-honey-100 text-honey-700 ring-1 ring-inset ring-honey-200 transition-all duration-300 group-hover:scale-110">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3C8 3 4 6 4 10c0 5 8 11 8 11s8-6 8-11c0-4-4-7-8-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M9 10h.01M15 10h.01M9.5 13c.83 1.25 2.33 2 4 2s3.17-.75 4-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </div>
+      <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-honey-700 transition-all duration-300 group-hover:gap-3">
+        {t(lang, "home.shopNow")}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </span>
+    </a>
+    <a
+      href="/products?dept=equipment"
+      class="group relative overflow-hidden rounded-2xl border border-cocoa-200 bg-gradient-to-br from-cocoa-50 to-parchment p-8 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-cocoa-300 hover:shadow-warm"
+    >
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="eyebrow text-cocoa-600">{t(lang, "brand.name")}</p>
+          <h2 class="headline mt-2 text-2xl text-cocoa-900">{t(lang, "home.deptShopEquipment")}</h2>
+          <p class="mt-2 text-sm leading-relaxed text-cocoa-500">{t(lang, "home.deptShopEquipmentDesc")}</p>
+        </div>
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-cocoa-100 text-cocoa-600 ring-1 ring-inset ring-cocoa-200 transition-all duration-300 group-hover:scale-110">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </div>
+      <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-cocoa-700 transition-all duration-300 group-hover:gap-3">
+        {t(lang, "home.shopNow")}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </span>
+    </a>
+  </div>
+</section>
+
 <section class="mt-14 sm:mt-16 lg:mt-20">
   <div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
     <div>

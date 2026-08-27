@@ -18,7 +18,12 @@
 		jarLabel,
 		type BaseHoneyOption,
 	} from "$lib/blends";
-	import { ADDITIVE_BENEFITS, HONEY_BENEFITS } from "$lib/blend-lab/benefits";
+	import {
+		DEFAULT_ADDITIVE_BENEFITS,
+		DEFAULT_HONEY_BENEFITS,
+		HONEY_COLORS,
+		INGREDIENT_COLORS,
+	} from "$lib/blend-lab/benefits";
 	import { blendUnitPrice } from "$lib/blend-lab/pricing";
 	import { t } from "$lib/i18n/messages";
 
@@ -200,7 +205,7 @@
 			</div>
 			<InfoCard
 				title={data.lang === "ar" ? honeyInspectionOption.nameAr : honeyInspectionOption.nameEn}
-				body={HONEY_BENEFITS[honeyInspectionOption.id][data.lang]}
+				body={(data.honeyBenefits ?? DEFAULT_HONEY_BENEFITS)[honeyInspectionOption.id][data.lang]}
 				actionLabel={t(data.lang, "blends.game.honey.viewBenefits")}
 				onaction={() => game.selectHoney(honeyInspectionOption.id)}
 			/>
@@ -214,7 +219,7 @@
 		>
 			<InfoCard
 				title={ADDITIVE_LABELS[additiveInspection][data.lang]}
-				body={ADDITIVE_BENEFITS[additiveInspection][data.lang]}
+				body={(data.additiveBenefits ?? DEFAULT_ADDITIVE_BENEFITS)[additiveInspection][data.lang]}
 				actionLabel={t(data.lang, "blends.game.benefits.title")}
 				onaction={() => game.setInspected(null)}
 			/>

@@ -12,6 +12,7 @@
   import { addToCart } from "$lib/cart-store.svelte";
   import { regularItemPayload } from "$lib/cart";
   import { formatEGP } from "$lib/currency";
+  import { trackProductView } from "$lib/analytics-events";
   import { t } from "$lib/i18n/messages";
   import type { PageData } from "./$types";
 
@@ -23,6 +24,15 @@
     return data.product.variants.find((v) => v.id === id) ?? data.product.variants[0];
   });
   let quantity = $state(1);
+
+  $effect(() => {
+    const p = data.product;
+    trackProductView({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+    });
+  });
 
   // The gallery leads with the selected variant's photo, followed by the
   // product-wide gallery shots, without duplicates.

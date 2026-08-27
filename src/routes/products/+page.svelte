@@ -8,14 +8,18 @@
   import Seo from "$lib/components/Seo.svelte";
   import { goto } from "$app/navigation";
   import { getDir, t } from "$lib/i18n/messages";
-  import type { SortOrder } from "$lib/server/store";
+  import type { Department, SortOrder } from "$lib/server/store";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
 
   const lang = $derived(data.lang);
+  const DEPT_LABELS: Record<Department, { key: string; badge?: number }> = {
+    honey: { key: "dept.honey", badge: data.departmentCounts?.honey },
+    equipment: { key: "dept.equipment", badge: data.departmentCounts?.equipment },
+  };
 
-  function navigate({ sort, category, page, q }: { sort?: SortOrder; category?: string | null; page?: number; q?: string }) {
+  function navigate({ sort, category, page, q, dept }: { sort?: SortOrder; category?: string | null; page?: number; q?: string; dept?: Department }) {
     const params = new URLSearchParams();
     if (q !== undefined) {
       if (q) params.set("q", q);
@@ -28,11 +32,17 @@
     if (nextSort !== "newest") params.set("sort", nextSort);
     const nextPage = page ?? data.page;
     if (nextPage > 1) params.set("page", String(nextPage));
+    const nextDept = dept ?? data.filters.dept;
+    if (nextDept && nextDept !== "honey") params.set("dept", nextDept);
     void goto(`/products${params.size ? `?${params}` : ""}`);
   }
 
   function selectCategory(slug: string | null) {
     navigate({ category: slug, q: "", page: 1 });
+  }
+
+  function selectDepartment(dept: Department) {
+    navigate({ dept, category: null, q: "", page: 1 });
   }
 
   function changeSort(sort: SortOrder) {
@@ -58,7 +68,36 @@
   <p class="mt-3 max-w-xl text-cocoa-500">{t(lang, "products.subtitle")}</p>
 </section>
 
-<Breadcrumb lang={lang} className="mt-8" items={[{ label: t(lang, "nav.home"), href: "/" }, { label: t(lang, "nav.store") }]} />
+<Breadcrumb
+  lang={lang}
+  className="mt-8"
+  items={[
+    { label: t(lang, "nav.home"), href: "/" },
+    { label: t(lang, DEPT_LABELS[data.filters.dept].key), href: `/products${data.filters.dept !== "honey" ? `?dept=${data.filters.dept}` : ""}` },
+  ]}
+/>
+
+<!-- Department tabs -->
+<ToggleGroup.Root
+  type="single"
+  value={data.filters.dept}
+  onValueChange={(v) => {
+    if (v) selectDepartment(v as Department);
+  }}
+  class="mt-6 flex gap-2"
+  aria-label={t(lang, "dept.honey")}
+>
+  {#each (["honey", "equipment"] as const) as dept (dept)}
+    <ToggleGroup.Item value={dept} class="chip data-[state=on]:chip-active flex items-center gap-1.5">
+      {t(lang, DEPT_LABELS[dept].key)}
+      {#if DEPT_LABELS[dept].badge != null && DEPT_LABELS[dept].badge! > 0}
+        <span class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-honey-100 px-1 text-[10px] font-bold text-honey-800">
+          {DEPT_LABELS[dept].badge}
+        </span>
+      {/if}
+    </ToggleGroup.Item>
+  {/each}
+</ToggleGroup.Root>
 
 <SearchSuggestions
   lang={lang}

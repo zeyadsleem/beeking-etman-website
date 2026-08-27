@@ -1,4 +1,5 @@
 import {
+  type AnySQLiteColumn,
   index,
   integer,
   primaryKey,
@@ -14,6 +15,8 @@ export const category = sqliteTable("store_category", {
   name: text("name").notNull(),
   nameEn: text("name_en").notNull().default(""),
   slug: text("slug").notNull().unique(),
+  department: text("department").notNull().default("honey"),
+  parentId: text("parent_id").references((): AnySQLiteColumn => category.id),
 });
 
 export const product = sqliteTable(
@@ -27,6 +30,10 @@ export const product = sqliteTable(
     slug: text("slug").notNull().unique(),
     description: text("description").notNull(),
     descriptionEn: text("description_en").notNull().default(""),
+    // @deprecated — legacy columns kept for migration safety. Price, stock,
+    // and image are now sourced from store_product_variant. Remove via a
+    // reviewed hand-written SQLite migration once all FK references are safe
+    // (see docs/todo.md "store_product legacy column drop").
     price: integer("price").notNull(),
     stock: integer("stock").notNull().default(0),
     image: text("image").notNull(),
@@ -37,6 +44,11 @@ export const product = sqliteTable(
     createdAt: integer("created_at")
       .notNull()
       .$defaultFn(() => Date.now()),
+    department: text("department").notNull().default("honey"),
+    sku: text("sku"),
+    published: integer("published", { mode: "boolean" }).notNull().default(true),
+    costPrice: integer("cost_price"),
+    weightGrams: integer("weight_grams"),
   },
   (table) => [index("store_product_categoryId_idx").on(table.categoryId)],
 );
@@ -153,5 +165,38 @@ export const address = sqliteTable(
   },
   (table) => [index("store_address_userId_idx").on(table.userId)],
 );
+
+export const adminAudit = sqliteTable(
+  "store_admin_audit",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    adminUserId: text("admin_user_id"),
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id").notNull(),
+    details: text("details"),
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index("store_admin_audit_createdAt_idx").on(table.createdAt),
+    index("store_admin_audit_targetType_targetId_idx").on(table.targetType, table.targetId),
+  ],
+);
+
+export const blendBenefit = sqliteTable("store_blend_benefit", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  key: text("key").notNull().unique(),
+  valueAr: text("value_ar").notNull(),
+  valueEn: text("value_en").notNull().default(""),
+  updatedAt: integer("updated_at")
+    .notNull()
+    .$defaultFn(() => Date.now()),
+});
 
 export * from "./auth.schema";

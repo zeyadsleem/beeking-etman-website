@@ -9,6 +9,7 @@ const DEFAULT_SITE_URL = "https://beeking-etman-website.pages.dev";
 
 interface PublicEnv {
   PUBLIC_SITE_URL?: string;
+  PUBLIC_POSTHOG_KEY?: string;
 }
 
 function publicEnv(): PublicEnv {
@@ -22,4 +23,8 @@ export function siteOrigin(): string {
 
 export function canonicalUrl(pathname: string): string {
   return `${siteOrigin()}${pathname}`;
+}
+
+export function posthogKey(): string {
+  return publicEnv().PUBLIC_POSTHOG_KEY ?? "";
 }

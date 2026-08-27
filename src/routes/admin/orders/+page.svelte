@@ -1,16 +1,15 @@
 <script lang="ts">
   import { formatEGP } from "$lib/currency";
   import AdminOrderStatusBadge from "$lib/components/AdminOrderStatusBadge.svelte";
+  import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
-  import { ADMIN_ORDER_STATUS_LABEL_KEY } from "$lib/admin-order-status";
+  import { ADMIN_ORDER_STATUS_LABEL_KEY, STATUS_ORDER } from "$lib/admin-order-status";
   import { formatDate, t } from "$lib/i18n/messages";
   import type { OrderStatus } from "$lib/server/admin/orders";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
   const lang = $derived(data.lang);
-
-  const FILTER_STATUSES: readonly OrderStatus[] = ["paid", "shipped", "delivered", "cancelled"];
 
   function filterHref(status: OrderStatus): string {
     return `/admin/orders?status=${status}`;
@@ -34,6 +33,12 @@
 <section class="mx-auto max-w-6xl px-4 py-10">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.orders.title")}</SectionTitle>
 
+  <div class="mt-4">
+    <Button variant="ghost" href="/admin/orders/export" class="text-sm">
+      {t(lang, "admin.orders.exportCsv")}
+    </Button>
+  </div>
+
   <nav class="mt-6 flex flex-wrap gap-2" aria-label={t(lang, "admin.orders.filterAria")}>
     <a
       href="/admin/orders"
@@ -42,7 +47,7 @@
     >
       {t(lang, "admin.orders.all")}
     </a>
-    {#each FILTER_STATUSES as status (status)}
+    {#each STATUS_ORDER as status (status)}
       <a
         href={filterHref(status)}
         class="chip {data.status === status ? 'chip-active' : ''}"

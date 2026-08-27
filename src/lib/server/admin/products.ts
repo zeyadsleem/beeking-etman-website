@@ -23,6 +23,7 @@ export interface ProductInput {
   price: number;
   categoryId: string;
   featured: boolean;
+  department: string;
 }
 
 export const productInputSchema: z.ZodType<ProductInput> = z.object({
@@ -33,6 +34,7 @@ export const productInputSchema: z.ZodType<ProductInput> = z.object({
   price: z.number().int().positive(),
   categoryId: z.string().min(1),
   featured: z.boolean().default(false),
+  department: z.string().default("honey"),
 });
 
 export interface VariantInput {
@@ -51,7 +53,7 @@ export const variantInputSchema: z.ZodType<VariantInput> = z.object({
   stock: z.number().int().min(0),
   // The gallery field is optional at intake: "" means "no image pasted yet",
   // anything non-empty must be a real URL.
-  image: z.union([z.literal(""), z.string().url()]).default(""),
+  image: z.union([z.literal(""), z.string().url().startsWith("https://")]).default(""),
   sortOrder: z.number().int().default(0),
 });
 
@@ -76,6 +78,7 @@ export interface AdminProductRow {
   totalStock: number;
   variantCount: number;
   createdAt: number;
+  department: string;
 }
 
 interface AdminProductDetailRow extends AdminProductRow {
@@ -103,6 +106,7 @@ async function fetchAdminProductRows(
       descriptionEn: schema.product.descriptionEn,
       price: schema.product.price,
       featured: schema.product.featured,
+      department: schema.product.department,
       createdAt: schema.product.createdAt,
       categoryName: schema.category.name,
       totalStock: sql<number>`coalesce(sum(${schema.productVariant.stock}), 0)`,
@@ -121,6 +125,7 @@ async function fetchAdminProductRows(
     // A product whose category row vanished (SQLite does not enforce the FK)
     // still lists rather than crashing the admin page.
     categoryName: row.categoryName ?? "",
+    department: row.department ?? "honey",
     featured: Boolean(row.featured),
     totalStock: Number(row.totalStock),
     variantCount: Number(row.variantCount),
@@ -138,6 +143,7 @@ function toAdminProductRow(row: AdminProductDetailRow): AdminProductRow {
     totalStock: row.totalStock,
     variantCount: row.variantCount,
     createdAt: row.createdAt,
+    department: row.department,
   };
 }
 
@@ -158,11 +164,13 @@ function buildNameFilter(query: string | undefined): SQL | undefined {
 
 export async function listAdminProducts(
   db: LibSQLDatabase<typeof schema>,
-  opts?: { query?: string; page?: number },
+  opts?: { query?: string; page?: number; department?: string },
 ): Promise<{ items: AdminProductRow[]; total: number }> {
   const requestedPage = opts?.page ?? 1;
   const page = Math.max(1, Number.isFinite(requestedPage) ? Math.trunc(requestedPage) : 1);
-  const where = buildNameFilter(opts?.query);
+  const nameFilter = buildNameFilter(opts?.query);
+  const deptFilter = opts?.department ? eq(schema.product.department, opts.department) : undefined;
+  const where = nameFilter && deptFilter ? and(nameFilter, deptFilter) : (nameFilter ?? deptFilter);
 
   const rows = await fetchAdminProductRows(db, where, {
     limit: PRODUCTS_PAGE_SIZE,
@@ -273,6 +281,7 @@ interface ProductWriteValues {
   stock: number;
   image: string;
   categoryId: string;
+  department: string;
   featured: number;
 }
 
@@ -287,6 +296,7 @@ function productWriteValues(input: ProductInput, slug: string): ProductWriteValu
     stock: 0,
     image: "",
     categoryId: input.categoryId,
+    department: input.department,
     featured: input.featured ? 1 : 0,
   };
 }
@@ -474,10 +484,14 @@ export async function upsertVariant(
 export async function deleteVariant(
   db: LibSQLDatabase<typeof schema>,
   id: string,
+  productId?: string,
 ): Promise<{ ok: true } | { ok: false; reason: "not_found" }> {
+  const condition = productId
+    ? and(eq(schema.productVariant.id, id), eq(schema.productVariant.productId, productId))
+    : eq(schema.productVariant.id, id);
   const deleted = await db
     .delete(schema.productVariant)
-    .where(eq(schema.productVariant.id, id))
+    .where(condition)
     .returning({ id: schema.productVariant.id });
   if (deleted[0]) return { ok: true };
   return { ok: false, reason: "not_found" };

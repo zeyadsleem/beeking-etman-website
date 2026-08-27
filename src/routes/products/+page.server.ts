@@ -2,10 +2,12 @@ import { error } from "@sveltejs/kit";
 import {
   findCategoryByQuery,
   getCategories,
+  getDepartmentCounts,
+  isDepartment,
   listProductsPage,
   PRODUCTS_PAGE_SIZE,
 } from "$lib/server/store";
-import type { SortOrder } from "$lib/server/store";
+import type { Department, SortOrder } from "$lib/server/store";
 import { db } from "$lib/server/db";
 import { t } from "$lib/i18n/messages";
 import { getLang } from "$lib/server/lang";
@@ -23,7 +25,13 @@ export const load: PageServerLoad = async (event) => {
   const sort: SortOrder = SORTS.has(rawSort) ? (rawSort as SortOrder) : "newest";
   const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
 
-  const categories = await getCategories(db, lang);
+  const rawDept = url.searchParams.get("dept");
+  const department: Department = isDepartment(rawDept) ? rawDept : "honey";
+
+  const [categories, departmentCounts] = await Promise.all([
+    getCategories(db, lang, department),
+    getDepartmentCounts(db),
+  ]);
   if (!categories.length) error(500, t(lang, "products.unavailable"));
 
   // When the query names a category (e.g. "السدر"), filter by that category
@@ -45,6 +53,7 @@ export const load: PageServerLoad = async (event) => {
     {
       query: autoCategory ? "" : rawQ,
       category: activeCategory?.id ?? "",
+      department,
       sort,
       page,
       pageSize: PRODUCTS_PAGE_SIZE,
@@ -55,6 +64,8 @@ export const load: PageServerLoad = async (event) => {
   return {
     categories,
     ...result,
-    filters: { q: rawQ, category: categorySlug, sort, page: result.page },
+    department,
+    departmentCounts,
+    filters: { q: rawQ, category: categorySlug, sort, page: result.page, dept: department },
   };
 };

@@ -31,6 +31,27 @@ interface D1Database {
   dump(): Promise<ArrayBuffer>;
 }
 
+// Minimal structural view of the Cloudflare Email Service send() binding.
+// See https://developers.cloudflare.com/email-service/
+interface EmailSendOptions {
+  to: string | string[];
+  from: string | { email: string; name: string };
+  subject: string;
+  html?: string;
+  text?: string;
+  cc?: string | string[];
+  bcc?: string | string[];
+  replyTo?: string | { email: string; name: string };
+}
+
+interface EmailSendResult {
+  messageId: string;
+}
+
+interface EmailSendBinding {
+  send(options: EmailSendOptions): Promise<EmailSendResult>;
+}
+
 declare global {
   namespace App {
     interface Locals {
@@ -45,6 +66,7 @@ declare global {
       env: {
         DB: D1Database;
         MEDIA: KvLikeNamespace;
+        EMAIL?: EmailSendBinding;
       };
       /** Cloudflare Pages ExecutionContext surface used for background work
        * (edge-cache fills); mirrors @sveltejs/adapter-cloudflare's shape. */

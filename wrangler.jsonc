@@ -22,4 +22,14 @@
       "id": "8b48e8ac78804d37bd07d229de466821",
     },
   ],
+  // Email Service — send transactional emails via Cloudflare's native binding.
+  // Domain must be onboarded: `npx wrangler email sending enable yourdomain.com`
+  // For local dev, add "remote": true to proxy sends to the real service.
+  "send_email": [{ "name": "EMAIL" }],
+  // // Cron trigger skeleton (Phase 6: abandoned-cart recovery).
+  // // Cron triggers require a Workers deployment (not Pages).
+  // // See src/lib/server/cron.ts for the handler skeleton.
+  // [[cron]]
+  // pattern = "0 8 * * *"   // daily at 08:00 UTC (10:00 Cairo)
+  // handler = "email"
 }

@@ -32,9 +32,18 @@ export interface ProductSummary {
 
 export type SortOrder = "newest" | "price-asc" | "price-desc";
 
+export type Department = "honey" | "equipment";
+
+export const DEPARTMENTS: readonly Department[] = ["honey", "equipment"];
+
+export function isDepartment(value: string | null): value is Department {
+  return value === "honey" || value === "equipment";
+}
+
 export interface ProductFilters {
   query?: string;
   category?: string;
+  department?: Department;
   limit?: number;
   offset?: number;
   sort?: SortOrder;
@@ -43,6 +52,7 @@ export interface ProductFilters {
 export interface ProductPageFilters {
   query?: string;
   category?: string;
+  department?: Department;
   sort?: SortOrder;
   page?: number;
   pageSize?: number;
@@ -190,8 +200,20 @@ async function loadImagesForProducts(
 export async function getCategories(
   db: LibSQLDatabase<typeof schema>,
   lang: Lang = "ar",
+  department?: Department,
 ): Promise<{ id: string; name: string; slug: string }[]> {
-  const rows = await db.select().from(schema.category).orderBy(asc(schema.category.name));
+  const conditions: SQL[] = [];
+  if (department) {
+    conditions.push(
+      or(eq(schema.category.department, department), sql`${schema.category.department} IS NULL`)!,
+    );
+  }
+  const where = conditions.length ? and(...conditions) : undefined;
+  const rows = await db
+    .select()
+    .from(schema.category)
+    .where(where)
+    .orderBy(asc(schema.category.name));
   return rows.map((c) => ({ id: c.id, name: localized(c.name, c.nameEn, lang), slug: c.slug }));
 }
 
@@ -202,6 +224,22 @@ export async function findCategoryByQuery(
   const q = `%${normalizeArabic(truncateQueryToByteLimit(query.trim()))}%`;
   const row = await db.select().from(schema.category).where(categoryNameCondition(q)).get();
   return row ? { id: row.id, slug: row.slug } : null;
+}
+
+export async function getDepartmentCounts(
+  db: LibSQLDatabase<typeof schema>,
+): Promise<Record<Department, number>> {
+  const rows = await db
+    .select({ department: schema.product.department, count: sql<number>`count(*)` })
+    .from(schema.product)
+    .groupBy(schema.product.department);
+  const counts: Record<Department, number> = { honey: 0, equipment: 0 };
+  for (const row of rows) {
+    if (row.department === "honey" || row.department === "equipment") {
+      counts[row.department] = Number(row.count);
+    }
+  }
+  return counts;
 }
 
 export async function getFeaturedProducts(
@@ -253,7 +291,7 @@ async function searchProductIds(
 
 async function buildProductWhere(
   db: LibSQLDatabase<typeof schema>,
-  filters: Pick<ProductFilters, "query" | "category">,
+  filters: Pick<ProductFilters, "query" | "category" | "department">,
 ): Promise<{ where: SQL | undefined; none: boolean }> {
   const conds: SQL[] = [];
   if (filters.query) {
@@ -263,6 +301,9 @@ async function buildProductWhere(
   }
   if (filters.category) {
     conds.push(eq(schema.product.categoryId, filters.category));
+  }
+  if (filters.department) {
+    conds.push(eq(schema.product.department, filters.department));
   }
   return { where: conds.length ? and(...conds) : undefined, none: false };
 }

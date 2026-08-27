@@ -7,10 +7,12 @@ import type { PageServerLoad } from "./$types";
 // URL search params are untrusted input: normalize `page` here so a malformed
 // value (e.g. "?page=abc" → NaN) can never reach listOrders, whose offset
 // math cannot recover from a NaN page.
+const MAX_SAFE_INTEGER = 2 ** 53 - 1;
 const pageParam = z.coerce
   .number()
+  .finite()
   .catch(1)
-  .transform((value) => Math.max(1, Math.trunc(value)));
+  .transform((value) => Math.min(Math.max(1, Math.trunc(value)), MAX_SAFE_INTEGER));
 
 export const load: PageServerLoad = async (event) => {
   const statusParam = event.url.searchParams.get("status");

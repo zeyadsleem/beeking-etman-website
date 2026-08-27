@@ -2,12 +2,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 import { affectedRowCount } from "$lib/server/orders";
-import {
-  isBusyError,
-  sleep,
-  SQLITE_BUSY_RETRIES,
-  SQLITE_BUSY_RETRY_DELAY_MS,
-} from "$lib/server/sqlite";
+import { retryOnBusy } from "$lib/server/sqlite";
 
 export const ORDER_STATUSES = ["paid", "shipped", "delivered", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -59,7 +54,10 @@ export const ORDERS_PAGE_SIZE = 20;
 // out-of-band writes corrupted it, so fail loudly instead of guessing.
 function toOrderStatus(raw: string): OrderStatus {
   const parsed = parseOrderStatus(raw);
-  if (!parsed) throw new Error(`[admin/orders] unknown order status stored in database: "${raw}"`);
+  if (!parsed) {
+    console.error(`[admin/orders] unknown order status stored in database: "${raw}"`);
+    throw new Error(`[admin/orders] unknown order status stored in database: "${raw}"`);
+  }
   return parsed;
 }
 
@@ -143,17 +141,6 @@ export async function getOrderWithItems(
 export type TransitionResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "invalid_transition" };
-
-async function retryOnBusy<T>(run: () => Promise<T>): Promise<T> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      return await run();
-    } catch (error) {
-      if (!isBusyError(error) || attempt >= SQLITE_BUSY_RETRIES) throw error;
-      await sleep((attempt + 1) * SQLITE_BUSY_RETRY_DELAY_MS);
-    }
-  }
-}
 
 interface RestockEntry {
   variantId: string;

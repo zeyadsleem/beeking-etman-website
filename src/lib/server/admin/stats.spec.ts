@@ -36,7 +36,8 @@ async function buildDb() {
   await db.run(`
     CREATE TABLE store_category (
       id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_en TEXT NOT NULL DEFAULT '',
-      slug TEXT NOT NULL UNIQUE
+      slug TEXT NOT NULL UNIQUE,
+      department TEXT NOT NULL DEFAULT 'honey', parent_id TEXT
     )`);
   await db.run(`
     CREATE TABLE store_product (
@@ -44,7 +45,7 @@ async function buildDb() {
       slug TEXT NOT NULL UNIQUE, description TEXT NOT NULL,
       description_en TEXT NOT NULL DEFAULT '', price INTEGER NOT NULL,
       stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
-      category_id TEXT NOT NULL, featured INTEGER NOT NULL DEFAULT 0,
+      category_id TEXT NOT NULL, department TEXT NOT NULL DEFAULT 'honey', featured INTEGER NOT NULL DEFAULT 0, sku TEXT, published INTEGER NOT NULL DEFAULT 1, cost_price INTEGER, weight_grams INTEGER,
       created_at INTEGER NOT NULL
     )`);
   await db.run(`
@@ -178,9 +179,14 @@ async function seedItem(
   });
 }
 
-/** UTC date key of the day `days` before the day containing `nowMs`. */
+/** Cairo calendar key of the day `days` before the Cairo day containing `nowMs`. */
 function dayKeyDaysAgo(days: number, nowMs: number): string {
-  return new Date(Math.floor(nowMs / DAY_MS) * DAY_MS - days * DAY_MS).toISOString().slice(0, 10);
+  // Compute Cairo midnight for the reference day, then subtract days.
+  const refDay = new Date(nowMs).toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
+  const refMidnightMs = Date.parse(`${refDay}T00:00:00+02:00`);
+  return new Date(refMidnightMs - days * DAY_MS).toLocaleDateString("en-CA", {
+    timeZone: "Africa/Cairo",
+  });
 }
 
 afterAll(() => {
@@ -286,7 +292,7 @@ describe("getDashboardStats — kpis", () => {
 });
 
 describe("getDashboardStats — dailySeries", () => {
-  it("buckets the last 30 UTC days ascending with zero-filled gaps", async () => {
+  it("buckets the last 30 Cairo days ascending with zero-filled gaps", async () => {
     const nowMs = Date.now();
     const db = await buildDb();
 

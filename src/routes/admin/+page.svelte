@@ -2,11 +2,11 @@
   import {
     ADMIN_ORDER_STATUS_BADGE_CLASS,
     ADMIN_ORDER_STATUS_LABEL_KEY,
+    STATUS_ORDER,
   } from "$lib/admin-order-status";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { formatEGP } from "$lib/currency";
   import { formatDate, t, type MessageKey } from "$lib/i18n/messages";
-  import type { OrderStatus } from "$lib/server/admin/orders";
   import type { PageData } from "./$types";
 
   // The route's merged PageData also carries layout fields (user, categories);
@@ -16,21 +16,21 @@
   const lang = $derived(data.lang);
   const stats = $derived(data.stats);
 
-  // Same client-side copy of the lifecycle vocabulary as the orders list
-  // page: importing the server module's runtime value would bundle drizzle
-  // into client code, so only the type crosses the boundary.
-  const STATUS_ORDER: readonly OrderStatus[] = ["paid", "shipped", "delivered", "cancelled"];
-
   const SECTIONS: readonly { href: string; labelKey: MessageKey }[] = [
     { href: "/admin/orders", labelKey: "admin.orders.title" },
     { href: "/admin/products", labelKey: "admin.products.title" },
     { href: "/admin/categories", labelKey: "admin.categories.title" },
+    { href: "/admin/blend-benefits", labelKey: "admin.benefits.title" },
+    { href: "/admin/funnels", labelKey: "admin.funnels.title" },
+    { href: "/admin/audit", labelKey: "admin.audit.title" },
+    { href: "/admin/media", labelKey: "admin.media.title" },
   ];
 
-  // dailySeries days are UTC calendar keys ("YYYY-MM-DD"); anchor them to
-  // midnight UTC so the label never shifts a day in positive-offset locales.
+  // dailySeries days are Cairo calendar keys ("YYYY-MM-DD"); format them
+  // using the browser locale so the display is always correct.
   function seriesDay(day: string): Date {
-    return new Date(`${day}T00:00:00Z`);
+    // Cairo midnight in ISO — safe for date formatting without timezone drift.
+    return new Date(`${day}T00:00:00+02:00`);
   }
 </script>
 

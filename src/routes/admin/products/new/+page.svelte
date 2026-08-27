@@ -35,6 +35,7 @@
       categories={data.categories}
       action="/admin/products/new"
       submitLabel={t(lang, "admin.products.create")}
+      department="honey"
     />
   </div>
 </section>
