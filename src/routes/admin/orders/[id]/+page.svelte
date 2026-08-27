@@ -56,6 +56,11 @@
       <span class="block text-xs font-semibold text-cocoa-400">{t(lang, "admin.orders.total")}</span>
       <span class="font-extrabold text-cocoa-900">{formatEGP(data.order.total, lang)}</span>
     </div>
+    <div>
+      <Button variant="ghost" href={`/admin/orders/${data.order.id}/invoice`} class="text-sm">
+        {t(lang, "admin.order.downloadInvoice")}
+      </Button>
+    </div>
   </div>
 
   {#if data.transitions.length > 0}

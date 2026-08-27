@@ -6,6 +6,13 @@
 
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
+/** KV free-tier storage cap (1 GB) with 100 MB headroom for safety. */
+export const KV_MAX_STORAGE_BYTES = 900 * 1024 * 1024;
+/** KV free-tier daily write cap. */
+export const KV_MAX_WRITES_PER_DAY = 1_000;
+/** Warning threshold — log when estimated usage exceeds this fraction. */
+export const KV_USAGE_WARN_THRESHOLD = 0.8;
+
 export type DetectedImage = {
   ext: "jpg" | "png" | "webp";
   mime: "image/jpeg" | "image/png" | "image/webp";
@@ -61,6 +68,52 @@ export type UploadResult =
 export interface KvLikeNamespace {
   put(key: string, value: ArrayBuffer): Promise<void>;
   get(key: string, options: { type: "arrayBuffer" }): Promise<ArrayBuffer | null>;
+  list?: (opts?: { prefix?: string; limit?: number }) => Promise<{
+    keys: Array<{ name: string; size?: number }>;
+    list_complete: boolean;
+    cache_status: string | null;
+  }>;
+}
+
+export interface KvUsageEstimate {
+  imageCount: number;
+  estimatedBytes: number;
+  warnLevel: "ok" | "approaching" | "exceeded";
+}
+
+/**
+ * Estimates KV usage by counting product image keys and summing their sizes.
+ * Falls back to count-only if size metadata is unavailable (some KV drivers
+ * don't return key sizes).
+ */
+export async function estimateKvUsage(ns: KvLikeNamespace): Promise<KvUsageEstimate> {
+  let imageCount = 0;
+  let estimatedBytes = 0;
+
+  if (!ns.list) return { imageCount: 0, estimatedBytes: 0, warnLevel: "ok" };
+
+  try {
+    let cursor: string | undefined;
+    do {
+      const result = await ns.list({ prefix: "products/", limit: 1000 });
+      for (const key of result.keys) {
+        imageCount += 1;
+        estimatedBytes += key.size ?? 0;
+      }
+      cursor = result.list_complete ? undefined : (result.keys.at(-1)?.name ?? undefined);
+    } while (cursor);
+  } catch (error) {
+    console.error("[upload] failed to estimate KV usage", error);
+  }
+
+  const warnLevel: KvUsageEstimate["warnLevel"] =
+    estimatedBytes > KV_MAX_STORAGE_BYTES
+      ? "exceeded"
+      : estimatedBytes > KV_MAX_STORAGE_BYTES * KV_USAGE_WARN_THRESHOLD
+        ? "approaching"
+        : "ok";
+
+  return { imageCount, estimatedBytes, warnLevel };
 }
 
 export async function saveProductImage(ns: KvLikeNamespace, file: File): Promise<UploadResult> {
@@ -70,6 +123,25 @@ export async function saveProductImage(ns: KvLikeNamespace, file: File): Promise
   const buffer = await file.arrayBuffer();
   const detected = detectImageType(new Uint8Array(buffer));
   if (!detected) return { ok: false, reason: "unsupported" };
+
+  // Best-effort storage guardrail check — warn if approaching KV free-tier
+  // cap but never block the upload (best-effort logging only).
+  try {
+    const usage = await estimateKvUsage(ns);
+    if (usage.warnLevel === "exceeded") {
+      console.warn("[upload] KV storage estimate exceeded cap", {
+        estimatedBytes: usage.estimatedBytes,
+        cap: KV_MAX_STORAGE_BYTES,
+      });
+    } else if (usage.warnLevel === "approaching") {
+      console.warn("[upload] KV storage estimate approaching cap", {
+        estimatedBytes: usage.estimatedBytes,
+        cap: KV_MAX_STORAGE_BYTES,
+      });
+    }
+  } catch {
+    // Estimation failure must never block upload
+  }
 
   const key = `products/${crypto.randomUUID()}.${detected.ext}`;
   // Storage failures are an expected outcome of the typed union, not a crash:

@@ -1,4 +1,4 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, or, sql, type SQL } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { z } from "zod";
 import * as schema from "$lib/server/db/schema";
@@ -62,23 +62,37 @@ export interface AdminCategoryRow {
   nameEn: string;
   slug: string;
   productCount: number;
+  department: string;
 }
 
 export async function listCategoriesWithCounts(
   db: LibSQLDatabase<typeof schema>,
+  opts?: { department?: string },
 ): Promise<AdminCategoryRow[]> {
+  const conditions: SQL[] = [];
+  if (opts?.department) {
+    conditions.push(
+      or(
+        eq(schema.category.department, opts.department),
+        sql`${schema.category.department} IS NULL`,
+      )!,
+    );
+  }
+  const where = conditions.length ? and(...conditions) : undefined;
   const rows = await db
     .select({
       id: schema.category.id,
       name: schema.category.name,
       nameEn: schema.category.nameEn,
       slug: schema.category.slug,
+      department: schema.category.department,
       // count(product.id) — not count(*) — keeps empty categories at 0
       // through the left join instead of inflating them to 1.
       productCount: sql<number>`count(${schema.product.id})`,
     })
     .from(schema.category)
     .leftJoin(schema.product, eq(schema.product.categoryId, schema.category.id))
+    .where(where)
     .groupBy(schema.category.id)
     .orderBy(asc(schema.category.name));
   return rows.map((row) => ({ ...row, productCount: Number(row.productCount) }));

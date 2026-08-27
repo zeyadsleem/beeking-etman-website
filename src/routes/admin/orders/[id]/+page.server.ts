@@ -6,9 +6,11 @@ import {
   transitionOrderStatus,
   type TransitionResult,
 } from "$lib/server/admin/orders";
+import { logAdminAction } from "$lib/server/admin/audit";
 import { t } from "$lib/i18n/messages";
 import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
+import { sendOrderStatusUpdate } from "$lib/server/email";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
@@ -49,6 +51,22 @@ export const actions: Actions = {
       if (result.reason === "not_found") error(404, t(getLang(event), "order.notFound"));
       return fail(409, { message: t(getLang(event), "admin.order.invalidTransition") });
     }
+
+    // Best-effort status-update email — never block the admin action.
+    try {
+      await sendOrderStatusUpdate(event.platform, db, id, next);
+    } catch (e) {
+      console.error("[admin/order] status update email failed", e);
+    }
+
+    // Best-effort audit log — must not fail the originating operation.
+    logAdminAction(db, {
+      action: "order.status_change",
+      targetType: "order",
+      targetId: id,
+      details: { to: next },
+      userId: event.locals.user?.id,
+    });
 
     return { success: t(getLang(event), "admin.order.updated") };
   },

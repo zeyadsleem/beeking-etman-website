@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatEGP } from "$lib/currency";
   import AdminOrderStatusBadge from "$lib/components/AdminOrderStatusBadge.svelte";
+  import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { ADMIN_ORDER_STATUS_LABEL_KEY, STATUS_ORDER } from "$lib/admin-order-status";
   import { formatDate, t } from "$lib/i18n/messages";
@@ -31,6 +32,12 @@
 
 <section class="mx-auto max-w-6xl px-4 py-10">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.orders.title")}</SectionTitle>
+
+  <div class="mt-4">
+    <Button variant="ghost" href="/admin/orders/export" class="text-sm">
+      {t(lang, "admin.orders.exportCsv")}
+    </Button>
+  </div>
 
   <nav class="mt-6 flex flex-wrap gap-2" aria-label={t(lang, "admin.orders.filterAria")}>
     <a

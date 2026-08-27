@@ -9,15 +9,16 @@ import { ORDER_STATUSES, parseOrderStatus, type OrderStatus } from "./orders";
  */
 export const LOW_STOCK_THRESHOLD = 5;
 
-/** The daily series covers the last 30 UTC days, today included. */
+/** The daily series covers the last 30 Cairo-timezone days, today included. */
 const SERIES_DAYS = 30;
 const DAY_MS = 86_400_000;
+const CAIRO_TZ = "Africa/Cairo";
 
 /** Top-products cap fixed by the admin-dashboard design. */
 const TOP_PRODUCTS_LIMIT = 5;
 
 export interface DailySeriesEntry {
-  /** UTC calendar day, "YYYY-MM-DD". */
+  /** Cairo calendar day, "YYYY-MM-DD". */
   day: string;
   revenue: number;
   orders: number;
@@ -51,8 +52,19 @@ export interface DashboardStats {
   lowStock: LowStockRow[];
 }
 
-function utcDayKey(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 10);
+/** Cairo calendar day key "YYYY-MM-DD" — used instead of UTC to keep the
+ *  dashboard aligned with the Egyptian business day (UTC+2, no DST). */
+function cairoDayKey(ms: number): string {
+  return new Date(ms).toLocaleDateString("en-CA", { timeZone: CAIRO_TZ });
+}
+
+/**
+ * Returns the epoch-ms of Cairo midnight for today. Works by formatting
+ * the current instant as a Cairo calendar date, then parsing it back.
+ */
+function cairoTodayMidnightMs(): number {
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: CAIRO_TZ });
+  return Date.parse(`${todayStr}T00:00:00+02:00`);
 }
 
 /**
@@ -71,8 +83,7 @@ function utcDayKey(ms: number): string {
 export async function getDashboardStats(
   db: LibSQLDatabase<typeof schema>,
 ): Promise<DashboardStats> {
-  const nowMs = Date.now();
-  const todayStartUtcMs = Math.floor(nowMs / DAY_MS) * DAY_MS;
+  const todayStartUtcMs = cairoTodayMidnightMs();
   const seriesStartMs = todayStartUtcMs - (SERIES_DAYS - 1) * DAY_MS;
   const seriesEndExclusiveMs = todayStartUtcMs + DAY_MS;
 
@@ -106,15 +117,14 @@ export async function getDashboardStats(
     }
   }
 
-  // Day bucketing happens in UTC inside SQLite; the WHERE bounds are plain
-  // epoch-ms comparisons computed from UTC midnight arithmetic so bucket and
-  // filter can never disagree about where a day starts.
-  const dayBucket = sql<string>`date(${schema.order.createdAt} / 1000, 'unixepoch')`;
+  // Fetch raw rows in the time range and bucket by Cairo day in JS instead
+  // of relying on SQLite's UTC-based date() function, which would split the
+  // Egyptian business day at 22:00 local.
   const dayRows = await db
     .select({
-      day: dayBucket,
-      orders: sql<number>`count(*)`,
-      revenue: sql<number>`coalesce(sum(case when ${schema.order.status} <> 'cancelled' then ${schema.order.total} else 0 end), 0)`,
+      createdAt: schema.order.createdAt,
+      status: schema.order.status,
+      total: schema.order.total,
     })
     .from(schema.order)
     .where(
@@ -122,18 +132,31 @@ export async function getDashboardStats(
         gte(schema.order.createdAt, seriesStartMs),
         lt(schema.order.createdAt, seriesEndExclusiveMs),
       ),
-    )
-    .groupBy(dayBucket);
+    );
 
-  const metricsByDay = new Map(dayRows.map((row) => [row.day, row]));
+  const metricsByDay = new Map<string, { orders: number; revenue: number }>();
+  for (const row of dayRows) {
+    const day = cairoDayKey(row.createdAt);
+    const entry = metricsByDay.get(day);
+    if (entry) {
+      entry.orders += 1;
+      if (row.status !== "cancelled") entry.revenue += row.total;
+    } else {
+      metricsByDay.set(day, {
+        orders: 1,
+        revenue: row.status !== "cancelled" ? row.total : 0,
+      });
+    }
+  }
+
   const dailySeries: DailySeriesEntry[] = [];
   for (let offset = SERIES_DAYS - 1; offset >= 0; offset--) {
-    const day = utcDayKey(todayStartUtcMs - offset * DAY_MS);
+    const day = cairoDayKey(todayStartUtcMs - offset * DAY_MS);
     const hit = metricsByDay.get(day);
     dailySeries.push({
       day,
-      revenue: hit ? Number(hit.revenue) : 0,
-      orders: hit ? Number(hit.orders) : 0,
+      revenue: hit ? hit.revenue : 0,
+      orders: hit ? hit.orders : 0,
     });
   }
 

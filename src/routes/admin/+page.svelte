@@ -20,12 +20,17 @@
     { href: "/admin/orders", labelKey: "admin.orders.title" },
     { href: "/admin/products", labelKey: "admin.products.title" },
     { href: "/admin/categories", labelKey: "admin.categories.title" },
+    { href: "/admin/blend-benefits", labelKey: "admin.benefits.title" },
+    { href: "/admin/funnels", labelKey: "admin.funnels.title" },
+    { href: "/admin/audit", labelKey: "admin.audit.title" },
+    { href: "/admin/media", labelKey: "admin.media.title" },
   ];
 
-  // dailySeries days are UTC calendar keys ("YYYY-MM-DD"); anchor them to
-  // midnight UTC so the label never shifts a day in positive-offset locales.
+  // dailySeries days are Cairo calendar keys ("YYYY-MM-DD"); format them
+  // using the browser locale so the display is always correct.
   function seriesDay(day: string): Date {
-    return new Date(`${day}T00:00:00Z`);
+    // Cairo midnight in ISO — safe for date formatting without timezone drift.
+    return new Date(`${day}T00:00:00+02:00`);
   }
 </script>
 
