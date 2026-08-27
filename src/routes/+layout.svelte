@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { beforeNavigate, onNavigate } from "$app/navigation";
+  import { afterNavigate, beforeNavigate, onNavigate } from "$app/navigation";
   import { getDir, t } from "$lib/i18n/messages";
+  import { initPostHog, setPersonProperties, getPostHog } from "$lib/analytics";
+  import { posthogKey } from "$lib/site";
   import "./layout.css";
   import Header from "$lib/components/Header.svelte";
   import Footer from "$lib/components/Footer.svelte";
@@ -14,6 +16,19 @@
     document.documentElement.dir = getDir(data.lang);
     // E2E hook: signals that hydration finished and the router is attached.
     (window as unknown as { __appReady?: boolean }).__appReady = true;
+
+    // Initialise PostHog (no-op if key is missing).
+    void initPostHog(posthogKey()).then(() => {
+      setPersonProperties({ lang: data.lang });
+    });
+  });
+
+  // Track client-side navigations as pageviews for SPA routing.
+  afterNavigate(() => {
+    const ph = getPostHog();
+    if (ph) {
+      ph.capture("$pageview");
+    }
   });
 
   // Same-page anchor clicks (same origin/path/search, no hash) are true
