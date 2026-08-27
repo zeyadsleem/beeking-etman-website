@@ -33,6 +33,7 @@
     "cookie": "^1.1.1",
     "drizzle-orm": "^0.45.2",
     "phaser": "^3.90.0",
+    "posthog-js": "^1.419.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {

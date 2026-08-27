@@ -265,7 +265,7 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] Threlte/Three.js 3D lab replaced by a single Phaser 3 game for every
       device (`Phaser.AUTO`: WebGL with automatic Canvas fallback) — no more
       `?force2d` wizard fork; spec `docs/superpowers/specs/
-  2026-08-25-blends-phaser-game-design.md`.
+2026-08-25-blends-phaser-game-design.md`.
 - [x] Procedural art only (Graphics + canvas textures); Threlte scene,
       fallback wizard, WebGL probe, and `static/hdr/studio.hdr` deleted;
       three/@threlte deps removed.
@@ -294,8 +294,16 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
       without a deploy.
 - [ ] Investigate dev-mode hydration: `vp dev` serves HTML without client
       entry scripts (no hydration, clicks dead) in this environment; `vp
-preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
-      issue — confirm root cause before relying on dev-mode smoke tests.
+preview` works. `vp env doctor` passes. **Investigation (2026-08-27)**:
+      Config chain is `vite.config.ts` → `lazyPlugins(() => [tailwindcss(),
+sveltekit({ adapter: adapter(), ... })])`. No `svelte.config.js` exists;
+      Vite+ handles SvelteKit config inline. `package.json` "preview" runs
+      `wrangler pages dev .svelte-kit/cloudflare` (bypasses Vite entirely),
+      while `vp dev` starts Vite's dev server with the SvelteKit plugin.
+      Likely root cause: Cloudflare adapter (`@sveltejs/adapter-cloudflare`)
+      may inject page scripts differently in Vite dev mode vs production
+      build; or `lazyPlugins` defers plugin init past Vite's HMR setup window.
+      Confirm root cause before relying on dev-mode smoke tests.
 - [x] Production rate-limit persistence: rate limiting is now DB-backed —
       fixed-window buckets in `store_rate_limit` via `createDbRateLimiter`;
       counts survive restarts and scale to multi-instance.
@@ -313,9 +321,16 @@ preview` works. `vp env doctor` passes. Likely a Vite+ dev integration
 - [x] Auth JSON-API rate limiting: `src/hooks.server.ts` limits
       `/api/auth/sign-in/email` (10/60s) and `/api/auth/sign-up/email`
       (5/hour), matching the form-action limits.
-- [ ] `store_product.price` / `store_product.stock` column drop deferred: dead
-      columns kept for now; removal needs a reviewed hand-written SQLite
-      migration (table-recreate risk across three FK relationships).
+- [ ] `store_product.price` / `store_product.stock` / `store_product.image`
+      column drop deferred: columns marked `@deprecated` in schema.ts; kept for
+      migration safety. **Write paths still active**: `admin/product-form.ts`
+      L167 writes `image` when admin uploads/pastes a product cover (reads the
+      existing value as fallback at L152). **Read paths**: `store.ts`
+      `productListColumns.image` (L111), search-suggestion `price`/`image`
+      (L415–416), admin list `price` (L107). Removal needs a reviewed
+      hand-written SQLite migration that first rewires all writes to
+      `store_product_variant.image` / variant price, then drops the columns
+      (table-recreate risk across three FK relationships).
 - [ ] E2E/unit gap noted in review: e2e covers the guest happy path and
       validation errors; unit coverage exists for cart/cookie/orders/currency
       helpers but not for page components (e.g. checkout form behavior).

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Combobox } from "bits-ui";
   import { formatEGP } from "$lib/currency";
+  import { trackSearch } from "$lib/analytics-events";
   import { getDir, t, type Lang } from "$lib/i18n/messages";
   import Button from "./Button.svelte";
 
@@ -103,9 +104,11 @@
 
   function submit() {
     const q = query.trim();
+    const resultCount = items.length;
     query = "";
     items = [];
     open = false;
+    trackSearch(q, resultCount);
     onSearch(q);
   }
 
