@@ -3,6 +3,7 @@ import {
   addBlendItem,
   addItem,
   adjustQuantity,
+  blendItemSignature,
   blendTotal,
   computeTotals,
   FREE_SHIPPING_THRESHOLD,
@@ -162,5 +163,85 @@ describe("blend items", () => {
     const lines: CartItem[] = [blend()];
     expect(adjustQuantity(lines, "rj-1", -1)).toEqual(lines);
     expect(removeItem(lines, "rj-1")).toEqual(lines);
+  });
+});
+
+describe("blendItemSignature", () => {
+  it("produces a deterministic key from composition", () => {
+    const b = blend();
+    const sig = blendItemSignature(b.baseVariantId, b.jarSize, b.additives);
+    expect(sig).toBe("base-1:half:pr-1:2,rj-1:1");
+  });
+  it("is order-independent for additives", () => {
+    const b = blend();
+    const shuffled = [...b.additives].reverse();
+    const sig1 = blendItemSignature(b.baseVariantId, b.jarSize, b.additives);
+    const sig2 = blendItemSignature(b.baseVariantId, b.jarSize, shuffled);
+    expect(sig1).toBe(sig2);
+  });
+  it("differs when base variant differs", () => {
+    const b = blend();
+    const sig1 = blendItemSignature(b.baseVariantId, b.jarSize, b.additives);
+    const sig2 = blendItemSignature("base-2", b.jarSize, b.additives);
+    expect(sig1).not.toBe(sig2);
+  });
+  it("differs when jar size differs", () => {
+    const b = blend();
+    const sig1 = blendItemSignature(b.baseVariantId, "half", b.additives);
+    const sig2 = blendItemSignature(b.baseVariantId, "full", b.additives);
+    expect(sig1).not.toBe(sig2);
+  });
+  it("differs when additives differ", () => {
+    const b = blend();
+    const sig1 = blendItemSignature(b.baseVariantId, b.jarSize, b.additives);
+    const sig2 = blendItemSignature(
+      b.baseVariantId,
+      b.jarSize,
+      b.additives.filter((a) => a.key !== "propolis"),
+    );
+    expect(sig1).not.toBe(sig2);
+  });
+});
+
+describe("addBlendItem merging", () => {
+  it("merges identical blends into one line with incremented quantity", () => {
+    const b = blend();
+    const { id: _id, kind: _kind, ...rest } = b;
+    const cart = addBlendItem([], rest);
+    const merged = addBlendItem(cart, rest);
+    expect(merged).toHaveLength(1);
+    expect(isBlendItem(merged[0])).toBe(true);
+    if (isBlendItem(merged[0])) {
+      expect(merged[0].quantity).toBe(2);
+    }
+  });
+  it("keeps different blends as separate lines", () => {
+    const b1 = blend();
+    const b2 = blend({ baseVariantId: "base-2" });
+    const { id: _1, kind: _k1, ...r1 } = b1;
+    const { id: _2, kind: _k2, ...r2 } = b2;
+    const cart = addBlendItem([], r1);
+    const result = addBlendItem(cart, r2);
+    expect(result).toHaveLength(2);
+  });
+  it("merges three identical blends into quantity 3", () => {
+    const { id: _id, kind: _kind, ...rest } = blend();
+    let cart: CartItem[] = [];
+    cart = addBlendItem(cart, rest);
+    cart = addBlendItem(cart, rest);
+    cart = addBlendItem(cart, rest);
+    expect(cart).toHaveLength(1);
+    if (isBlendItem(cart[0])) {
+      expect(cart[0].quantity).toBe(3);
+    }
+  });
+  it("does not merge blends with different additives", () => {
+    const b1 = blend();
+    const b2 = blend({ additives: [{ ...b1.additives[0], qty: 3 }] });
+    const { id: _1, kind: _k1, ...r1 } = b1;
+    const { id: _2, kind: _k2, ...r2 } = b2;
+    const cart = addBlendItem([], r1);
+    const result = addBlendItem(cart, r2);
+    expect(result).toHaveLength(2);
   });
 });

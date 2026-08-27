@@ -6,10 +6,12 @@ import {
   adjustQuantity,
   computeTotals,
   isBlendItem,
+  itemId,
   removeById,
 } from "./cart";
 import { ADDITIVE_KEYS, JAR_SIZES, type AdditiveKey } from "./blends";
 import type { BlendCartItem, CartEntry, CartItem, CartTotals, RegularCartItem } from "./cart";
+import { trackAddToCart, trackRemoveFromCart } from "./analytics-events";
 
 const STORAGE_KEY = "honey_cart_v2";
 
@@ -50,7 +52,7 @@ const BlendItemSchema = z.object({
   jarSize: JarSizeSchema,
   basePrice: z.number(),
   stock: z.number(),
-  quantity: z.literal(1),
+  quantity: z.number().positive().int(),
   additives: z.array(BlendAdditiveSchema),
 });
 
@@ -184,6 +186,13 @@ async function refreshNamesFromServer(): Promise<void> {
 export function addToCart(product: Omit<RegularCartItem, "quantity">, quantity = 1): void {
   state.items = addItem(state.items, product, quantity);
   persist(state.items);
+  trackAddToCart({
+    variantId: product.variantId,
+    productId: product.productId,
+    name: product.name,
+    price: product.price,
+    quantity,
+  });
 }
 
 export function addBlend(blend: Omit<BlendCartItem, "kind" | "id">): void {
@@ -199,6 +208,13 @@ export function setQuantity(variantId: string, quantity: number): void {
 }
 
 export function removeFromCart(id: string): void {
+  const item = state.items.find((i) => itemId(i) === id);
+  if (item) {
+    trackRemoveFromCart({
+      variantId: isBlendItem(item) ? item.baseVariantId : item.variantId,
+      name: item.name,
+    });
+  }
   state.items = removeById(state.items, id);
   persist(state.items);
 }

@@ -5,7 +5,10 @@ export interface BenefitText {
   en: string;
 }
 
-export const HONEY_BENEFITS: Record<BaseHoneyOption["id"], BenefitText> = {
+/**
+ * Hardcoded default benefits used as fallback when no DB override exists.
+ */
+export const DEFAULT_HONEY_BENEFITS: Record<BaseHoneyOption["id"], BenefitText> = {
   clover: {
     ar: "عسل البرسيم الكلاسيكي: طعم لطيف محبوب للكل، غني بمضادات الأكسدة الطبيعية ووقود سريع لجسمك.",
     en: "Classic clover honey: a gentle, family-favorite taste rich in natural antioxidants and quick body fuel.",
@@ -28,7 +31,12 @@ export const HONEY_BENEFITS: Record<BaseHoneyOption["id"], BenefitText> = {
   },
 };
 
-export const ADDITIVE_BENEFITS: Record<AdditiveKey, BenefitText> = {
+/**
+ * Legacy export kept for backward compatibility. Prefer `DEFAULT_HONEY_BENEFITS`.
+ */
+export const HONEY_BENEFITS = DEFAULT_HONEY_BENEFITS;
+
+export const DEFAULT_ADDITIVE_BENEFITS: Record<AdditiveKey, BenefitText> = {
   royalJelly: {
     ar: "غذاء ملكات النحل: وجبة الملكة الوحيدة في الخلية، مصدر مركز لفيتامينات B ومعروف بدعم الطاقة والخصوبة والنشاط الذهني.",
     en: "Royal jelly: the queen bee's exclusive food, a concentrated B-vitamin source known to support energy, fertility and mental sharpness.",
@@ -50,6 +58,11 @@ export const ADDITIVE_BENEFITS: Record<AdditiveKey, BenefitText> = {
     en: "Bee pollen: a true superfood combining protein, vitamins and antioxidants for everyday wellness.",
   },
 };
+
+/**
+ * Legacy export kept for backward compatibility. Prefer `DEFAULT_ADDITIVE_BENEFITS`.
+ */
+export const ADDITIVE_BENEFITS = DEFAULT_ADDITIVE_BENEFITS;
 
 export const HONEY_COLORS: Record<BaseHoneyOption["id"], string> = {
   clover: "#e8a020",

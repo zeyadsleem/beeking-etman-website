@@ -57,7 +57,7 @@ export interface BlendCartItem {
   jarSize: JarSize;
   basePrice: number;
   stock: number;
-  quantity: 1;
+  quantity: number;
   additives: BlendAdditive[];
 }
 
@@ -141,10 +141,50 @@ export function addItem(
   );
 }
 
+/**
+ * Produces a deterministic string key from a blend's composition (base
+ * variant, jar size, and sorted additives). Two blends with the same
+ * ingredients in any order yield the same signature.
+ */
+export function blendSignature(
+  baseVariantId: string,
+  jarSize: JarSize,
+  additives: readonly BlendLineAdditive[],
+): string {
+  const sorted = [...additives]
+    .sort((a, b) => a.key.localeCompare(b.key) || a.variantId.localeCompare(b.variantId))
+    .map((a) => `${a.variantId}:${a.qty}`)
+    .join(",");
+  return `${baseVariantId}:${jarSize}:${sorted}`;
+}
+
+/**
+ * Produces a signature from a full BlendCartItem (used for merging in the
+ * cart store where additives carry extra display fields).
+ */
+export function blendItemSignature(
+  baseVariantId: string,
+  jarSize: JarSize,
+  additives: { key: AdditiveKey; variantId: string; qty: number }[],
+): string {
+  const sorted = [...additives]
+    .sort((a, b) => a.key.localeCompare(b.key) || a.variantId.localeCompare(b.variantId))
+    .map((a) => `${a.variantId}:${a.qty}`)
+    .join(",");
+  return `${baseVariantId}:${jarSize}:${sorted}`;
+}
+
 export function addBlendItem(
   items: CartItem[],
   blend: Omit<BlendCartItem, "kind" | "id">,
 ): CartItem[] {
+  const sig = blendItemSignature(blend.baseVariantId, blend.jarSize, blend.additives);
+  const existing = items.find(
+    (i) => isBlendItem(i) && blendItemSignature(i.baseVariantId, i.jarSize, i.additives) === sig,
+  );
+  if (existing && isBlendItem(existing)) {
+    return items.map((i) => (i === existing ? { ...i, quantity: i.quantity + 1 } : i));
+  }
   const item: BlendCartItem = { ...blend, kind: "blend", id: `blend-${crypto.randomUUID()}` };
   return [...items, item];
 }
