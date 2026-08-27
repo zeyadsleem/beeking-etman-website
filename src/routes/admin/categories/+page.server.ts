@@ -7,6 +7,7 @@ import {
   listCategoriesWithCounts,
   upsertCategory,
 } from "$lib/server/admin/categories";
+import { logAdminAction } from "$lib/server/admin/audit";
 import { t } from "$lib/i18n/messages";
 import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
@@ -53,6 +54,15 @@ export const actions: Actions = {
     });
     if (!result.ok) return fail(409, { message: t(lang, "admin.categories.slugTaken") });
 
+    // Best-effort audit log — must not fail the originating operation.
+    logAdminAction(db, {
+      action: idRaw === "" ? "category.create" : "category.update",
+      targetType: "category",
+      targetId: idRaw === "" ? result.id : idRaw,
+      details: { slug: parsed.data.slug },
+      userId: event.locals.user?.id,
+    });
+
     // Non-empty payload keeps Kit's ActionData union usable in the view.
     return { saved: true };
   },
@@ -72,6 +82,15 @@ export const actions: Actions = {
         return fail(409, { message: t(lang, "admin.categories.hasProductsError") });
       return fail(404, { message: t(lang, "errors.unexpected") });
     }
+
+    // Best-effort audit log — must not fail the originating operation.
+    logAdminAction(db, {
+      action: "category.delete",
+      targetType: "category",
+      targetId: id,
+      userId: event.locals.user?.id,
+    });
+
     return { deleted: true };
   },
 };

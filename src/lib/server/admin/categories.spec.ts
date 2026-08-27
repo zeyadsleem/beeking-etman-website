@@ -34,7 +34,8 @@ async function buildDb() {
   await db.run(`
     CREATE TABLE store_category (
       id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_en TEXT NOT NULL DEFAULT '',
-      slug TEXT NOT NULL UNIQUE
+      slug TEXT NOT NULL UNIQUE,
+      department TEXT NOT NULL DEFAULT 'honey', parent_id TEXT
     )`);
   await db.run(`
     CREATE TABLE store_product (
@@ -42,7 +43,7 @@ async function buildDb() {
       slug TEXT NOT NULL UNIQUE, description TEXT NOT NULL,
       description_en TEXT NOT NULL DEFAULT '', price INTEGER NOT NULL,
       stock INTEGER NOT NULL DEFAULT 0, image TEXT NOT NULL,
-      category_id TEXT NOT NULL, featured INTEGER NOT NULL DEFAULT 0,
+      category_id TEXT NOT NULL, department TEXT NOT NULL DEFAULT 'honey', featured INTEGER NOT NULL DEFAULT 0, sku TEXT, published INTEGER NOT NULL DEFAULT 1, cost_price INTEGER, weight_grams INTEGER,
       created_at INTEGER NOT NULL
     )`);
   return db;
@@ -191,6 +192,7 @@ describe("listCategoriesWithCounts", () => {
       name: "عسل السدر",
       nameEn: "Sidr",
       slug: "sidr",
+      department: "honey",
       productCount: 0,
     });
   });
