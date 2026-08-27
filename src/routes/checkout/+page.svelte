@@ -3,6 +3,7 @@
   import { clearCart } from "$lib/cart-store.svelte";
   import { formatEGP } from "$lib/currency";
   import { isBlendItem, itemId, lineTotal } from "$lib/cart";
+  import { trackBeginCheckout } from "$lib/analytics-events";
   import Button from "$lib/components/Button.svelte";
   import CartTotals from "$lib/components/CartTotals.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
@@ -48,6 +49,19 @@
       phone = s.phone;
       address = s.address;
       city = s.city;
+    }
+  });
+
+  $effect(() => {
+    if (data.items.length > 0) {
+      trackBeginCheckout(
+        data.items.map((i) => ({
+          name: i.name,
+          price: isBlendItem(i) ? i.basePrice : i.price,
+          quantity: i.quantity,
+        })),
+        data.totals.total,
+      );
     }
   });
 </script>

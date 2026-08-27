@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatEGP } from "$lib/currency";
+  import { trackPurchase } from "$lib/analytics-events";
   import Button from "$lib/components/Button.svelte";
   import { formatDate, t } from "$lib/i18n/messages";
   import type { PageData } from "./$types";
@@ -7,6 +8,11 @@
   let { data }: { data: PageData } = $props();
 
   const lang = $derived(data.lang);
+
+  $effect(() => {
+    const itemCount = data.items.reduce((sum, i) => sum + i.quantity, 0);
+    trackPurchase(data.order.id, data.order.number, data.order.total, itemCount);
+  });
 </script>
 
 <svelte:head>

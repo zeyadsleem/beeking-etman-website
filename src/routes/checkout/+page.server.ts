@@ -11,6 +11,7 @@ import { resolveCartItems } from "$lib/server/store";
 import { computeTotals } from "$lib/cart";
 import { t } from "$lib/i18n/messages";
 import { getLang } from "$lib/server/lang";
+import { sendOrderConfirmation } from "$lib/server/email";
 import type { Actions, PageServerLoad } from "./$types";
 
 const CHECKOUT_LIMIT = createDbRateLimiter(db, { windowMs: 60_000, max: 10 });
@@ -106,6 +107,14 @@ export const actions: Actions = {
         console.error("post-checkout address save failed:", cause);
       }
     }
+
+    // Best-effort order confirmation email — never block the redirect.
+    try {
+      await sendOrderConfirmation(event.platform, db, result.orderId);
+    } catch (e) {
+      console.error("[checkout] order confirmation email failed", e);
+    }
+
     redirect(303, `/checkout/success/${result.orderId}`);
   },
 };

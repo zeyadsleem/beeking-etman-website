@@ -41,6 +41,15 @@ export function validateProductionEnv(vars: Record<string, string | undefined>):
   }
 }
 
+function warnOptionalVars(vars: Record<string, string | undefined>): void {
+  if (!vars.EMAIL_API_KEY) {
+    console.warn("[env] EMAIL_API_KEY not set — transactional emails will be skipped");
+  }
+  if (!vars.SMTP_HOST) {
+    console.warn("[env] SMTP_HOST not set — Better Auth password-reset emails will be disabled");
+  }
+}
+
 function validateEnv(): void {
   // SvelteKit imports the server bundle during the build step (postbuild
   // analysis) with `building = true`; skip validation then so `vite build`
@@ -48,6 +57,7 @@ function validateEnv(): void {
   if (building) return;
   if (dev) return;
   validateProductionEnv(env);
+  warnOptionalVars(env);
 }
 
 validateEnv();
