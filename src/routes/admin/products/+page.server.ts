@@ -2,6 +2,7 @@ import { fail } from "@sveltejs/kit";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { deleteProduct, listAdminProducts, PRODUCTS_PAGE_SIZE } from "$lib/server/admin/products";
+import { logAdminAction } from "$lib/server/admin/audit";
 import { t } from "$lib/i18n/messages";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
@@ -17,12 +18,23 @@ const pageParam = z.coerce
   .catch(1)
   .transform((value) => Math.min(Math.max(1, Math.trunc(value)), MAX_SAFE_INTEGER));
 
+const DEPT_PATTERN = /^(honey|equipment)$/;
+const deptParam = z
+  .string()
+  .optional()
+  .nullable()
+  .transform((v) => {
+    if (!v) return undefined;
+    return DEPT_PATTERN.test(v) ? v : undefined;
+  });
+
 export const load: PageServerLoad = async (event) => {
   const lang = getLang(event);
   const query = event.url.searchParams.get("q")?.trim() ?? "";
   const requestedPage = pageParam.parse(event.url.searchParams.get("page"));
+  const department = deptParam.parse(event.url.searchParams.get("dept"));
   const listAt = (p: number) =>
-    listAdminProducts(db, { query: query === "" ? undefined : query, page: p });
+    listAdminProducts(db, { query: query === "" ? undefined : query, page: p, department });
 
   let { items, total } = await listAt(requestedPage);
   let page = requestedPage;
@@ -51,7 +63,16 @@ export const load: PageServerLoad = async (event) => {
     for (const row of rows) images[row.id] = row.image;
   }
 
-  return { items, total, page, pageSize: PRODUCTS_PAGE_SIZE, query, images, lang };
+  return {
+    items,
+    total,
+    page,
+    pageSize: PRODUCTS_PAGE_SIZE,
+    query,
+    images,
+    lang,
+    department: department ?? "",
+  };
 };
 
 export const actions: Actions = {
@@ -77,6 +98,15 @@ export const actions: Actions = {
         return fail(409, { message: t(lang, "admin.products.referencedByOrders") });
       return fail(404, { message: t(lang, "errors.unexpected") });
     }
+
+    // Best-effort audit log — must not fail the originating operation.
+    logAdminAction(db, {
+      action: "product.delete",
+      targetType: "product",
+      targetId: id,
+      userId: event.locals.user?.id,
+    });
+
     // Non-empty payload keeps Kit's ActionData union usable in the view.
     return { deleted: true };
   },

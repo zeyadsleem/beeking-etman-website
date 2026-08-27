@@ -24,9 +24,17 @@
   function pageHref(page: number): string {
     const params = new URLSearchParams();
     if (data.query !== "") params.set("q", data.query);
+    if (data.department) params.set("dept", data.department);
     if (page > 1) params.set("page", String(page));
     const queryString = params.toString();
     return `/admin/products${queryString ? `?${queryString}` : ""}`;
+  }
+
+  function deptHref(dept: string): string {
+    const params = new URLSearchParams();
+    if (data.query !== "") params.set("q", data.query);
+    if (dept) params.set("dept", dept);
+    return `/admin/products?${params}`;
   }
 
   const hasNextPage = $derived(data.page * data.pageSize < data.total);
@@ -66,6 +74,24 @@
     />
     <Button type="submit" variant="outline">{t(lang, "products.searchSubmit")}</Button>
   </form>
+
+  <div class="mt-4 flex items-center gap-2">
+    <span class="text-sm font-medium text-cocoa-700">{t(lang, "admin.products.department")}</span>
+    <div class="flex gap-1">
+      {#each [{ value: "", label: "dept.all" }, { value: "honey", label: "dept.honeyShort" }, { value: "equipment", label: "dept.equipmentShort" }] as option (option.value)}
+        <a
+          href={deptHref(option.value)}
+          class={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            data.department === option.value
+              ? "bg-honey-100 text-honey-800"
+              : "text-cocoa-600 hover:bg-cocoa-100 hover:text-cocoa-800"
+          }`}
+        >
+          {t(lang, option.label)}
+        </a>
+      {/each}
+    </div>
+  </div>
 
   {#if data.items.length === 0}
     <div class="empty-state">

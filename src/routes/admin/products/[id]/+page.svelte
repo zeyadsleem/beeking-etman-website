@@ -60,6 +60,7 @@
       }}
       action="?/details"
       submitLabel={t(lang, "addresses.save")}
+      department={data.department}
     />
   </div>
 

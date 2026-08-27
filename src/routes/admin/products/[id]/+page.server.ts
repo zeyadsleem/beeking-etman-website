@@ -2,6 +2,7 @@ import { error, fail } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { listCategoriesWithCounts } from "$lib/server/admin/categories";
 import { deleteVariant, getProductForEdit, upsertVariant } from "$lib/server/admin/products";
+import { logAdminAction } from "$lib/server/admin/audit";
 import {
   applyProductForm,
   parseVariantForm,
@@ -39,7 +40,9 @@ export const load: PageServerLoad = async (event) => {
     categories: categoryRows.map((row) => ({
       id: row.id,
       name: row.nameEn.trim() !== "" ? localized(row.name, row.nameEn, lang) : row.name,
+      department: row.department,
     })),
+    department: detail.product.department ?? "honey",
     lang,
   };
 };
@@ -58,6 +61,15 @@ export const actions: Actions = {
       const failure = productFormFailure(result.reason);
       return fail(failure.status, { message: t(lang, failure.messageKey) });
     }
+
+    // Best-effort audit log — must not fail the originating operation.
+    logAdminAction(db, {
+      action: "product.update",
+      targetType: "product",
+      targetId: event.params.id,
+      userId: event.locals.user?.id,
+    });
+
     return { saved: t(lang, "admin.products.saved") };
   },
 

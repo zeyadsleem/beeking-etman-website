@@ -3,8 +3,14 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { sql } from "drizzle-orm";
 import * as schema from "../src/lib/server/db/schema";
+import { CATEGORY_TREE } from "../src/lib/server/categories";
+import { CATALOG_PRODUCTS } from "../src/lib/server/catalog-data";
 
 const db = drizzle(createClient({ url: process.env.DATABASE_URL ?? "file:local.db" }), { schema });
+
+// ---------------------------------------------------------------------------
+// Legacy image map — used by the original 43 products
+// ---------------------------------------------------------------------------
 
 const IMG = {
   glassLight: "/images/Beeking Etman/برطمان عسل البرسيم رقم 1.png",
@@ -34,8 +40,9 @@ const IMG = {
   dipper: "/images/Beeking Etman/مغرفة العسل.jpg",
 };
 
-// Secondary gallery shots per category — each product's gallery is its primary
-// image plus a few category-appropriate shots, deduped and capped at 4.
+// Placeholder for catalog products without a product-specific image
+const PLACEHOLDER_IMG = "/images/Beeking Etman/برطمان عسل البرسيم رقم 1.png";
+
 const GALLERY: Record<string, (keyof typeof IMG)[]> = {
   flowers: ["glassLight", "glassPale", "dipper"],
   sidr: ["glassDark", "glassLight", "dipper"],
@@ -46,19 +53,11 @@ const GALLERY: Record<string, (keyof typeof IMG)[]> = {
   nuts: ["nutsCan", "hazelnut", "pistachio", "mixedNuts"],
 };
 
-const CATEGORIES = [
-  {
-    slug: "flowers",
-    name: "عسل الزهور والبردقوش وحبة البركة",
-    nameEn: "Flowers, Marjoram & Black Seed",
-  },
-  { slug: "sidr", name: "عسل السدر", nameEn: "Sidr Honey" },
-  { slug: "vib", name: "عسل Vib", nameEn: "Vib Honey" },
-  { slug: "nuts-honey", name: "مكسرات بالعسل", nameEn: "Nuts in Honey" },
-  { slug: "nuts", name: "مكسرات", nameEn: "Nuts" },
-  { slug: "comb", name: "شمع العسل", nameEn: "Comb Honey" },
-  { slug: "bee-supplements", name: "مكملات النحل", nameEn: "Bee Supplements" },
-];
+// ---------------------------------------------------------------------------
+// Legacy product data — the original 43 products, kept for backward compat.
+// Slugs are preserved so existing orders remain linked. The seed will upsert
+// these by slug, merging them with the new CATALOG_PRODUCTS.
+// ---------------------------------------------------------------------------
 
 interface SeedVariant {
   name: string;
@@ -80,8 +79,21 @@ interface SeedProduct {
   variants: SeedVariant[];
 }
 
-const PRODUCTS: SeedProduct[] = [
-  // ── Flowers, Marjoram & Black Seed ──────────────────────────────────
+const LEGACY_CATEGORIES = [
+  {
+    slug: "flowers",
+    name: "عسل الزهور والبردقوش وحبة البركة",
+    nameEn: "Flowers, Marjoram & Black Seed",
+  },
+  { slug: "sidr", name: "عسل السدر", nameEn: "Sidr Honey" },
+  { slug: "vib", name: "عسل Vib", nameEn: "Vib Honey" },
+  { slug: "nuts-honey", name: "مكسرات بالعسل", nameEn: "Nuts in Honey" },
+  { slug: "nuts", name: "مكسرات", nameEn: "Nuts" },
+  { slug: "comb", name: "شمع العسل", nameEn: "Comb Honey" },
+  { slug: "bee-supplements", name: "مكملات النحل", nameEn: "Bee Supplements" },
+];
+
+const LEGACY_PRODUCTS: SeedProduct[] = [
   {
     slug: "clover-honey-1kg-glass",
     name: "عسل برسيم 1 ك زجاج",
@@ -144,13 +156,7 @@ const PRODUCTS: SeedProduct[] = [
     image: "glassLight",
     featured: false,
     variants: [
-      {
-        name: "500 جرام زجاج",
-        nameEn: "500g Glass",
-        price: 70_00,
-        stock: 40,
-        image: "glassLight",
-      },
+      { name: "500 جرام زجاج", nameEn: "500g Glass", price: 70_00, stock: 40, image: "glassLight" },
     ],
   },
   {
@@ -251,8 +257,6 @@ const PRODUCTS: SeedProduct[] = [
     featured: true,
     variants: [{ name: "1 ك", nameEn: "1kg", price: 180_00, stock: 18, image: "blackseed" }],
   },
-
-  // ── Sidr Honey ──────────────────────────────────────────────────────
   {
     slug: "sidr-honey-1kg",
     name: "عسل سدر مصري 1 ك",
@@ -278,8 +282,6 @@ const PRODUCTS: SeedProduct[] = [
     featured: false,
     variants: [{ name: "500 جرام", nameEn: "500g", price: 500_00, stock: 18, image: "glassDark" }],
   },
-
-  // ── Vib Honey ───────────────────────────────────────────────────────
   {
     slug: "clover-honey-1kg-vib",
     name: "عسل برسيم 1ك Vib",
@@ -334,8 +336,6 @@ const PRODUCTS: SeedProduct[] = [
       { name: "نص Vib", nameEn: "Half Vib", price: 100_00, stock: 30, image: "glassPale" },
     ],
   },
-
-  // ── Nuts in Honey ───────────────────────────────────────────────────
   {
     slug: "six-blend-1kg-plastic",
     name: "عسل خلطة سداسي بلاستيك",
@@ -436,8 +436,6 @@ const PRODUCTS: SeedProduct[] = [
       { name: "اكستر 1 ك", nameEn: "Extra 1kg", price: 250_00, stock: 8, image: "nutsInHoney" },
     ],
   },
-
-  // ── Comb Honey ──────────────────────────────────────────────────────
   {
     slug: "comb-frame-clover",
     name: "برواز شمع بالعسل برسيم",
@@ -541,8 +539,6 @@ const PRODUCTS: SeedProduct[] = [
       },
     ],
   },
-
-  // ── Bee Supplements ─────────────────────────────────────────────────
   {
     slug: "royal-jelly-5g",
     name: "غذاء ملكات 5 جم بلدي",
@@ -624,8 +620,6 @@ const PRODUCTS: SeedProduct[] = [
     featured: false,
     variants: [{ name: "علبة", nameEn: "Box", price: 40_00, stock: 25, image: "honeySpoons" }],
   },
-
-  // ── Nuts ────────────────────────────────────────────────────────────
   {
     slug: "hazelnut-100g",
     name: "بندق 100 جرام",
@@ -698,8 +692,10 @@ const PRODUCTS: SeedProduct[] = [
   },
 ];
 
-// Rows per multi-value INSERT — keeps bound parameters well under SQLite's
-// variable limit for the widest table (variants: 7 columns → 700 params).
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 const INSERT_CHUNK_SIZE = 100;
 
 function chunk<T>(rows: T[], size: number): T[][] {
@@ -714,40 +710,139 @@ function requireId(map: Map<string, string>, key: string): string {
   return id;
 }
 
+/**
+ * Merge legacy products with catalog products.
+ * Catalog products take precedence when slugs collide (they have the
+ * updated department / category mapping).
+ */
+function buildAllProducts(): SeedProduct[] {
+  const catalogSlugs = new Set(CATALOG_PRODUCTS.map((p) => p.slug));
+  // Legacy products whose slugs are NOT overridden by the catalog stay as-is.
+  const keptLegacy = LEGACY_PRODUCTS.filter((p) => !catalogSlugs.has(p.slug));
+
+  const catalogAsSeed: SeedProduct[] = CATALOG_PRODUCTS.map((cp) => ({
+    slug: cp.slug,
+    name: cp.name,
+    nameEn: cp.nameEn,
+    description: cp.name,
+    descriptionEn: cp.nameEn,
+    category: cp.categorySlug,
+    image: "glassLight" as keyof typeof IMG,
+    featured: false,
+    variants: [
+      {
+        name: cp.name,
+        nameEn: cp.nameEn,
+        price: cp.price,
+        stock: 0,
+        image: "glassLight" as keyof typeof IMG,
+      },
+    ],
+  }));
+
+  return [...keptLegacy, ...catalogAsSeed];
+}
+
+// ---------------------------------------------------------------------------
+// Seed
+// ---------------------------------------------------------------------------
+
 async function seed(): Promise<void> {
-  // Truncate first, children before parents, so no FK is violated mid-reset.
+  // Truncate child tables first (orders are sacred — never deleted).
   await db.delete(schema.orderItem);
-  await db.delete(schema.order);
   await db.delete(schema.productVariant);
   await db.delete(schema.productImage);
 
-  // Upsert on slug keeps category/product ids stable across reseeds, which the
-  // d1-seed export relies on to merge rows without orphaning D1 orders.
-  const categoryRows = await db
+  // ── Categories ───────────────────────────────────────────────────────
+  // 1. Legacy categories (no department / parentId — legacy compat)
+  const legacyCatRows = await db
     .insert(schema.category)
-    .values(CATEGORIES.map((c) => ({ name: c.name, nameEn: c.nameEn, slug: c.slug })))
+    .values(LEGACY_CATEGORIES.map((c) => ({ name: c.name, nameEn: c.nameEn, slug: c.slug })))
     .onConflictDoUpdate({
       target: schema.category.slug,
       set: { name: sql`excluded.name`, nameEn: sql`excluded.name_en` },
     })
     .returning({ id: schema.category.id, slug: schema.category.slug });
-  const categoryIds = new Map(categoryRows.map((row) => [row.slug, row.id]));
+  const categoryIds = new Map(legacyCatRows.map((row) => [row.slug, row.id]));
+
+  // 2. CATEGORY_TREE parents (department-level, no parentId)
+  const parents = CATEGORY_TREE.filter((c) => c.parentSlug === undefined);
+  const parentRows = await db
+    .insert(schema.category)
+    .values(
+      parents.map((c) => ({
+        name: c.name,
+        nameEn: c.nameEn,
+        slug: c.slug,
+        department: c.department,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: schema.category.slug,
+      set: {
+        name: sql`excluded.name`,
+        nameEn: sql`excluded.name_en`,
+        department: sql`excluded.department`,
+      },
+    })
+    .returning({ id: schema.category.id, slug: schema.category.slug });
+  for (const row of parentRows) categoryIds.set(row.slug, row.id);
+
+  // 3. CATEGORY_TREE subcategories (with parentId)
+  const subcats = CATEGORY_TREE.filter((c) => c.parentSlug !== undefined);
+  const subcatRows = await db
+    .insert(schema.category)
+    .values(
+      subcats.map((c) => ({
+        name: c.name,
+        nameEn: c.nameEn,
+        slug: c.slug,
+        department: c.department,
+        parentId: requireId(categoryIds, c.parentSlug!),
+      })),
+    )
+    .onConflictDoUpdate({
+      target: schema.category.slug,
+      set: {
+        name: sql`excluded.name`,
+        nameEn: sql`excluded.name_en`,
+        department: sql`excluded.department`,
+        parentId: sql`excluded.parent_id`,
+      },
+    })
+    .returning({ id: schema.category.id, slug: schema.category.slug });
+  for (const row of subcatRows) categoryIds.set(row.slug, row.id);
+
+  // ── Products ─────────────────────────────────────────────────────────
+  const ALL_PRODUCTS = buildAllProducts();
 
   const productRows = await db
     .insert(schema.product)
     .values(
-      PRODUCTS.map((p) => ({
-        name: p.name,
-        nameEn: p.nameEn,
-        slug: p.slug,
-        description: p.description,
-        descriptionEn: p.descriptionEn,
-        price: p.variants.length ? Math.min(...p.variants.map((v) => v.price)) : 0,
-        stock: 0,
-        image: IMG[p.image],
-        categoryId: requireId(categoryIds, p.category),
-        featured: p.featured ? 1 : 0,
-      })),
+      ALL_PRODUCTS.map((p) => {
+        // Determine department from category slug
+        const catNode = CATEGORY_TREE.find((c) => c.slug === p.category);
+        const department = catNode?.department ?? "honey";
+
+        // Look up catalog product for sku/published
+        const cp = CATALOG_PRODUCTS.find((c) => c.slug === p.slug);
+
+        return {
+          name: p.name,
+          nameEn: p.nameEn,
+          slug: p.slug,
+          description: p.description,
+          descriptionEn: p.descriptionEn,
+          price: p.variants.length ? Math.min(...p.variants.map((v) => v.price)) : 0,
+          stock: 0,
+          image: IMG[p.image] ?? PLACEHOLDER_IMG,
+          categoryId: requireId(categoryIds, p.category),
+          featured: p.featured ? 1 : 0,
+          department,
+          sku: cp?.sku ?? null,
+          published: cp?.published ?? true,
+        };
+      }),
     )
     .onConflictDoUpdate({
       target: schema.product.slug,
@@ -761,54 +856,50 @@ async function seed(): Promise<void> {
         image: sql`excluded.image`,
         categoryId: sql`excluded.category_id`,
         featured: sql`excluded.featured`,
+        department: sql`excluded.department`,
+        sku: sql`excluded.sku`,
+        published: sql`excluded.published`,
       },
     })
     .returning({ id: schema.product.id, slug: schema.product.slug });
   const productIds = new Map(productRows.map((row) => [row.slug, row.id]));
 
-  // Variants/images were truncated above, so plain inserts cannot conflict.
-  // Their ids churn per run like image ids always have; the d1-seed export's
-  // stale-row deletes reconcile that on the D1 side.
-  const variantValues = PRODUCTS.flatMap((p) =>
+  // ── Variants & images ────────────────────────────────────────────────
+  const variantValues = ALL_PRODUCTS.flatMap((p) =>
     p.variants.map((v, sortOrder) => ({
       productId: requireId(productIds, p.slug),
       name: v.name,
       nameEn: v.nameEn,
       price: v.price,
       stock: v.stock,
-      image: IMG[v.image],
+      image: IMG[v.image] ?? PLACEHOLDER_IMG,
       sortOrder,
     })),
   );
-  const imageValues = PRODUCTS.flatMap((p) => {
+
+  // Images: legacy products get gallery shots; catalog products get placeholder.
+  const imageValues = ALL_PRODUCTS.flatMap((p) => {
     const productId = requireId(productIds, p.slug);
-    const shots = (GALLERY[p.category] ?? []).map((k) => IMG[k]);
-    return [...new Set([IMG[p.image], ...shots])].slice(0, 4).map((url, sortOrder) => ({
-      productId,
-      url,
-      sortOrder,
-    }));
+    // Only legacy products (those in LEGACY_PRODUCTS) get gallery images
+    const isLegacy = LEGACY_PRODUCTS.some((lp) => lp.slug === p.slug);
+    if (isLegacy) {
+      const shots = (GALLERY[p.category] ?? []).map((k) => IMG[k]);
+      return [...new Set([IMG[p.image], ...shots])].slice(0, 4).map((url, sortOrder) => ({
+        productId,
+        url,
+        sortOrder,
+      }));
+    }
+    // Catalog products: single placeholder image
+    return [{ productId, url: PLACEHOLDER_IMG, sortOrder: 0 }];
   });
+
   for (const chunkRows of chunk(variantValues, INSERT_CHUNK_SIZE))
     await db.insert(schema.productVariant).values(chunkRows);
   for (const chunkRows of chunk(imageValues, INSERT_CHUNK_SIZE))
     await db.insert(schema.productImage).values(chunkRows);
 
-  const productSlugs = PRODUCTS.map((p) => p.slug);
-  await db.delete(schema.product).where(
-    sql`${schema.product.slug} not in (${sql.join(
-      productSlugs.map((s) => sql`${s}`),
-      sql`, `,
-    )})`,
-  );
-  const catSlugs = CATEGORIES.map((c) => c.slug);
-  await db.delete(schema.category).where(
-    sql`${schema.category.slug} not in (${sql.join(
-      catSlugs.map((s) => sql`${s}`),
-      sql`, `,
-    )})`,
-  );
-
+  // ── Stats ────────────────────────────────────────────────────────────
   const catCount = await db.select({ n: sql<number>`count(*)` }).from(schema.category);
   const prodCount = await db.select({ n: sql<number>`count(*)` }).from(schema.product);
   const varCount = await db.select({ n: sql<number>`count(*)` }).from(schema.productVariant);

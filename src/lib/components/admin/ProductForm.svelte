@@ -2,6 +2,7 @@
   import { enhance } from "$app/forms";
   import Button from "$lib/components/Button.svelte";
   import { t, type Lang } from "$lib/i18n/messages";
+  import type { Department } from "$lib/server/store";
   import type { ProductInput } from "$lib/server/admin/products";
 
   let {
@@ -10,13 +11,15 @@
     value = null,
     action,
     submitLabel,
+    department: initialDepartment = "honey",
   }: {
     lang: Lang;
-    categories: Array<{ id: string; name: string }>;
+    categories: Array<{ id: string; name: string; department: string }>;
     /** Prefill for edits; `price` is integer qirsh and `slug` the stored one. */
     value?: (ProductInput & { slug?: string }) | null;
     action: string;
     submitLabel: string;
+    department?: Department;
   } = $props();
 
   // Seeded once per mount: each page renders exactly one form with static
@@ -36,6 +39,7 @@
           categoryId: "",
           featured: false,
           priceEgp: "" as number | "",
+          department: initialDepartment as Department,
         }
       : {
           name: value.name,
@@ -46,10 +50,24 @@
           categoryId: value.categoryId,
           featured: value.featured,
           priceEgp: value.price / 100 as number | "",
+          department: initialDepartment as Department,
         },
   );
 
   let submitting = $state(false);
+
+  const filteredCategories = $derived(
+    categories.filter((c) => c.department === model.department || !c.department),
+  );
+
+  // Reset category when department changes, unless the selected category is still valid
+  $effect(() => {
+    const dept = model.department;
+    const valid = categories.find((c) => c.id === model.categoryId);
+    if (valid && valid.department !== dept && valid.department !== "") {
+      model.categoryId = "";
+    }
+  });
 </script>
 
 <form
@@ -107,7 +125,14 @@
     ></textarea>
   </label>
 
-  <div class="grid gap-4 sm:grid-cols-2">
+  <div class="grid gap-4 sm:grid-cols-3">
+    <label class="field-label">
+      {t(lang, "admin.products.department")}
+      <select name="department" bind:value={model.department} required class="field mt-1">
+        <option value="honey">{t(lang, "dept.honey")}</option>
+        <option value="equipment">{t(lang, "dept.equipment")}</option>
+      </select>
+    </label>
     <label class="field-label">
       {t(lang, "admin.products.priceEgp")}
       <input
@@ -127,7 +152,7 @@
       {t(lang, "admin.products.category")}
       <select name="categoryId" bind:value={model.categoryId} required class="field mt-1">
         <option value="" disabled>{t(lang, "admin.products.chooseCategory")}</option>
-        {#each categories as category (category.id)}
+        {#each filteredCategories as category (category.id)}
           <option value={category.id}>{category.name}</option>
         {/each}
       </select>
