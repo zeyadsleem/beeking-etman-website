@@ -103,18 +103,19 @@
       class="group relative overflow-hidden rounded-2xl border border-honey-200 bg-gradient-to-br from-honey-50 to-parchment p-8 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-honey-300 hover:shadow-warm"
     >
       <div class="paper-grain pointer-events-none absolute inset-0" aria-hidden="true"></div>
-      <div class="relative flex items-start justify-between">
-        <div>
+      <div class="relative flex items-start justify-between gap-6">
+        <div class="min-w-0">
           <p class="eyebrow text-honey-700">{t(lang, "brand.name")}</p>
           <h2 class="headline mt-2 text-2xl text-cocoa-900">{t(lang, "home.deptShopHoney")}</h2>
           <p class="mt-2 text-sm leading-relaxed text-cocoa-500">{t(lang, "home.deptShopHoneyDesc")}</p>
         </div>
-        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-honey-100 text-honey-700 ring-1 ring-inset ring-honey-200 transition-all duration-300 group-hover:scale-110">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3C8 3 4 6 4 10c0 5 8 11 8 11s8-6 8-11c0-4-4-7-8-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M9 10h.01M15 10h.01M9.5 13c.83 1.25 2.33 2 4 2s3.17-.75 4-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </span>
+        <img
+          src="/images/Beeking Etman/برطمان السدر المصرى.jpg"
+          alt=""
+          draggable="false"
+          loading="lazy"
+          class="h-20 w-20 shrink-0 rounded-2xl object-cover ring-2 ring-inset ring-honey-100 transition-transform duration-300 group-hover:scale-105 sm:h-24 sm:w-24"
+        />
       </div>
       <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-honey-700 transition-all duration-300 group-hover:gap-3">
         {t(lang, "home.shopNow")}
@@ -128,17 +129,19 @@
       class="group relative overflow-hidden rounded-2xl border border-cocoa-200 bg-gradient-to-br from-cocoa-50 to-parchment p-8 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-cocoa-300 hover:shadow-warm"
     >
       <div class="paper-grain pointer-events-none absolute inset-0" aria-hidden="true"></div>
-      <div class="relative flex items-start justify-between">
-        <div>
+      <div class="relative flex items-start justify-between gap-6">
+        <div class="min-w-0">
           <p class="eyebrow text-cocoa-600">{t(lang, "brand.name")}</p>
           <h2 class="headline mt-2 text-2xl text-cocoa-900">{t(lang, "home.deptShopEquipment")}</h2>
           <p class="mt-2 text-sm leading-relaxed text-cocoa-500">{t(lang, "home.deptShopEquipmentDesc")}</p>
         </div>
-        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-cocoa-100 text-cocoa-600 ring-1 ring-inset ring-cocoa-200 transition-all duration-300 group-hover:scale-110">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </span>
+        <img
+          src="/images/Beeking Etman/مدخن نحل استانليس.jpg"
+          alt=""
+          draggable="false"
+          loading="lazy"
+          class="h-20 w-20 shrink-0 rounded-2xl object-cover ring-2 ring-inset ring-cocoa-100 transition-transform duration-300 group-hover:scale-105 sm:h-24 sm:w-24"
+        />
       </div>
       <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-cocoa-700 transition-all duration-300 group-hover:gap-3">
         {t(lang, "home.shopNow")}
