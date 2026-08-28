@@ -28,6 +28,8 @@ export interface CatalogProduct {
   categorySlug: string;
   /** Price in piastres (EGP × 100) */
   price: number;
+  /** Available quantity in stock */
+  stock: number;
   /** Optional SKU from the pricing list */
   sku?: string;
   /** Whether this product should appear in the storefront */
@@ -48,7 +50,6 @@ const MARJORAM = "marjoram";
 // Honey > Blends
 const NUTS_HONEY = "nuts-honey";
 const COMB_HONEY = "comb-honey";
-const BLEND_MIX = "blend-mix";
 
 // Honey > Hive Products
 const ROYAL_JELLY = "royal-jelly";
@@ -106,6 +107,9 @@ const DRUM_30KG = "drum-30kg";
 const FOUNDATION_LOCAL = "foundation-local";
 const FOUNDATION_EXPORT = "foundation-export";
 
+// Equipment > Medicines & Treatments
+const TREATMENTS = "treatments";
+
 // ---------------------------------------------------------------------------
 // Products (EGP → piastres via × 100)
 // ---------------------------------------------------------------------------
@@ -124,6 +128,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CLOVER,
     price: 3450_00,
+    stock: 40,
     published: true,
   },
   {
@@ -134,6 +139,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     categorySlug: CLOVER,
     price: 120_00,
     sku: "1002",
+    stock: 54,
     published: true,
   },
   {
@@ -143,6 +149,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CLOVER,
     price: 130_00,
+    stock: 59,
     published: true,
   },
   {
@@ -152,6 +159,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CLOVER,
     price: 90_00,
+    stock: 54,
     published: true,
   },
   {
@@ -161,6 +169,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CLOVER,
     price: 180_00,
+    stock: 56,
     published: true,
   },
   {
@@ -170,6 +179,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CLOVER,
     price: 65_00,
+    stock: 41,
     published: true,
   },
   {
@@ -179,6 +189,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CLOVER,
     price: 70_00,
+    stock: 59,
     published: true,
   },
   {
@@ -188,6 +199,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CLOVER,
     price: 565_00,
+    stock: 48,
     published: true,
   },
   {
@@ -197,6 +209,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CLOVER,
     price: 235_00,
+    stock: 44,
     published: true,
   },
   {
@@ -207,6 +220,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     categorySlug: CLOVER,
     price: 120_00,
     sku: "1001",
+    stock: 53,
     published: true,
   },
   {
@@ -216,6 +230,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CLOVER,
     price: 135_00,
+    stock: 54,
     published: true,
   },
 
@@ -228,6 +243,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CITRUS,
     price: 145_00,
+    stock: 49,
     published: true,
   },
   {
@@ -237,6 +253,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CITRUS,
     price: 100_00,
+    stock: 42,
     published: true,
   },
   {
@@ -246,6 +263,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CITRUS,
     price: 200_00,
+    stock: 55,
     published: true,
   },
   {
@@ -255,6 +273,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CITRUS,
     price: 75_00,
+    stock: 48,
     published: true,
   },
   {
@@ -264,6 +283,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CITRUS,
     price: 135_00,
+    stock: 41,
     published: true,
   },
   {
@@ -273,6 +293,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CITRUS,
     price: 145_00,
+    stock: 54,
     published: true,
   },
   {
@@ -282,6 +303,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CITRUS,
     price: 35_00,
+    stock: 55,
     published: true,
   },
   {
@@ -291,6 +313,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: CITRUS,
     price: 75_00,
+    stock: 53,
     published: true,
   },
 
@@ -303,6 +326,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: SIDR,
     price: 500_00,
+    stock: 49,
     published: true,
   },
   {
@@ -312,6 +336,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: SIDR,
     price: 1000_00,
+    stock: 50,
     published: true,
   },
 
@@ -324,6 +349,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: BLACK_SEED,
     price: 70_00,
+    stock: 56,
     published: true,
   },
   {
@@ -333,6 +359,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: BLACK_SEED,
     price: 90_00,
+    stock: 60,
     published: true,
   },
   {
@@ -342,6 +369,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: BLACK_SEED,
     price: 130_00,
+    stock: 60,
     published: true,
   },
   {
@@ -351,6 +379,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: BLACK_SEED,
     price: 180_00,
+    stock: 59,
     published: true,
   },
 
@@ -363,6 +392,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: MARJORAM,
     price: 70_00,
+    stock: 46,
     published: true,
   },
   {
@@ -372,6 +402,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: MARJORAM,
     price: 90_00,
+    stock: 54,
     published: true,
   },
   {
@@ -381,6 +412,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: MARJORAM,
     price: 130_00,
+    stock: 49,
     published: true,
   },
   {
@@ -390,6 +422,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: MARJORAM,
     price: 180_00,
+    stock: 43,
     published: true,
   },
 
@@ -406,6 +439,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 125_00,
+    stock: 37,
     published: true,
   },
   {
@@ -415,6 +449,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 135_00,
+    stock: 42,
     published: true,
   },
   {
@@ -424,6 +459,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 115_00,
+    stock: 39,
     published: true,
   },
   {
@@ -433,6 +469,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 125_00,
+    stock: 44,
     published: true,
   },
   {
@@ -442,6 +479,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 110_00,
+    stock: 54,
     published: true,
   },
   {
@@ -451,6 +489,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 100_00,
+    stock: 42,
     published: true,
   },
   {
@@ -460,6 +499,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 90_00,
+    stock: 44,
     published: true,
   },
   {
@@ -469,6 +509,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 225_00,
+    stock: 37,
     published: true,
   },
   {
@@ -478,6 +519,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 250_00,
+    stock: 36,
     published: true,
   },
   {
@@ -487,6 +529,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 210_00,
+    stock: 49,
     published: true,
   },
 
@@ -499,6 +542,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: COMB_HONEY,
     price: 90_00,
+    stock: 45,
     published: true,
   },
   {
@@ -508,6 +552,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: COMB_HONEY,
     price: 50_00,
+    stock: 44,
     published: true,
   },
   {
@@ -517,6 +562,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: COMB_HONEY,
     price: 100_00,
+    stock: 38,
     published: true,
   },
   {
@@ -526,6 +572,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: COMB_HONEY,
     price: 60_00,
+    stock: 37,
     published: true,
   },
 
@@ -536,8 +583,9 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     name: "عسل خلطه برطمان سدادسي بلاستيك",
     nameEn: "Six-Blend Honey Hexagonal 1kg Plastic",
     department: "honey",
-    categorySlug: BLEND_MIX,
+    categorySlug: SUPPLEMENTS,
     price: 100_00,
+    stock: 41,
     published: true,
   },
 
@@ -554,6 +602,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: ROYAL_JELLY,
     price: 80_00,
+    stock: 30,
     published: true,
   },
   {
@@ -563,6 +612,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: ROYAL_JELLY,
     price: 70,
+    stock: 40,
     published: true,
   },
 
@@ -575,6 +625,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: POLLEN,
     price: 100_00,
+    stock: 38,
     published: true,
   },
   {
@@ -584,6 +635,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: POLLEN,
     price: 100_00,
+    stock: 33,
     published: true,
   },
   {
@@ -593,6 +645,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: POLLEN,
     price: 30_00,
+    stock: 47,
     published: true,
   },
   {
@@ -602,6 +655,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: POLLEN,
     price: 30_00,
+    stock: 50,
     published: true,
   },
 
@@ -614,6 +668,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: PROPOLIS,
     price: 70_00,
+    stock: 47,
     published: true,
   },
 
@@ -626,15 +681,17 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: SUPPLEMENTS,
     price: 80_00,
+    stock: 33,
     published: true,
   },
   {
     slug: "super-vitamin-500mg",
     name: "سوبر فيتامين 500 ملي جرام",
     nameEn: "Super Vitamin 500mg",
-    department: "honey",
-    categorySlug: SUPPLEMENTS,
+    department: "equipment",
+    categorySlug: TREATMENTS,
     price: 120_00,
+    stock: 48,
     published: true,
   },
 
@@ -651,6 +708,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: MIXED_NUTS,
     price: 110_00,
+    stock: 46,
     published: true,
   },
   {
@@ -660,6 +718,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: MIXED_NUTS,
     price: 150_00,
+    stock: 64,
     published: true,
   },
 
@@ -672,6 +731,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: SINGLE_NUTS,
     price: 100_00,
+    stock: 57,
     published: true,
   },
   {
@@ -681,6 +741,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: SINGLE_NUTS,
     price: 100_00,
+    stock: 55,
     published: true,
   },
   {
@@ -690,6 +751,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: SINGLE_NUTS,
     price: 120_00,
+    stock: 63,
     published: true,
   },
   {
@@ -699,6 +761,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "honey",
     categorySlug: SINGLE_NUTS,
     price: 130_00,
+    stock: 58,
     published: true,
   },
 
@@ -715,6 +778,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 60_00,
+    stock: 45,
     published: true,
   },
   {
@@ -724,6 +788,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 75_00,
+    stock: 55,
     published: true,
   },
   {
@@ -733,6 +798,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 100_00,
+    stock: 44,
     published: true,
   },
   {
@@ -742,6 +808,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 115_00,
+    stock: 48,
     published: true,
   },
   {
@@ -751,6 +818,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 125_00,
+    stock: 58,
     published: true,
   },
   {
@@ -760,6 +828,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 150_00,
+    stock: 47,
     published: true,
   },
   {
@@ -769,6 +838,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 225_00,
+    stock: 44,
     published: true,
   },
   {
@@ -778,6 +848,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 250_00,
+    stock: 54,
     published: true,
   },
   {
@@ -787,6 +858,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 300_00,
+    stock: 43,
     published: true,
   },
   {
@@ -796,6 +868,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 200_00,
+    stock: 55,
     published: true,
   },
   {
@@ -805,6 +878,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 120_00,
+    stock: 55,
     published: true,
   },
   {
@@ -814,6 +888,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 170_00,
+    stock: 51,
     published: true,
   },
   {
@@ -823,6 +898,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SWEDISH_PARTS,
     price: 350_00,
+    stock: 48,
     published: true,
   },
 
@@ -835,6 +911,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TRAVEL_HIVE,
     price: 350_00,
+    stock: 55,
     published: true,
   },
   {
@@ -844,6 +921,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TRAVEL_HIVE,
     price: 350_00,
+    stock: 51,
     published: true,
   },
   {
@@ -853,6 +931,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TRAVEL_HIVE,
     price: 550_00,
+    stock: 41,
     published: true,
   },
   {
@@ -862,6 +941,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TRAVEL_HIVE,
     price: 450_00,
+    stock: 52,
     published: true,
   },
 
@@ -874,6 +954,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FRAMES,
     price: 40_00,
+    stock: 55,
     published: true,
   },
   {
@@ -883,6 +964,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FRAMES,
     price: 14_00,
+    stock: 41,
     published: true,
   },
   {
@@ -892,6 +974,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FRAMES,
     price: 17_00,
+    stock: 47,
     published: true,
   },
   {
@@ -901,6 +984,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FRAMES,
     price: 15_50,
+    stock: 47,
     published: true,
   },
   {
@@ -910,6 +994,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FRAMES,
     price: 35_00,
+    stock: 52,
     published: true,
   },
 
@@ -922,6 +1007,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: METAL_SHEETS,
     price: 40_00,
+    stock: 53,
     published: true,
   },
 
@@ -934,6 +1020,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: QUEEN_CAGES,
     price: 2_00,
+    stock: 41,
     published: true,
   },
   {
@@ -943,6 +1030,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: QUEEN_CAGES,
     price: 75,
+    stock: 55,
     published: true,
   },
   {
@@ -952,6 +1040,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: QUEEN_CAGES,
     price: 1_00,
+    stock: 45,
     published: true,
   },
   {
@@ -961,6 +1050,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: QUEEN_CAGES,
     price: 3_20,
+    stock: 56,
     published: true,
   },
 
@@ -973,6 +1063,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FEEDERS,
     price: 23_00,
+    stock: 43,
     published: true,
   },
   {
@@ -982,6 +1073,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FEEDERS,
     price: 19_00,
+    stock: 50,
     published: true,
   },
 
@@ -994,6 +1086,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: QUEEN_EXCLUDERS,
     price: 35_00,
+    stock: 56,
     published: true,
   },
   {
@@ -1003,6 +1096,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: QUEEN_EXCLUDERS,
     price: 25_00,
+    stock: 46,
     published: true,
   },
   {
@@ -1012,6 +1106,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: QUEEN_EXCLUDERS,
     price: 70_00,
+    stock: 50,
     published: true,
   },
 
@@ -1024,6 +1119,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_HIVE,
     price: 60_00,
+    stock: 52,
     published: true,
   },
   {
@@ -1033,6 +1129,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_HIVE,
     price: 30_00,
+    stock: 43,
     published: true,
   },
   {
@@ -1042,6 +1139,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_HIVE,
     price: 25_00,
+    stock: 54,
     published: true,
   },
   {
@@ -1051,6 +1149,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_HIVE,
     price: 50,
+    stock: 58,
     published: true,
   },
   {
@@ -1060,6 +1159,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_HIVE,
     price: 65_00,
+    stock: 57,
     published: true,
   },
 
@@ -1076,6 +1176,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: EXTRACTORS,
     price: 6000_00,
+    stock: 24,
     published: true,
   },
   {
@@ -1085,6 +1186,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: EXTRACTORS,
     price: 5000_00,
+    stock: 27,
     published: true,
   },
   {
@@ -1094,6 +1196,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: EXTRACTORS,
     price: 11000_00,
+    stock: 24,
     published: true,
   },
   {
@@ -1103,6 +1206,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: EXTRACTORS,
     price: 10000_00,
+    stock: 32,
     published: true,
   },
   {
@@ -1112,6 +1216,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: EXTRACTORS,
     price: 10000_00,
+    stock: 18,
     published: true,
   },
   {
@@ -1121,6 +1226,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: EXTRACTORS,
     price: 9000_00,
+    stock: 21,
     published: true,
   },
 
@@ -1133,6 +1239,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: RIPENERS,
     price: 4000_00,
+    stock: 31,
     published: true,
   },
 
@@ -1145,6 +1252,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_EXTRACTION,
     price: 115_00,
+    stock: 29,
     published: true,
   },
   {
@@ -1154,6 +1262,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_EXTRACTION,
     price: 300_00,
+    stock: 32,
     published: true,
   },
 
@@ -1170,6 +1279,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: VEILS,
     price: 90_00,
+    stock: 45,
     published: true,
   },
   {
@@ -1179,6 +1289,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: VEILS,
     price: 85_00,
+    stock: 31,
     published: true,
   },
   {
@@ -1188,6 +1299,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: VEILS,
     price: 70_00,
+    stock: 47,
     published: true,
   },
   {
@@ -1197,6 +1309,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: VEILS,
     price: 80_00,
+    stock: 36,
     published: true,
   },
   {
@@ -1206,6 +1319,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: VEILS,
     price: 60_00,
+    stock: 46,
     published: true,
   },
   {
@@ -1215,6 +1329,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: VEILS,
     price: 190_00,
+    stock: 38,
     published: true,
   },
   {
@@ -1224,6 +1339,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: VEILS,
     price: 270_00,
+    stock: 41,
     published: true,
   },
   {
@@ -1233,6 +1349,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: VEILS,
     price: 180_00,
+    stock: 43,
     published: true,
   },
   {
@@ -1242,6 +1359,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: VEILS,
     price: 140_00,
+    stock: 39,
     published: true,
   },
 
@@ -1254,6 +1372,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SUITS,
     price: 600_00,
+    stock: 42,
     published: true,
   },
   {
@@ -1263,6 +1382,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SUITS,
     price: 650_00,
+    stock: 42,
     published: true,
   },
   {
@@ -1272,6 +1392,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SUITS,
     price: 550_00,
+    stock: 47,
     published: true,
   },
   {
@@ -1281,6 +1402,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SUITS,
     price: 650_00,
+    stock: 47,
     published: true,
   },
   {
@@ -1290,6 +1412,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SUITS,
     price: 650_00,
+    stock: 36,
     published: true,
   },
   {
@@ -1299,6 +1422,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SUITS,
     price: 650_00,
+    stock: 45,
     published: true,
   },
   {
@@ -1308,6 +1432,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SUITS,
     price: 650_00,
+    stock: 35,
     published: true,
   },
 
@@ -1320,6 +1445,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: GLOVES,
     price: 100_00,
+    stock: 37,
     published: true,
   },
   {
@@ -1329,6 +1455,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: GLOVES,
     price: 55_00,
+    stock: 36,
     published: true,
   },
 
@@ -1341,6 +1468,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_PROTECTION,
     price: 550_00,
+    stock: 43,
     published: true,
   },
 
@@ -1357,6 +1485,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SMOKERS,
     price: 200_00,
+    stock: 55,
     published: true,
   },
 
@@ -1369,6 +1498,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: BEE_BRUSHES,
     price: 35_00,
+    stock: 50,
     published: true,
   },
 
@@ -1381,6 +1511,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TRAPS,
     price: 140_00,
+    stock: 44,
     published: true,
   },
   {
@@ -1390,6 +1521,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TRAPS,
     price: 100_00,
+    stock: 54,
     published: true,
   },
   {
@@ -1399,6 +1531,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TRAPS,
     price: 80_00,
+    stock: 41,
     published: true,
   },
   {
@@ -1408,6 +1541,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TRAPS,
     price: 70_00,
+    stock: 46,
     published: true,
   },
   {
@@ -1417,6 +1551,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TRAPS,
     price: 50_00,
+    stock: 57,
     published: true,
   },
 
@@ -1429,6 +1564,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: GRAFTING,
     price: 50_00,
+    stock: 42,
     published: true,
   },
 
@@ -1441,6 +1577,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SPRAYS,
     price: 110_00,
+    stock: 48,
     published: true,
   },
   {
@@ -1450,6 +1587,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SPRAYS,
     price: 110_00,
+    stock: 47,
     published: true,
   },
 
@@ -1462,6 +1600,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_TOOLS,
     price: 50_00,
+    stock: 55,
     published: true,
   },
   {
@@ -1471,6 +1610,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_TOOLS,
     price: 50_00,
+    stock: 49,
     published: true,
   },
   {
@@ -1480,6 +1620,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_TOOLS,
     price: 30_00,
+    stock: 60,
     published: true,
   },
   {
@@ -1489,6 +1630,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_TOOLS,
     price: 35_00,
+    stock: 43,
     published: true,
   },
   {
@@ -1498,6 +1640,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_TOOLS,
     price: 175_00,
+    stock: 45,
     published: true,
   },
   {
@@ -1507,6 +1650,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: OTHER_TOOLS,
     price: 60_00,
+    stock: 45,
     published: true,
   },
 
@@ -1523,6 +1667,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 8_00,
+    stock: 130,
     published: true,
   },
   {
@@ -1532,6 +1677,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 20_00,
+    stock: 120,
     published: true,
   },
   {
@@ -1541,6 +1687,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 12_50,
+    stock: 135,
     published: true,
   },
   {
@@ -1550,6 +1697,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_50,
+    stock: 138,
     published: true,
   },
   {
@@ -1559,6 +1707,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 11_00,
+    stock: 133,
     published: true,
   },
   {
@@ -1568,6 +1717,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 25_00,
+    stock: 135,
     published: true,
   },
   {
@@ -1577,6 +1727,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 1_00,
+    stock: 126,
     published: true,
   },
   {
@@ -1586,6 +1737,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 8_00,
+    stock: 120,
     published: true,
   },
   {
@@ -1595,6 +1747,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 3_90,
+    stock: 127,
     published: true,
   },
   {
@@ -1604,6 +1757,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_10,
+    stock: 128,
     published: true,
   },
   {
@@ -1613,6 +1767,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_00,
+    stock: 122,
     published: true,
   },
   {
@@ -1622,6 +1777,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 9_00,
+    stock: 136,
     published: true,
   },
   {
@@ -1631,6 +1787,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 15_00,
+    stock: 123,
     published: true,
   },
   {
@@ -1640,6 +1797,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 12_00,
+    stock: 139,
     published: true,
   },
   {
@@ -1649,6 +1807,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 8_00,
+    stock: 120,
     published: true,
   },
   {
@@ -1658,6 +1817,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 8_00,
+    stock: 138,
     published: true,
   },
   {
@@ -1667,6 +1827,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_60,
+    stock: 138,
     published: true,
   },
   {
@@ -1676,6 +1837,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_50,
+    stock: 140,
     published: true,
   },
   {
@@ -1685,6 +1847,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 3_90,
+    stock: 125,
     published: true,
   },
   {
@@ -1694,6 +1857,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 3_90,
+    stock: 127,
     published: true,
   },
   {
@@ -1703,6 +1867,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 7_00,
+    stock: 131,
     published: true,
   },
   {
@@ -1712,6 +1877,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_20,
+    stock: 134,
     published: true,
   },
   {
@@ -1722,6 +1888,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     categorySlug: JARS,
     price: 8_00,
     sku: "300",
+    stock: 139,
     published: true,
   },
   {
@@ -1731,6 +1898,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_30,
+    stock: 124,
     published: true,
   },
   {
@@ -1740,6 +1908,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_00,
+    stock: 122,
     published: true,
   },
   {
@@ -1749,6 +1918,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_00,
+    stock: 120,
     published: true,
   },
   {
@@ -1758,6 +1928,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_00,
+    stock: 134,
     published: true,
   },
   {
@@ -1767,6 +1938,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_00,
+    stock: 135,
     published: true,
   },
   {
@@ -1776,6 +1948,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: JARS,
     price: 4_50,
+    stock: 125,
     published: true,
   },
 
@@ -1788,6 +1961,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: CARTONS,
     price: 11_00,
+    stock: 130,
     published: true,
   },
   {
@@ -1797,6 +1971,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: CARTONS,
     price: 13_00,
+    stock: 133,
     published: true,
   },
   {
@@ -1806,6 +1981,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: CARTONS,
     price: 11_00,
+    stock: 134,
     published: true,
   },
   {
@@ -1815,6 +1991,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: CARTONS,
     price: 13_00,
+    stock: 125,
     published: true,
   },
 
@@ -1827,6 +2004,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: LIDS,
     price: 2_50,
+    stock: 123,
     published: true,
   },
   {
@@ -1836,6 +2014,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: LIDS,
     price: 3_50,
+    stock: 122,
     published: true,
   },
 
@@ -1848,6 +2027,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SHRINK_WRAP,
     price: 350_00,
+    stock: 123,
     published: true,
   },
   {
@@ -1857,6 +2037,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: SHRINK_WRAP,
     price: 350_00,
+    stock: 132,
     published: true,
   },
 
@@ -1869,6 +2050,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: NUT_NETTING,
     price: 70,
+    stock: 132,
     published: true,
   },
   {
@@ -1878,6 +2060,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: NUT_NETTING,
     price: 95,
+    stock: 121,
     published: true,
   },
 
@@ -1890,6 +2073,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FRIDGE_CONTAINERS,
     price: 8_50,
+    stock: 120,
     published: true,
   },
   {
@@ -1899,6 +2083,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FRIDGE_CONTAINERS,
     price: 7_00,
+    stock: 132,
     published: true,
   },
   {
@@ -1908,6 +2093,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FRIDGE_CONTAINERS,
     price: 6_50,
+    stock: 131,
     published: true,
   },
 
@@ -1920,6 +2106,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: EMPTY_COMB_CONTAINERS,
     price: 6_00,
+    stock: 121,
     published: true,
   },
   {
@@ -1929,6 +2116,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: EMPTY_COMB_CONTAINERS,
     price: 5_00,
+    stock: 134,
     published: true,
   },
   {
@@ -1938,6 +2126,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: EMPTY_COMB_CONTAINERS,
     price: 3_50,
+    stock: 122,
     published: true,
   },
 
@@ -1954,6 +2143,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: HONEY_SPOONS_PKG,
     price: 40_00,
+    stock: 135,
     published: true,
   },
 
@@ -1966,6 +2156,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FERMENTATION_BAGS,
     price: 110_00,
+    stock: 128,
     published: true,
   },
   {
@@ -1975,6 +2166,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FERMENTATION_BAGS,
     price: 110_00,
+    stock: 126,
     published: true,
   },
 
@@ -1987,6 +2179,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: TAPE_ROLL,
     price: 35_00,
+    stock: 130,
     published: true,
   },
 
@@ -1999,6 +2192,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: DRUM_30KG,
     price: 110_00,
+    stock: 60,
     published: true,
   },
 
@@ -2013,6 +2207,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FOUNDATION_EXPORT,
     price: 425_00,
+    stock: 63,
     published: true,
   },
   {
@@ -2022,6 +2217,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     department: "equipment",
     categorySlug: FOUNDATION_LOCAL,
     price: 500_00,
+    stock: 60,
     published: true,
   },
 ];

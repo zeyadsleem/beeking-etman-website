@@ -1,4 +1,5 @@
-import { and, asc, desc, eq, inArray, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
+import { CATEGORY_TREE, getCategoryBySlug } from "$lib/server/categories";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { jarLabel, ADDITIVE_LABELS, isAdditiveKey } from "$lib/blends";
 import type { BlendCartItem, CartEntry, CartItem, CartLine } from "$lib/cart";
@@ -43,6 +44,7 @@ export function isDepartment(value: string | null): value is Department {
 export interface ProductFilters {
   query?: string;
   category?: string;
+  categoryIds?: string[];
   department?: Department;
   limit?: number;
   offset?: number;
@@ -52,6 +54,7 @@ export interface ProductFilters {
 export interface ProductPageFilters {
   query?: string;
   category?: string;
+  categoryIds?: string[];
   department?: Department;
   sort?: SortOrder;
   page?: number;
@@ -208,13 +211,55 @@ export async function getCategories(
       or(eq(schema.category.department, department), sql`${schema.category.department} IS NULL`)!,
     );
   }
-  const where = conditions.length ? and(...conditions) : undefined;
-  const rows = await db
-    .select()
+  conditions.push(isNull(schema.category.parentId));
+  const where = and(...conditions);
+  const rows = await db.select().from(schema.category).where(where);
+  const sectionOrder = new Map(
+    CATEGORY_TREE.filter((c) => c.parentSlug === undefined).map((c, i) => [c.slug, i]),
+  );
+  return rows
+    .sort((a, b) => (sectionOrder.get(a.slug) ?? 999) - (sectionOrder.get(b.slug) ?? 999))
+    .map((c) => ({ id: c.id, name: localized(c.name, c.nameEn, lang), slug: c.slug }));
+}
+
+/**
+ * Resolve a category slug (department-level section OR subcategory) to the set
+ * of category ids whose products should be shown. Selecting a section includes
+ * every subcategory beneath it so the storefront needs no per-product filters.
+ * Returns null when the slug does not belong to the department.
+ */
+export async function resolveCategoryIds(
+  db: LibSQLDatabase<typeof schema>,
+  department: Department,
+  slug: string,
+): Promise<string[] | null> {
+  if (!slug) return [];
+  const node = getCategoryBySlug(slug);
+
+  const cat = await db
+    .select({ id: schema.category.id })
     .from(schema.category)
-    .where(where)
-    .orderBy(asc(schema.category.name));
-  return rows.map((c) => ({ id: c.id, name: localized(c.name, c.nameEn, lang), slug: c.slug }));
+    .where(
+      and(
+        eq(schema.category.slug, slug),
+        or(eq(schema.category.department, department), sql`${schema.category.department} IS NULL`),
+      ),
+    )
+    .get();
+  if (!cat) return null;
+
+  // A subcategory (or a legacy slug absent from the tree) matches only its own
+  // products; a department-level section also includes its subcategories.
+  if (node?.parentSlug !== undefined || node === undefined) return [cat.id];
+
+  const childSlugs = CATEGORY_TREE.filter((c) => c.parentSlug === node.slug).map((c) => c.slug);
+  if (childSlugs.length === 0) return [cat.id];
+
+  const children = await db
+    .select({ id: schema.category.id })
+    .from(schema.category)
+    .where(inArray(schema.category.slug, childSlugs));
+  return [cat.id, ...children.map((c) => c.id)];
 }
 
 export async function findCategoryByQuery(
@@ -291,7 +336,7 @@ async function searchProductIds(
 
 async function buildProductWhere(
   db: LibSQLDatabase<typeof schema>,
-  filters: Pick<ProductFilters, "query" | "category" | "department">,
+  filters: Pick<ProductFilters, "query" | "categoryIds" | "department">,
 ): Promise<{ where: SQL | undefined; none: boolean }> {
   const conds: SQL[] = [];
   if (filters.query) {
@@ -299,8 +344,8 @@ async function buildProductWhere(
     if (ids.length === 0) return { where: undefined, none: true };
     conds.push(inArray(schema.product.id, ids));
   }
-  if (filters.category) {
-    conds.push(eq(schema.product.categoryId, filters.category));
+  if (filters.categoryIds?.length) {
+    conds.push(inArray(schema.product.categoryId, filters.categoryIds));
   }
   if (filters.department) {
     conds.push(eq(schema.product.department, filters.department));

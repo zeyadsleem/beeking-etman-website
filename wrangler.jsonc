@@ -11,7 +11,7 @@
     {
       "binding": "DB",
       "database_name": "beeking",
-      "database_id": "ba736038-a74b-4a94-b43f-1ff088e0d675",
+      "database_id": "93fc332c-83b9-4cc0-abbc-5b08d5ccfbbc",
       "preview_database_id": "DB",
       "migrations_dir": "drizzle",
     },
@@ -22,14 +22,8 @@
       "id": "8b48e8ac78804d37bd07d229de466821",
     },
   ],
-  // Email Service — send transactional emails via Cloudflare's native binding.
-  // Domain must be onboarded: `npx wrangler email sending enable yourdomain.com`
-  // For local dev, add "remote": true to proxy sends to the real service.
-  "send_email": [{ "name": "EMAIL" }],
-  // // Cron trigger skeleton (Phase 6: abandoned-cart recovery).
-  // // Cron triggers require a Workers deployment (not Pages).
-  // // See src/lib/server/cron.ts for the handler skeleton.
-  // [[cron]]
-  // pattern = "0 8 * * *"   // daily at 08:00 UTC (10:00 Cairo)
-  // handler = "email"
+  // NOTE: `send_email` binding is intentionally omitted — Cloudflare Pages does
+  // not support it in the Wrangler Pages configuration (build validation fails),
+  // which previously blocked all production deploys. src/lib/server/email.ts
+  // degrades gracefully when the EMAIL binding is absent.
 }

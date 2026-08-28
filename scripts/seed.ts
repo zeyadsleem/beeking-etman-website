@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
-import { sql } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import * as schema from "../src/lib/server/db/schema";
 import { CATEGORY_TREE } from "../src/lib/server/categories";
 import { CATALOG_PRODUCTS } from "../src/lib/server/catalog-data";
@@ -89,8 +89,8 @@ const LEGACY_CATEGORIES = [
   { slug: "vib", name: "عسل Vib", nameEn: "Vib Honey" },
   { slug: "nuts-honey", name: "مكسرات بالعسل", nameEn: "Nuts in Honey" },
   { slug: "nuts", name: "مكسرات", nameEn: "Nuts" },
-  { slug: "comb", name: "شمع العسل", nameEn: "Comb Honey" },
-  { slug: "bee-supplements", name: "مكملات النحل", nameEn: "Bee Supplements" },
+  { slug: "comb-honey", name: "شمع العسل", nameEn: "Comb Honey" },
+  { slug: "honey-supplements", name: "مكملات العسل", nameEn: "Honey Supplements" },
 ];
 
 const LEGACY_PRODUCTS: SeedProduct[] = [
@@ -102,7 +102,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
       "عسل البرسيم الفاتح من مناحل الدلتا في عبوة زجاجية أنيقة — الأخف والأكثر استخدامًا في مصر، مثالي للإفطار والتحلية اليومية.",
     descriptionEn:
       "Light clover honey from Delta apiaries in an elegant glass jar — the lightest and most used honey in Egypt, perfect for breakfast and daily sweetening.",
-    category: "flowers",
+    category: "clover",
     image: "glassLight",
     featured: true,
     variants: [
@@ -117,7 +117,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
       "نفس عسل البرسيم النقي بعبوة بلاستيكية عملية بسعر اقتصادي — خيار البيت الكبير والاستخدام اليومي.",
     descriptionEn:
       "The same pure clover honey in a practical, budget-friendly plastic jar — the choice of big households and daily use.",
-    category: "flowers",
+    category: "clover",
     image: "plasticJar",
     featured: false,
     variants: [
@@ -132,7 +132,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
       "عسل برسيم فاتح بزجاجة اسكويز عملية تسهّل السكب والتحلية بلا فوضى — مثالي للأطفال والمطبخ.",
     descriptionEn:
       "Light clover honey in a practical squeeze bottle that makes pouring and sweetening mess-free — perfect for kids and the kitchen.",
-    category: "flowers",
+    category: "clover",
     image: "squeezeBottle",
     featured: false,
     variants: [
@@ -152,7 +152,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     description: "نصف كيلو عسل برسيم فاتح بعبوة زجاج — الحجم المثالي للهدايا والمكاتب والسفر.",
     descriptionEn:
       "Half a kilo of light clover honey in a glass jar — the perfect size for gifts, offices and travel.",
-    category: "flowers",
+    category: "clover",
     image: "glassLight",
     featured: false,
     variants: [
@@ -166,7 +166,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     description: "عسل برسيم نصف كيلو بعبوة بلاستيك اقتصادية — خفيف وعملي للاستخدام اليومي.",
     descriptionEn:
       "Half a kilo of clover honey in an economical plastic jar — light and practical for daily use.",
-    category: "flowers",
+    category: "clover",
     image: "plasticJar500",
     featured: false,
     variants: [
@@ -187,7 +187,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
       "عسل الموالح الذهبي في عبوة صغيرة لتجربة النكهة أو لاصطحابه في السفر — من أزهار البرتقال والليمون.",
     descriptionEn:
       "Golden citrus honey in a small jar to try the flavor or take on the go — from orange and lemon blossoms.",
-    category: "flowers",
+    category: "citrus",
     image: "glassLight",
     featured: false,
     variants: [{ name: "150 جرام", nameEn: "150g", price: 35_00, stock: 45, image: "glassLight" }],
@@ -200,7 +200,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
       "كيلو عسل موالح ذهبي منعش من أزهار البرتقال والليمون واليوسفي — غني بفيتامين سي بنكهة حمضية مميزة.",
     descriptionEn:
       "A kilo of fresh golden citrus honey from orange, lemon and tangerine blossoms — rich in vitamin C with a distinctive citrusy taste.",
-    category: "flowers",
+    category: "citrus",
     image: "glassLight",
     featured: true,
     variants: [{ name: "1 ك عادي", nameEn: "1kg", price: 145_00, stock: 25, image: "glassLight" }],
@@ -213,7 +213,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
       "عسل البردقوش الطبي الرفيع من زهر البردقوش — خفيف ولطيف، مفضل لتهدئة الأعصاب وصحة الجهاز التنفسي.",
     descriptionEn:
       "Refined medicinal marjoram honey from marjoram blossoms — light and gentle, favored for calming nerves and respiratory health.",
-    category: "flowers",
+    category: "marjoram",
     image: "dipper",
     featured: false,
     variants: [{ name: "500 جرام", nameEn: "500g", price: 90_00, stock: 22, image: "dipper" }],
@@ -225,7 +225,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     description: "كيلو عسل بردقوش بعبوة زجاج فاخرة — هدية صحية راقية لمن تحب.",
     descriptionEn:
       "A kilo of marjoram honey in a luxurious glass jar — a premium health gift for someone you love.",
-    category: "flowers",
+    category: "marjoram",
     image: "glassPale",
     featured: false,
     variants: [
@@ -239,7 +239,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     description: "عسل برسيم مدعّم بحبة البركة المطحونة — منشط مناعة شتوي في حجم نص كيلو.",
     descriptionEn:
       "Clover honey boosted with ground black seed — a winter immunity booster in a half-kilo size.",
-    category: "flowers",
+    category: "black-seed",
     image: "blackseed",
     featured: false,
     variants: [{ name: "نص", nameEn: "Half", price: 90_00, stock: 24, image: "blackseed" }],
@@ -252,7 +252,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
       "عسل مدعّم بحبة البركة المطحونة — منشط طبيعي للمناعة والأكثر طلبًا في الشتاء، بحجم كيلو.",
     descriptionEn:
       "Honey boosted with ground black seed — a natural immunity booster and the most requested in winter, in a kilo size.",
-    category: "flowers",
+    category: "black-seed",
     image: "blackseed",
     featured: true,
     variants: [{ name: "1 ك", nameEn: "1kg", price: 180_00, stock: 18, image: "blackseed" }],
@@ -442,7 +442,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     nameEn: "Comb Frame Clover",
     description: "برواز الشمع الكامل من بيت النحل — قطعة حقيقية من الخلية تؤكل كما هي.",
     descriptionEn: "A full comb frame from the beehive — a real piece of the hive, eaten as is.",
-    category: "comb",
+    category: "comb-honey",
     image: "combFrame",
     featured: true,
     variants: [{ name: "برسيم", nameEn: "Clover", price: 170_00, stock: 15, image: "combFrame" }],
@@ -454,7 +454,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     description: "برواز شمع كامل بعسل الموالح الطازج — طبيعي 100% من قلب الخلية.",
     descriptionEn:
       "A full comb frame with fresh citrus honey — 100% natural from the heart of the hive.",
-    category: "comb",
+    category: "comb-honey",
     image: "combFrameCitrus",
     featured: false,
     variants: [
@@ -468,7 +468,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     description: "قطع شمع طبيعية بعسل البرسيم الطازج من الفرازات — تُقطع وتُؤكل كما هي.",
     descriptionEn:
       "Natural comb pieces with fresh clover honey straight from the extractor — cut and eaten as is.",
-    category: "comb",
+    category: "comb-honey",
     image: "combChunks",
     featured: false,
     variants: [
@@ -487,7 +487,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     nameEn: "Comb Honey 250g Citrus",
     description: "قطع شمع بعسل الموالح الطازج — وجبة الخلية الطبيعية بحجم 250 جرام.",
     descriptionEn: "Comb pieces with fresh citrus honey — nature's hive meal in a 250g size.",
-    category: "comb",
+    category: "comb-honey",
     image: "combChunks",
     featured: false,
     variants: [
@@ -507,7 +507,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     description: "نصف كيلو شمع طبيعي بالعسل البرسيم — من الفرازات مباشرة إلى بيتك.",
     descriptionEn:
       "Half a kilo of natural comb with clover honey — from the extractor straight to your home.",
-    category: "comb",
+    category: "comb-honey",
     image: "combChunks",
     featured: false,
     variants: [
@@ -526,7 +526,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     nameEn: "Comb Honey 500g Citrus",
     description: "نصف كيلو شمع بالعسل الموالح — يُقطع ويُؤكل كما هو طازجًا من الخلية.",
     descriptionEn: "Half a kilo of comb with citrus honey — cut and eaten fresh from the hive.",
-    category: "comb",
+    category: "comb-honey",
     image: "combChunks",
     featured: false,
     variants: [
@@ -546,7 +546,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     description: "غذاء ملكات نقي طازج من الخلية — أقوى منشطات الطاقة والمناعة الطبيعية في مصر.",
     descriptionEn:
       "Pure fresh royal jelly from the hive — one of Egypt's strongest natural energy and immunity boosters.",
-    category: "bee-supplements",
+    category: "honey-supplements",
     image: "royalJelly",
     featured: true,
     variants: [{ name: "5 جم", nameEn: "5g", price: 80_00, stock: 30, image: "royalJelly" }],
@@ -557,7 +557,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     nameEn: "Propolis Box",
     description: "خلاصة البروبليس (العكبر) الطبيعي المعزّز للمناعة ومضاد الالتهابات.",
     descriptionEn: "Natural propolis extract, boosting immunity and fighting inflammation.",
-    category: "bee-supplements",
+    category: "honey-supplements",
     image: "propolis",
     featured: true,
     variants: [{ name: "علبة", nameEn: "Box", price: 70_00, stock: 20, image: "propolis" }],
@@ -568,7 +568,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     nameEn: "Ginseng Box",
     description: "خلطة الجينسنج بالعسل لنشاط الجسم وزيادة التركيز — قوة الطبيعة في علبة.",
     descriptionEn: "A ginseng-honey blend for body energy and focus — nature's power in a box.",
-    category: "bee-supplements",
+    category: "honey-supplements",
     image: "ginseng",
     featured: false,
     variants: [{ name: "علبة", nameEn: "Box", price: 80_00, stock: 20, image: "ginseng" }],
@@ -579,7 +579,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     nameEn: "Palm Pollen Box",
     description: "طلع النخل الطبيعي بالعسل — مكمل الطاقة المصري التقليدي الخالد.",
     descriptionEn: "Natural palm pollen with honey — the timeless Egyptian energy supplement.",
-    category: "bee-supplements",
+    category: "honey-supplements",
     image: "palmPollen",
     featured: false,
     variants: [{ name: "علبة", nameEn: "Box", price: 25_00, stock: 20, image: "palmPollen" }],
@@ -590,7 +590,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     nameEn: "Bee Pollen Box",
     description: "حبوب لقاح النحل الخام — بروتين طبيعي غني بالفيتامينات والمعادن.",
     descriptionEn: "Raw bee pollen — a natural protein rich in vitamins and minerals.",
-    category: "bee-supplements",
+    category: "honey-supplements",
     image: "beePollen",
     featured: false,
     variants: [{ name: "علبة", nameEn: "Box", price: 30_00, stock: 20, image: "beePollen" }],
@@ -601,7 +601,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     nameEn: "Bee Pollen 125g Box",
     description: "عبوة 125 جرام من حبوب اللقاح الخام — دعم مناعة منتظم بمقدار كافٍ.",
     descriptionEn: "A 125g jar of raw pollen — regular immunity support in a sufficient amount.",
-    category: "bee-supplements",
+    category: "honey-supplements",
     image: "beePollen125",
     featured: false,
     variants: [
@@ -615,7 +615,7 @@ const LEGACY_PRODUCTS: SeedProduct[] = [
     description: "ملاعق عسل سفر جاهزة لأي مكان — عملية وأنيقة لأوقاتك خارج البيت.",
     descriptionEn:
       "Ready-to-use travel honey spoons for anywhere — practical and elegant for your time out of the house.",
-    category: "bee-supplements",
+    category: "honey-supplements",
     image: "honeySpoons",
     featured: false,
     variants: [{ name: "علبة", nameEn: "Box", price: 40_00, stock: 25, image: "honeySpoons" }],
@@ -734,7 +734,7 @@ function buildAllProducts(): SeedProduct[] {
         name: cp.name,
         nameEn: cp.nameEn,
         price: cp.price,
-        stock: 0,
+        stock: cp.stock,
         image: "glassLight" as keyof typeof IMG,
       },
     ],
@@ -783,6 +783,7 @@ async function seed(): Promise<void> {
         name: sql`excluded.name`,
         nameEn: sql`excluded.name_en`,
         department: sql`excluded.department`,
+        parentId: null,
       },
     })
     .returning({ id: schema.category.id, slug: schema.category.slug });
@@ -898,6 +899,26 @@ async function seed(): Promise<void> {
     await db.insert(schema.productVariant).values(chunkRows);
   for (const chunkRows of chunk(imageValues, INSERT_CHUNK_SIZE))
     await db.insert(schema.productImage).values(chunkRows);
+
+  // ── Stale category cleanup ───────────────────────────────────────────
+  // Remove category rows whose slug is no longer in the tree or legacy
+  // set (e.g. old parents honey-single, honey-blends, hive-products,
+  // nuts-dept, blend-mix, comb, bee-supplements). Reassigned products all
+  // target current slugs, and parent_id was reset above, so FK-safe.
+  const allowedSlugs = [
+    ...LEGACY_CATEGORIES.map((c) => c.slug),
+    ...CATEGORY_TREE.map((c) => c.slug),
+  ];
+  const categoriesToKeep = new Set(allowedSlugs);
+  const allCategoryRows = await db
+    .select({ id: schema.category.id, slug: schema.category.slug })
+    .from(schema.category);
+  const staleCategoryIds = allCategoryRows
+    .filter((r) => !categoriesToKeep.has(r.slug))
+    .map((r) => r.id);
+  if (staleCategoryIds.length > 0) {
+    await db.delete(schema.category).where(inArray(schema.category.id, staleCategoryIds));
+  }
 
   // ── Stats ────────────────────────────────────────────────────────────
   const catCount = await db.select({ n: sql<number>`count(*)` }).from(schema.category);

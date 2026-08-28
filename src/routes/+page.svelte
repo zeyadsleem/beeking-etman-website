@@ -99,10 +99,11 @@
 <section class="mx-auto mt-12 max-w-4xl px-4 sm:mt-14 sm:px-6 lg:mt-16">
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
     <a
-      href="/products?dept=honey"
+      href="/store/honey"
       class="group relative overflow-hidden rounded-2xl border border-honey-200 bg-gradient-to-br from-honey-50 to-parchment p-8 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-honey-300 hover:shadow-warm"
     >
-      <div class="flex items-start justify-between">
+      <div class="paper-grain pointer-events-none absolute inset-0" aria-hidden="true"></div>
+      <div class="relative flex items-start justify-between">
         <div>
           <p class="eyebrow text-honey-700">{t(lang, "brand.name")}</p>
           <h2 class="headline mt-2 text-2xl text-cocoa-900">{t(lang, "home.deptShopHoney")}</h2>
@@ -123,10 +124,11 @@
       </span>
     </a>
     <a
-      href="/products?dept=equipment"
+      href="/store/equipment"
       class="group relative overflow-hidden rounded-2xl border border-cocoa-200 bg-gradient-to-br from-cocoa-50 to-parchment p-8 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-cocoa-300 hover:shadow-warm"
     >
-      <div class="flex items-start justify-between">
+      <div class="paper-grain pointer-events-none absolute inset-0" aria-hidden="true"></div>
+      <div class="relative flex items-start justify-between">
         <div>
           <p class="eyebrow text-cocoa-600">{t(lang, "brand.name")}</p>
           <h2 class="headline mt-2 text-2xl text-cocoa-900">{t(lang, "home.deptShopEquipment")}</h2>
@@ -154,7 +156,7 @@
       <p class="eyebrow">{t(lang, "home.featuredEyebrow")}</p>
       <SectionTitle className="mt-2 text-3xl">{t(lang, "home.featuredTitle")}</SectionTitle>
     </div>
-    <Button variant="outline" href="/products" class="text-sm">{t(lang, "home.allProducts")}</Button>
+    <Button variant="outline" href="/store/honey" class="text-sm">{t(lang, "home.allProducts")}</Button>
   </div>
   <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
     {#each data.featured as product (product.id)}
@@ -211,8 +213,10 @@
   {/if}
 {/each}
 
-<section class="paper-panel mt-14 px-6 py-12 text-center sm:mt-16 sm:px-10 lg:mt-20">
-  <SectionTitle className="mx-auto text-3xl">{t(lang, "home.whyTitle")}</SectionTitle>
+<section class="paper-panel relative mt-14 overflow-hidden px-6 py-12 text-center sm:mt-16 sm:px-10 lg:mt-20">
+  <div class="paper-grain hex-pattern pointer-events-none absolute inset-0" aria-hidden="true"></div>
+  <div class="relative">
+    <SectionTitle className="mx-auto text-3xl">{t(lang, "home.whyTitle")}</SectionTitle>
   <div class="mx-auto mt-10 grid max-w-4xl gap-10 sm:grid-cols-3">
     <div>
       <div class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-honey-50 text-honey-700 ring-1 ring-inset ring-honey-200">
@@ -226,8 +230,9 @@
     </div>
     <div>
       <div class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-honey-50 text-honey-700 ring-1 ring-inset ring-honey-200">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 21c-4-3-7-6.2-7-9.5A4.5 4.5 0 0 1 12 8a4.5 4.5 0 0 1 7 3.5c0 3.3-3 6.5-7 9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+        <svg viewBox="0 0 24 24" fill="none" class="h-9 w-9 motion-safe:animate-brand-rise" aria-hidden="true">
+          <path d="M12 2C8 2 4 5.4 4 9.8c0 5.5 8 12.2 8 12.2s8-6.7 8-12.2C20 5.4 16 2 12 2Z" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+          <path d="M9 9.8h.01M14.5 9.8h.01M9.7 13.2c.9 1.2 2.4 1.8 4 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none" />
         </svg>
       </div>
       <h3 class="headline mt-4 text-lg text-cocoa-900">{t(lang, "home.whyFast")}</h3>
@@ -242,5 +247,6 @@
       <h3 class="headline mt-4 text-lg text-cocoa-900">{t(lang, "home.whyQuality")}</h3>
       <p class="mt-1 text-sm leading-relaxed text-cocoa-500">{t(lang, "home.whyQualityBody")}</p>
     </div>
+  </div>
   </div>
 </section>

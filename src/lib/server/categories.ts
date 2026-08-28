@@ -25,85 +25,49 @@ export interface CategoryNode {
 // Honey & Hive Products department (عسل ومنتجات الخلية)
 // ---------------------------------------------------------------------------
 
-const honeySingle: CategoryNode[] = [
-  {
-    slug: "honey-single",
-    name: "عسل أحادي",
-    nameEn: "Single-Origin Honey",
-    department: "honey",
-  },
+const honeyClover: CategoryNode[] = [
   {
     slug: "clover",
     name: "عسل برسيم",
     nameEn: "Clover Honey",
     department: "honey",
-    parentSlug: "honey-single",
   },
   {
     slug: "citrus",
     name: "عسل موالح",
     nameEn: "Citrus Honey",
     department: "honey",
-    parentSlug: "honey-single",
   },
+];
+
+const honeyFlowers: CategoryNode[] = [
   {
-    slug: "sidr",
-    name: "عسل سدر",
-    nameEn: "Sidr Honey",
+    slug: "flowers",
+    name: "عسل زهور حبة البركة والبردقوش",
+    nameEn: "Flower Honey",
     department: "honey",
-    parentSlug: "honey-single",
   },
   {
     slug: "black-seed",
     name: "عسل حبة البركة",
     nameEn: "Black Seed Honey",
     department: "honey",
-    parentSlug: "honey-single",
+    parentSlug: "flowers",
   },
   {
     slug: "marjoram",
     name: "عسل بردقوش",
     nameEn: "Marjoram Honey",
     department: "honey",
-    parentSlug: "honey-single",
+    parentSlug: "flowers",
   },
 ];
 
-const honeyBlends: CategoryNode[] = [
+const honeySupplements: CategoryNode[] = [
   {
-    slug: "honey-blends",
-    name: "عسل مخلوط و بالعسل",
-    nameEn: "Blends & Honey Comb",
-    department: "honey",
-  },
-  {
-    slug: "nuts-honey",
-    name: "عسل بالمكسرات",
-    nameEn: "Honey with Nuts",
-    department: "honey",
-    parentSlug: "honey-blends",
-  },
-  {
-    slug: "comb-honey",
-    name: "شمع بالعسل",
-    nameEn: "Comb Honey",
-    department: "honey",
-    parentSlug: "honey-blends",
-  },
-  {
-    slug: "blend-mix",
-    name: "خلطات",
-    nameEn: "Blends",
-    department: "honey",
-    parentSlug: "honey-blends",
-  },
-];
-
-const hiveProducts: CategoryNode[] = [
-  {
-    slug: "hive-products",
-    name: "منتجات الخلية",
-    nameEn: "Hive Products",
+    slug: "honey-supplements",
+    name: "مكملات العسل",
+    nameEn: "Honey Supplements",
     department: "honey",
   },
   {
@@ -111,34 +75,70 @@ const hiveProducts: CategoryNode[] = [
     name: "غذاء ملكات",
     nameEn: "Royal Jelly",
     department: "honey",
-    parentSlug: "hive-products",
+    parentSlug: "honey-supplements",
   },
   {
     slug: "pollen",
     name: "حبوب لقاح",
     nameEn: "Bee Pollen",
     department: "honey",
-    parentSlug: "hive-products",
+    parentSlug: "honey-supplements",
   },
   {
     slug: "propolis",
     name: "بروبليس",
     nameEn: "Propolis",
     department: "honey",
-    parentSlug: "hive-products",
+    parentSlug: "honey-supplements",
   },
   {
     slug: "supplements",
     name: "مكملات",
     nameEn: "Supplements",
     department: "honey",
-    parentSlug: "hive-products",
+    parentSlug: "honey-supplements",
   },
 ];
 
-const nutsDept: CategoryNode[] = [
+const honeySidr: CategoryNode[] = [
   {
-    slug: "nuts-dept",
+    slug: "sidr",
+    name: "عسل سدر",
+    nameEn: "Sidr Honey",
+    department: "honey",
+  },
+];
+
+const honeyVib: CategoryNode[] = [
+  {
+    slug: "vib",
+    name: "عسل الـ Vib",
+    nameEn: "Vib Honey",
+    department: "honey",
+  },
+];
+
+const honeyComb: CategoryNode[] = [
+  {
+    slug: "comb-honey",
+    name: "شمع العسل",
+    nameEn: "Comb Honey",
+    department: "honey",
+  },
+];
+
+const honeyNuts: CategoryNode[] = [
+  {
+    slug: "nuts-honey",
+    name: "مكسرات بالعسل",
+    nameEn: "Honey with Nuts",
+    department: "honey",
+  },
+];
+
+const honeyNutsDept: CategoryNode[] = [
+  {
+    slug: "nuts",
     name: "مكسرات",
     nameEn: "Nuts",
     department: "honey",
@@ -148,14 +148,14 @@ const nutsDept: CategoryNode[] = [
     name: "مكسرات مشكله",
     nameEn: "Mixed Nuts",
     department: "honey",
-    parentSlug: "nuts-dept",
+    parentSlug: "nuts",
   },
   {
     slug: "single-nuts",
     name: "مكسرات مفردة",
     nameEn: "Single Nuts",
     department: "honey",
-    parentSlug: "nuts-dept",
+    parentSlug: "nuts",
   },
 ];
 
@@ -462,21 +462,35 @@ const foundationWax: CategoryNode[] = [
   },
 ];
 
+const treatments: CategoryNode[] = [
+  {
+    slug: "treatments",
+    name: "أدوية وعلاجات",
+    nameEn: "Medicines & Treatments",
+    department: "equipment",
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Export complete tree (parents first, then subcategories)
 // ---------------------------------------------------------------------------
 
 export const CATEGORY_TREE: CategoryNode[] = [
-  ...honeySingle,
-  ...honeyBlends,
-  ...hiveProducts,
-  ...nutsDept,
+  ...honeyClover,
+  ...honeyFlowers,
+  ...honeySupplements,
+  ...honeySidr,
+  ...honeyVib,
+  ...honeyComb,
+  ...honeyNuts,
+  ...honeyNutsDept,
   ...hiveEquipment,
   ...extraction,
   ...protection,
   ...tools,
   ...packaging,
   ...foundationWax,
+  ...treatments,
 ];
 
 /**

@@ -46,10 +46,15 @@ function notInList(ids: string[]): string | null {
 
 async function main(): Promise<void> {
   const [categories, products, variants, images] = await Promise.all([
-    client.execute("SELECT id, name, name_en, slug FROM store_category"),
+    // Order top-level categories (parent_id NULL) before their children so the
+    // store_category parent_id foreign key holds when D1 applies the seed.
+    client.execute(
+      "SELECT id, name, name_en, slug, department, parent_id FROM store_category ORDER BY parent_id IS NOT NULL, id",
+    ),
     client.execute(
       `SELECT id, name, name_en, slug, description, description_en, price, stock, image,
-              category_id, featured, created_at FROM store_product`,
+              category_id, featured, created_at, department, sku, published, cost_price,
+              weight_grams FROM store_product`,
     ),
     client.execute(
       `SELECT id, product_id, name, name_en, price, stock, image, sort_order FROM store_product_variant`,
@@ -83,7 +88,11 @@ async function main(): Promise<void> {
     "",
     ...staleDeletes,
     "",
-    ...toUpserts("store_category", ["id", "name", "name_en", "slug"], categories.rows as Row[]),
+    ...toUpserts(
+      "store_category",
+      ["id", "name", "name_en", "slug", "department", "parent_id"],
+      categories.rows as Row[],
+    ),
     "",
     ...toUpserts(
       "store_product",
@@ -100,6 +109,11 @@ async function main(): Promise<void> {
         "category_id",
         "featured",
         "created_at",
+        "department",
+        "sku",
+        "published",
+        "cost_price",
+        "weight_grams",
       ],
       products.rows as Row[],
     ),
