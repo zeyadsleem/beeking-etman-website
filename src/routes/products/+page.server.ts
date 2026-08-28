@@ -6,6 +6,7 @@ import {
   isDepartment,
   listProductsPage,
   PRODUCTS_PAGE_SIZE,
+  resolveCategoryIds,
 } from "$lib/server/store";
 import type { Department, SortOrder } from "$lib/server/store";
 import { db } from "$lib/server/db";
@@ -45,14 +46,14 @@ export const load: PageServerLoad = async (event) => {
       autoCategory = true;
     }
   }
-  const activeCategory = categories.find((c) => c.slug === categorySlug);
-  if (categorySlug && !activeCategory) error(404, t(lang, "products.categoryNotFound"));
+  const categoryIds = await resolveCategoryIds(db, department, categorySlug);
+  if (categorySlug && !categoryIds?.length) error(404, t(lang, "products.categoryNotFound"));
 
   const result = await listProductsPage(
     db,
     {
       query: autoCategory ? "" : rawQ,
-      category: activeCategory?.id ?? "",
+      categoryIds: categoryIds ?? [],
       department,
       sort,
       page,
