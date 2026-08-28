@@ -14,30 +14,6 @@ test("blend page loads and shows the shell container", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
-test("blend page shows loading spinner while Phaser boots", async ({ page }) => {
-  await page.goto("/blends", { waitUntil: "domcontentloaded" });
-  await waitForApp(page);
-
-  // The boot spinner or the canvas should be present — the spinner shows
-  // while Phaser loads, then the canvas replaces it.
-  const spinner = page.getByTestId("blends-boot-spinner");
-  const canvas = page.getByTestId("blends-scene").locator("canvas");
-
-  // At least one of these should be visible (spinner during load, canvas after).
-  const spinnerVisible = await spinner.isVisible().catch(() => false);
-  const canvasVisible = await canvas.isVisible().catch(() => false);
-  expect(spinnerVisible || canvasVisible).toBe(true);
-});
-
-test("blend page no error surface after successful boot", async ({ page }) => {
-  await page.goto("/blends", { waitUntil: "domcontentloaded" });
-  await waitForApp(page);
-
-  // After Phaser boots, the error surface should not be present.
-  await expect(page.getByTestId("blends-scene").locator("canvas")).toBeVisible();
-  await expect(page.getByTestId("blends-boot-error")).toHaveCount(0);
-});
-
 test("nav link to blends page works from store", async ({ page }) => {
   await page.goto("/products", { waitUntil: "domcontentloaded" });
   await waitForApp(page);

@@ -12,8 +12,8 @@
 
   const NAV_ITEMS = [
     { href: "/", labelKey: "nav.home", highlight: false },
-    { href: "/store/honey", labelKey: "nav.storeHoney", highlight: false },
-    { href: "/store/equipment", labelKey: "nav.storeEquipment", highlight: false },
+    { href: "/honey", labelKey: "nav.storeHoney", highlight: false },
+    { href: "/equipment", labelKey: "nav.storeEquipment", highlight: false },
     { href: "/blends", labelKey: "blends.nav", highlight: true },
   ] as const;
 
@@ -30,7 +30,11 @@
 
   const q = $derived(String(page.url.searchParams.get("q") ?? ""));
   const isHome = $derived(page.url.pathname === "/");
-  const showHeaderSearch = $derived(isHome || page.url.pathname.startsWith("/products/"));
+  const isStore = $derived(
+    /^\/(honey|equipment)(\/|$)/.test(page.url.pathname) ||
+      page.url.pathname.startsWith("/products/"),
+  );
+  const showHeaderSearch = $derived(isHome || isStore);
 
   $effect(() => {
     count = cartCount();
@@ -89,12 +93,6 @@
     <div class="col-start-1 flex min-w-0 items-center gap-5 justify-self-start">
       <a href="/" class="relative flex items-center gap-2.5 transition-colors hover:opacity-80" aria-label={t(lang, "brand.tagline")}>
         <Logo alt={t(lang, "brand.tagline")} class="h-14 w-14" />
-        <span class="hidden -translate-y-3 text-honey-600 lg:block motion-safe:animate-brand-rise" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" class="h-8 w-8 opacity-80">
-            <path d="M12 3.5 20 8v8l-8 4.5L4 16V8l8-4.5Z" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-            <path d="M8 4.5 12 7v5l-4 2.3V4.5Z" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" />
-          </svg>
-        </span>
       </a>
 
       <nav class="hidden items-center gap-5 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>

@@ -3,6 +3,7 @@
   import { formatEGP } from "$lib/currency";
   import { trackSearch } from "$lib/analytics-events";
   import { getDir, t, type Lang } from "$lib/i18n/messages";
+  import { productPath } from "$lib/storefront";
   import Button from "./Button.svelte";
 
   interface SuggestionItem {
@@ -74,8 +75,8 @@
       const data = await res.json();
       if (query.trim() !== q) return;
       items = data.products.map(
-        (p: { name: string; slug: string; image: string; minPrice: number }) => ({
-          value: `/products/${p.slug}`,
+        (p: { name: string; slug: string; categorySlug: string; department: string; image: string; minPrice: number }) => ({
+          value: productPath(p),
           label: p.name,
           image: p.image,
           minPrice: p.minPrice,

@@ -12,6 +12,8 @@ function product(id: string, name: string, image: string) {
     image,
     images: [image],
     categoryId: "cat",
+    categorySlug: "clover",
+    department: "honey" as const,
     featured: 0,
     createdAt: 0,
     minPrice: 100_00,
@@ -29,7 +31,14 @@ function product(id: string, name: string, image: string) {
 }
 
 function pageData(p: ReturnType<typeof product>) {
-  return { user: null, categories: [], lang: "ar" as const, product: p, related: [] };
+  return {
+    user: null,
+    categories: [],
+    lang: "ar" as const,
+    product: p,
+    related: [],
+    categoryName: "عسل برسيم",
+  };
 }
 
 describe("ProductPage", () => {

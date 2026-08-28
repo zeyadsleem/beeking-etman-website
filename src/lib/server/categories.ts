@@ -455,8 +455,8 @@ const foundationWax: CategoryNode[] = [
   },
   {
     slug: "foundation-export",
-    name: "شمع أساس تصدير",
-    nameEn: "Export Foundation",
+    name: "شمع أساس",
+    nameEn: "Foundation Wax",
     department: "equipment",
     parentSlug: "foundation-wax",
   },
@@ -467,6 +467,15 @@ const treatments: CategoryNode[] = [
     slug: "treatments",
     name: "أدوية وعلاجات",
     nameEn: "Medicines & Treatments",
+    department: "equipment",
+  },
+];
+
+const byQuantity: CategoryNode[] = [
+  {
+    slug: "by-quantity",
+    name: "منتجات بالكمية",
+    nameEn: "Products by Quantity",
     department: "equipment",
   },
 ];
@@ -491,6 +500,7 @@ export const CATEGORY_TREE: CategoryNode[] = [
   ...packaging,
   ...foundationWax,
   ...treatments,
+  ...byQuantity,
 ];
 
 /**

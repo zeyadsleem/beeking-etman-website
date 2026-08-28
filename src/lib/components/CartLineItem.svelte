@@ -6,12 +6,15 @@
   import { isBlendItem, itemId, lineTotal } from "$lib/cart";
   import { blendLineDetail } from "$lib/blends";
   import { t, type Lang } from "$lib/i18n/messages";
+  import { productPath } from "$lib/storefront";
   import type { CartItem } from "$lib/cart";
 
   let { item, lang, size = "page" }: { item: CartItem; lang: Lang; size?: "drawer" | "page" } = $props();
 
   const isDrawer = $derived(size === "drawer");
-  const itemHref = $derived(isBlendItem(item) ? "/blends" : `/products/${item.slug}`);
+  const itemHref = $derived(
+    isBlendItem(item) ? "/blends" : productPath({ department: item.department, categorySlug: item.categorySlug, slug: item.slug }),
+  );
   const removeButton = $derived(
     isDrawer ? "grid h-8 w-8 place-items-center rounded-full" : "grid h-9 w-9 place-items-center rounded-full",
   );

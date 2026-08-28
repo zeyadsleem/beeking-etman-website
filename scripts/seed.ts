@@ -38,10 +38,30 @@ const IMG = {
   palmPollen: "/images/Beeking Etman/علبة طلع النخل.png",
   honeySpoons: "/images/Beeking Etman/ملاعق العسل.jpg",
   dipper: "/images/Beeking Etman/مغرفة العسل.jpg",
+  logo: "/images/logo.png",
+  suit: "/images/Beeking Etman/بدلة النحالين سحاب امامي.jpg",
+  suitEmbroidered: "/images/Beeking Etman/بدلة النحالين مطرزة.jpg",
+  jacket: "/images/Beeking Etman/جاكت حماية نحال.jpg",
+  veilRound: "/images/Beeking Etman/غطاء رأس نحال دائري.jpg",
+  gloves: "/images/Beeking Etman/جوانتي حماية نحال.jpg",
+  smoker: "/images/Beeking Etman/مدخن نحل استانليس.jpg",
+  extractor4Manual: "/images/Beeking Etman/فراز يدوي 4 برواز ستانلس.jpg",
+  extractor4Electric: "/images/Beeking Etman/فراز كهربائي 4 برواز ستانلس.jpg",
+  extractor6Electric: "/images/Beeking Etman/فراز كهربائي 6 برواز ستانلس.jpg",
+  wireSpool: "/images/Beeking Etman/سلك تثبيت ستانلس.jpg",
+  hiveTool: "/images/Beeking Etman/عتله نحال.jpg",
+  fixingWheel: "/images/Beeking Etman/عجلة تثبيت السلك.jpg",
+  superFork: "/images/Beeking Etman/شوكة قشط سوبر.jpg",
+  beeBrush: "/images/Beeking Etman/فرشاة نحل.jpg",
+  graftingNeedle: "/images/Beeking Etman/ابرة تطعيم.jpg",
+  hiveBox: "/images/Beeking Etman/صندوق نحل.jpg",
+  queenExcluder: "/images/Beeking Etman/حاجز ملكات.jpg",
+  foundationWax: "/images/Beeking Etman/شمع اساس.jpg",
+  feeder: "/images/Beeking Etman/غذاية نحل.jpg",
 };
 
-// Placeholder for catalog products without a product-specific image
-const PLACEHOLDER_IMG = "/images/Beeking Etman/برطمان عسل البرسيم رقم 1.png";
+// Placeholder (logo) for products without a product-specific image
+const PLACEHOLDER_IMG = "/images/logo.png";
 
 const GALLERY: Record<string, (keyof typeof IMG)[]> = {
   flowers: ["glassLight", "glassPale", "dipper"],
@@ -717,25 +737,80 @@ function requireId(map: Map<string, string>, key: string): string {
  */
 function buildAllProducts(): SeedProduct[] {
   const catalogSlugs = new Set(CATALOG_PRODUCTS.map((p) => p.slug));
+  // Legacy products superseded by a catalog product of the same item but a
+  // different slug. Skipped so the store never lists the same product twice.
+  const supersededSlugs = new Set([
+    "citrus-honey-150g",
+    "marjoram-honey-500g",
+    "sidr-honey-1kg",
+    "blackseed-honey-1kg",
+    "citrus-honey-1kg",
+    "clover-honey-500g-plastic",
+    "royal-jelly-5g",
+    "nuts-in-honey-can-400g",
+    "comb-honey-250g-clover",
+    "comb-honey-250g-citrus",
+    "comb-honey-500g-clover",
+    "comb-honey-500g-citrus",
+    "nuts-in-honey-370",
+    "nuts-in-honey-370-round",
+    "nuts-in-honey-oval",
+    "nuts-in-honey-800g",
+    "nuts-in-honey-extra-1kg",
+    // Legacy-only leaks with no catalog slug: duplicates of catalog products
+    // (different jar/weight) that the catalog replaces. Kept out of the store so
+    // the catalog (pricing-list) is the single source of truth.
+    "bee-pollen-125g",
+    "bee-pollen-box",
+    "blackseed-honey-half",
+    "citrus-honey-1kg-vib",
+    "citrus-honey-half-vib",
+    "clover-honey-1kg-glass",
+    "clover-honey-1kg-plastic",
+    "clover-honey-1kg-squeeze",
+    "clover-honey-1kg-vib",
+    "clover-honey-500g-glass",
+    "clover-honey-half-vib",
+    "comb-frame-citrus",
+    "comb-frame-clover",
+    "ginseng-box",
+    "honey-spoons-box",
+    "marjoram-honey-1kg-glass",
+    "nuts-extra-can-500g",
+    "palm-pollen-box",
+    "propolis-box",
+    "sidr-honey-500g",
+    "six-blend-1kg-plastic",
+  ]);
+  // Catalog products to exclude from the store entirely (duplicates, or lines
+  // the owner pulled from sale). Kept out of the catalog mapping so the store
+  // never lists them; stale rows are pruned by the seed cleanup below.
+  const EXCLUDED_CATALOG_SLUGS = new Set([
+    "foundation-local-2kg", // شمع أساس بلدي تصدير 2ك — dup of export line, off list
+  ]);
   // Legacy products whose slugs are NOT overridden by the catalog stay as-is.
-  const keptLegacy = LEGACY_PRODUCTS.filter((p) => !catalogSlugs.has(p.slug));
+  const keptLegacy = LEGACY_PRODUCTS.filter(
+    (p) => !catalogSlugs.has(p.slug) && !supersededSlugs.has(p.slug),
+  );
 
-  const catalogAsSeed: SeedProduct[] = CATALOG_PRODUCTS.map((cp) => ({
+  const catalogAsSeed: SeedProduct[] = CATALOG_PRODUCTS.filter(
+    (cp) => !EXCLUDED_CATALOG_SLUGS.has(cp.slug),
+  ).map((cp) => ({
     slug: cp.slug,
     name: cp.name,
     nameEn: cp.nameEn,
     description: cp.name,
     descriptionEn: cp.nameEn,
     category: cp.categorySlug,
-    image: "glassLight" as keyof typeof IMG,
-    featured: false,
+    image: (cp.image ?? "logo") as keyof typeof IMG,
+    featured: cp.featured ?? false,
     variants: [
       {
         name: cp.name,
         nameEn: cp.nameEn,
         price: cp.price,
         stock: cp.stock,
-        image: "glassLight" as keyof typeof IMG,
+        image: (cp.image ?? "logo") as keyof typeof IMG,
       },
     ],
   }));
@@ -878,10 +953,11 @@ async function seed(): Promise<void> {
     })),
   );
 
-  // Images: legacy products get gallery shots; catalog products get placeholder.
+  // Images: legacy products get gallery shots; catalog products get a 3-image
+  // gallery (their single image repeated 3×, or the logo when none is set).
   const imageValues = ALL_PRODUCTS.flatMap((p) => {
     const productId = requireId(productIds, p.slug);
-    // Only legacy products (those in LEGACY_PRODUCTS) get gallery images
+    // Only legacy products (those in LEGACY_PRODUCTS) get their own gallery shots
     const isLegacy = LEGACY_PRODUCTS.some((lp) => lp.slug === p.slug);
     if (isLegacy) {
       const shots = (GALLERY[p.category] ?? []).map((k) => IMG[k]);
@@ -891,8 +967,9 @@ async function seed(): Promise<void> {
         sortOrder,
       }));
     }
-    // Catalog products: single placeholder image
-    return [{ productId, url: PLACEHOLDER_IMG, sortOrder: 0 }];
+    // Catalog products: single image repeated across 3 gallery slots
+    const url = IMG[p.image] ?? PLACEHOLDER_IMG;
+    return [0, 1, 2].map((sortOrder) => ({ productId, url, sortOrder }));
   });
 
   for (const chunkRows of chunk(variantValues, INSERT_CHUNK_SIZE))
@@ -918,6 +995,21 @@ async function seed(): Promise<void> {
     .map((r) => r.id);
   if (staleCategoryIds.length > 0) {
     await db.delete(schema.category).where(inArray(schema.category.id, staleCategoryIds));
+  }
+
+  // ── Stale product cleanup ────────────────────────────────────────────
+  // Remove product rows whose slug is no longer produced by the pipeline
+  // (i.e. legacy products superseded by the catalog). order_item /
+  // product_variant / product_image were truncated above, so FK-safe.
+  const allowedProductSlugs = new Set(ALL_PRODUCTS.map((p) => p.slug));
+  const allProductRows = await db
+    .select({ id: schema.product.id, slug: schema.product.slug })
+    .from(schema.product);
+  const staleProductIds = allProductRows
+    .filter((r) => !allowedProductSlugs.has(r.slug))
+    .map((r) => r.id);
+  if (staleProductIds.length > 0) {
+    await db.delete(schema.product).where(inArray(schema.product.id, staleProductIds));
   }
 
   // ── Stats ────────────────────────────────────────────────────────────

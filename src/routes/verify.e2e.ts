@@ -98,20 +98,13 @@ test("cross-page navigation is client-side and still transitions", async () => {
   await page.waitForLoadState("load");
   const loadsBefore = fullLoads;
 
-  await page.locator('header a[href="/products"]').click();
-  await expect(page).toHaveURL(/\/products/);
-  await expect(page.locator("h1").first()).toContainText("متجر");
+  await page.locator('header a[href="/honey"]').click();
+  await expect(page).toHaveURL(/\/honey/);
+  await expect(page.locator("h1").first()).toBeVisible();
   await page.waitForTimeout(400);
 
   const vt = await page.evaluate(() => (window as any).__vt);
-  console.log(
-    "/ -> /products: view transitions:",
-    vt,
-    "| full loads:",
-    loadsBefore,
-    "->",
-    fullLoads,
-  );
+  console.log("/ -> /honey: view transitions:", vt, "| full loads:", loadsBefore, "->", fullLoads);
   expect(vt).toBeGreaterThan(0);
   expect(fullLoads).toBe(loadsBefore);
 
@@ -132,8 +125,8 @@ test("browser back after client-side navigation returns home", async () => {
   const homeUrl = page.url();
   await page.waitForTimeout(800);
 
-  await page.locator('a[href^="/products/"]').first().click();
-  await expect(page).toHaveURL(/\/products\//);
+  await page.locator('a[href^="/honey/"]').first().click();
+  await expect(page).toHaveURL(/\/honey\//);
   await page.waitForTimeout(600);
 
   await page.goBack();

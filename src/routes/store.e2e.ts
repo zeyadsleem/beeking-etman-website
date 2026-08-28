@@ -9,15 +9,15 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("عسل");
 
-  await page.getByRole("link", { name: "المتجر" }).first().click();
-  await expect(page).toHaveURL(/\/products/);
+  await page.getByRole("link", { name: "متجر العسل" }).first().click();
+  await expect(page).toHaveURL(/\/honey/);
 
   await page.getByLabel("بحث في المتجر").fill("سدر");
   await page.getByLabel("بحث في المتجر").press("Enter");
   await expect(page).toHaveURL(/\/products\?q=/);
 
   await page.getByRole("link", { name: "عسل سدر مصري" }).first().click();
-  await expect(page).toHaveURL(/\/products\/sidr-honey-1kg/);
+  await expect(page).toHaveURL(/\/honey\/sidr\/honey-sidr-1kg/);
 
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   await page.getByRole("button", { name: "فتح سلة التسوق" }).click();
@@ -45,11 +45,11 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
 });
 
 test("clicking another link during a view transition still navigates", async ({ page }) => {
-  await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
+  await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 
-  await page.getByRole("link", { name: "المتجر" }).first().click();
-  await page.waitForURL(/\/products$/);
+  await page.getByRole("link", { name: "متجر العسل" }).first().click();
+  await page.waitForURL(/\/honey$/);
 
   // The previous navigation's view transition is still cross-fading here;
   // this click must not be silently swallowed (see the onNavigate guard).
@@ -60,18 +60,18 @@ test("clicking another link during a view transition still navigates", async ({ 
 });
 
 test("clicking a product inside the cart drawer closes the drawer", async ({ page }) => {
-  await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
+  await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
 
-  await page.getByRole("link", { name: "المتجر" }).first().click();
-  await expect(page).toHaveURL(/\/products$/);
+  await page.getByRole("link", { name: "متجر العسل" }).first().click();
+  await expect(page).toHaveURL(/\/honey$/);
 
   await page.getByRole("button", { name: "فتح سلة التسوق" }).click();
   await expect(page.getByTestId("cart-drawer")).toBeVisible();
 
   await page.getByTestId("cart-drawer").getByRole("link", { name: "عسل سدر مصري" }).first().click();
-  await expect(page).toHaveURL(/\/products\/sidr-honey-1kg/);
+  await expect(page).toHaveURL(/\/honey\/sidr\/honey-sidr-1kg/);
   await expect(page.getByTestId("cart-drawer")).toBeHidden();
 });
 
@@ -85,7 +85,7 @@ test("sort dropdown shows translated labels in Arabic", async ({ page }) => {
 });
 
 test("checkout shows validation errors for bad input", async ({ page }) => {
-  await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
+  await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   // The cart cookie is set by an async POST /api/cart; wait for it so the

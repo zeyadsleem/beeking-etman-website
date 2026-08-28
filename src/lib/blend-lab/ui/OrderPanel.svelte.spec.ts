@@ -4,6 +4,7 @@ import { render } from "vitest-browser-svelte";
 import { BlendsGame } from "$lib/blend-lab/game-state.svelte";
 import { formatEGP } from "$lib/currency";
 import { jarLabel, type AdditiveKey, type BaseHoneyOption, type JarSize } from "$lib/blends";
+import { zeroDoses } from "$lib/blends";
 import { t } from "$lib/i18n/messages";
 import type { CatalogEntry } from "./catalog";
 import OrderPanelHost from "./OrderPanel.host.svelte";
@@ -75,15 +76,12 @@ function makeFixture(baseStock = BASE_ENTRY.stock): Fixture {
 
 function orderGame(): BlendsGame {
   const game = new BlendsGame();
-  game.selectGoal("vitality");
   game.selectHoney("sidr");
-  game.startStir();
-  game.forceFinishStir();
-  game.completePour();
+  for (const k of DOSED_KEYS) game.addDose(k, 2);
   return game;
 }
 
-// vitality preset doses on a full jar
+// each additive dosed twice (2 per jar)
 const DOSED_KEYS: AdditiveKey[] = ["royalJelly", "ginseng", "palmPollen"];
 const DEFAULT_FIXTURE = makeFixture();
 const UNIT_PRICE =
@@ -241,8 +239,9 @@ describe("OrderPanel", () => {
     await renderPanel(game);
 
     await page.getByRole("button", { name: t(LANG, "blends.game.restart") }).click();
-    expect(game.step).toBe("goal");
+    expect(game.honeyId).toBeNull();
+    expect(game.doses).toEqual(zeroDoses());
     expect(game.quantity).toBe(1);
-    expect(game.jarFill).toBe(0);
+    expect(game.jarSize).toBe("full");
   });
 });

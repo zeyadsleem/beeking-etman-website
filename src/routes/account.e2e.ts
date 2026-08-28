@@ -34,8 +34,8 @@ type ShippingFiller = (page: Page) => Promise<void>;
  */
 async function buySeededProduct(page: Page, fillShipping: ShippingFiller): Promise<string> {
   // The seeded sidr product is addressed directly: its card is not guaranteed
-  // to be on the first unfiltered /products page (catalog order/pagination).
-  await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
+  // to be on the first unfiltered /honey page (catalog order/pagination).
+  await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   // The cart cookie is set by an async POST /api/cart; wait for it so the hard

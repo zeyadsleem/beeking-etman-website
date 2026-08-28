@@ -40,7 +40,7 @@
         <svg class="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">
           <defs>
             <linearGradient id="crown-gradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="var(--color-honey-500)" />
+              <stop offset="0%" stop-color="var(--color-amber-400)" />
               <stop offset="100%" stop-color="var(--color-honey-700)" />
             </linearGradient>
           </defs>

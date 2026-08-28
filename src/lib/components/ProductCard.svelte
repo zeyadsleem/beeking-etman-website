@@ -6,8 +6,11 @@
   import { formatEGP } from "$lib/currency";
   import { t, type Lang } from "$lib/i18n/messages";
   import type { ProductSummary } from "$lib/server/store";
+  import { productPath } from "$lib/storefront";
 
   let { lang = "ar", product }: { lang?: Lang; product: ProductSummary } = $props();
+
+  const href = $derived(productPath(product));
 
   // The image element whose snapshot morphs into the product page image.
   let imageEl = $state<HTMLImageElement>();
@@ -32,7 +35,7 @@
 </script>
 
 <section class="group flex flex-col overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment transition-all duration-300 hover:-translate-y-0.5 hover:border-cocoa-200 hover:shadow-warm">
-  <a href={`/products/${product.slug}`} class="relative block overflow-hidden bg-cocoa-100" onclick={beginImageTransition}>
+  <a href={href} class="relative block overflow-hidden bg-cocoa-100" onclick={beginImageTransition}>
     <AspectRatio.Root ratio={4 / 3} class="overflow-hidden">
       <img
         bind:this={imageEl}
@@ -64,7 +67,7 @@
       </div>
       {#if product.variants.length > 1}
         <a
-          href={`/products/${product.slug}`}
+          href={href}
           onclick={beginImageTransition}
           class="btn-outline w-full shrink-0 px-4 py-2 sm:w-auto"
           aria-label={t(lang, "product.chooseSizeAria", { name: product.name })}

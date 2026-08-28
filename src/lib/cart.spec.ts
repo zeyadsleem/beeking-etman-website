@@ -22,6 +22,8 @@ const product = {
   name: "عسل سدر مصري",
   variantName: "500 جرام",
   slug: "sidr-egyptian",
+  categorySlug: "sidr",
+  department: "honey",
   image: "https://example.com/honey.jpg",
   price: 380_00,
   stock: 3,

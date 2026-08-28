@@ -30,6 +30,8 @@ export interface RegularCartItem extends CartLine {
   name: string;
   variantName: string;
   slug: string;
+  categorySlug: string;
+  department: string;
   image: string;
   price: number;
   stock: number;
@@ -75,6 +77,8 @@ export interface AddableProduct {
   id: string;
   name: string;
   slug: string;
+  categorySlug: string;
+  department: string;
 }
 
 export interface AddableVariant {
@@ -95,6 +99,8 @@ export function regularItemPayload(
     name: product.name,
     variantName: variant.name,
     slug: product.slug,
+    categorySlug: product.categorySlug,
+    department: product.department,
     image: variant.image,
     price: variant.price,
     stock: variant.stock,

@@ -1094,3 +1094,105 @@ hand-drawn sprites are tracked as a todo candidate. E2E was rewritten but not
 yet executed locally: this host lacks Playwright's OS libraries
 (libicu74/libxml2/libflite1) without passwordless sudo — run
 `sudo pnpm exec playwright install-deps && pnpm run test:e2e` before release.
+
+## 2026-08-28: Dedupe catalog to the owner's pricing list
+
+**Context:** After seeding the Phase 3 two-storefront catalog, the owner noticed
+the live store showed products that differ from the recently trimmed
+`docs/catalog/pricing-list-2026-08-25.md` and asked to re-derive the catalog
+from it, remove the duplicates, and "fix everything."
+
+**Root cause:** the seed merged `LEGACY_PRODUCTS` (the old ~43-line catalog)
+with `CATALOG_PRODUCTS` (the Phase 3 192-line price-list expansion), keeping any
+legacy product whose slug was neither in `CATALOG_PRODUCTS` nor in the
+hardcoded `supersededSlugs` set. Twenty-one legacy-only lines leaked through,
+and — because the seed only ever `onConflictDoUpdate`'d products and never
+deleted stale rows — superseded/superseded-only products lingered orphaned in
+the DB even after being dropped from the source. Names in the owner's edited
+pricing list also dropped their `[SKU]` bracket prefixes, but one catalog entry
+still carried `[300] ` in its display name.
+
+**Decision:**
+
+- Added all **21 legacy-only leak slugs** to the `supersededSlugs` set in
+  `scripts/seed.ts` so `keptLegacy` no longer emits them (bee-pollen-125g,
+  bee-pollen-box, blackseed-honey-half, citrus-honey-1kg-vib,
+  citrus-honey-half-vib, clover-honey-1kg-glass, clover-honey-1kg-plastic,
+  clover-honey-1kg-squeeze, clover-honey-1kg-vib, clover-honey-500g-glass,
+  clover-honey-half-vib, comb-frame-citrus, comb-frame-clover, ginseng-box,
+  honey-spoons-box, marjoram-honey-1kg-glass, nuts-extra-can-500g,
+  palm-pollen-box, propolis-box, sidr-honey-500g, six-blend-1kg-plastic).
+- **Added stale-product cleanup to the seed**: after stale-category pruning,
+  the seed now deletes product rows whose slug is absent from the merged
+  `ALL_PRODUCTS` set (FK-safe because order_item/product_variant/product_image
+  are truncated at the top of the seed). The seed is now a true reconciliation
+  of source → DB, not just an upsert.
+- Cleaned `catalog-data.ts` line 1872 display name (stripped `[300] ` prefix;
+  kept the `sku: '300'` field). The `honey-clover-1kg-plastic-sku1001` slug is a
+  distinct legitimate line and was kept as-is.
+- Re-pointed every reference to a removed legacy slug to its surviving catalog
+  twin (all verified present in `catalog-data.ts`): `src/lib/blends.ts` base
+  honeys (clover/citrus/marjoram/sidr/blackseed half & full) and additives
+  (propolis/ginseng/palm-pollen/bee-pollen → `propolis-10g`/`ginseng-10g`/
+  `jar-palm-pollen`/`pollen-clover-20g`), and `src/routes/+page.svelte` home
+  rails (→ `honey-clover-1kg`, `comb-honey-per-kg-clover`,
+  `nuts-honey-500g-can`, `blend-hexagonal-1kg-plastic`, etc.).
+
+**Consequences:** The catalog now reconciles exactly to the owner's pricing
+list with **192 products, 0 legacy leaks, 0 duplicate names, 192 unique slugs**
+across both `local.db` and the local D1 seed. Backwards-compat: Blend Lab
+compositions and homepage rails still resolve to real catalog products via
+their twins; the pricing list remains the single source of truth and rows are
+still corrected in the seed pipeline, never edited in place.
+
+## 2026-08-28: Remove duplicate local foundation wax line (foundation-local-2kg)
+
+**Context:** The owner flagged that `علبه شمع أساس بلدي عتمان الأصلي تصدير 2ك`
+(seed slug `foundation-local-2kg`, listed at EGP 500 in the pricing list) is a
+duplicate of the surviving `علبه شمع أساس عتمان الاصلي 2 ك` line and its price
+did not match the actual selling price. Unlike the previous dedupe round (whose
+leaks were all legacy products filtered by `supersededSlugs`), this line is a
+`CATALOG_PRODUCTS` entry, which the seed previously mapped one-for-one with no
+exclusion path.
+
+**Decision:**
+
+- Added an `EXCLUDED_CATALOG_SLUGS` set in `scripts/seed.ts` `buildAllProducts()`
+  (mirroring the `supersededSlugs` pattern) and dropped `foundation-local-2kg`
+  from the `catalogAsSeed` mapping, so the store never lists it. The stale-product
+  cleanup then prunes it from the DB. The product record stays in
+  `catalog-data.ts` for audit; the source of truth for what is sold lives in the
+  seed pipeline.
+- Per the owner's explicit request, also removed row 88 from
+  `docs/catalog/pricing-list-2026-08-25.md`.
+- The surviving `علبه شمع أساس عتمان الاصلي 2 ك` (`foundation-export-2kg`)
+  stays in its current section and name, unchanged.
+
+**Consequences:** Catalog is now **191 products, 0 duplicates** across both
+`local.db` and the local D1 seed. No code references the removed slug.
+`foundation-local` (شمع أساس بلدي) remains defined in the category tree with no
+products; the owner confirmed it is left as-is.
+
+## 2026-08-28: Rename `foundation-export` category to "شمع أساس" in the storefront
+
+**Context:** After removing the duplicate `foundation-local-2kg` product (see the
+previous entry), the surviving `علبه شمع أساس عتمان الاصلي 2 ك` product lives in
+the `foundation-export` category, whose storefront heading read "شمع أساس تصدير"
+("Export Foundation"). The owner pointed out the product itself does not say
+"تصدير" and asked for the routing/category heading to read "شمع أساس" instead.
+
+**Decision:**
+
+- In `src/lib/server/categories.ts`, renamed the `foundation-export` category
+  `name` from "شمع أساس تصدير" to "شمع أساس" and `nameEn` from "Export
+  Foundation" to "Foundation Wax". The slug `foundation-export` and its
+  `parentSlug: foundation-wax` structure are unchanged.
+- The parent `foundation-wax` category is also named "شمع أساس"; the owner
+  confirmed this duplicate visible label is acceptable.
+- Re-seeded `local.db` and the local D1 state; the seed's
+  `onConflictDoUpdate` on `slug` refreshed the stored category name.
+
+**Consequences:** The storefront category page for `foundation-export` now reads
+"شمع أساس" (English "Foundation Wax") in both `local.db` and the local D1 seed,
+while the parent `foundation-wax` keeps its own "شمع أساس" heading. Catalog
+remains 191 products, unchanged.

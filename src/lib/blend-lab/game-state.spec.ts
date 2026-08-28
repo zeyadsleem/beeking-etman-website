@@ -1,149 +1,173 @@
 import { describe, expect, it } from "vite-plus/test";
-import { ADDITIVE_KEYS, BLEND_GOALS, MAX_DOSE, presetDoses } from "$lib/blends";
+import { ADDITIVE_KEYS, MAX_DOSE, zeroDoses } from "$lib/blends";
 import { BlendsGame } from "./game-state.svelte";
 
-describe("BlendsGame flow", () => {
-  it("starts at goal with empty state", () => {
+describe("BlendsGame configurator", () => {
+  it("starts empty with a full jar and quantity 1", () => {
     const g = new BlendsGame();
-    expect(g.step).toBe("goal");
-    expect(g.goal).toBeNull();
     expect(g.honeyId).toBeNull();
-    expect(g.jarFill).toBe(0);
+    expect(g.jarSize).toBe("full");
+    expect(g.doses).toEqual(zeroDoses());
     expect(g.quantity).toBe(1);
+    expect(g.hasHoney).toBe(false);
+    expect(g.hasAdditives).toBe(false);
+    expect(g.totalDoses).toBe(0);
+    expect(g.isCompositionValid).toBe(false);
   });
 
-  it("selectGoal presets doses and advances to honey", () => {
+  it("selectHoney sets the base and makes the composition valid", () => {
     const g = new BlendsGame();
-    g.selectGoal("immunity");
-    expect(g.step).toBe("honey");
-    expect(g.goal).toBe("immunity");
-    expect(Object.values(g.doses).some((v) => v > 0)).toBe(true);
+    g.selectHoney("clover");
+    expect(g.honeyId).toBe("clover");
+    expect(g.hasHoney).toBe(true);
+    expect(g.isCompositionValid).toBe(true);
   });
 
-  it("setJarSize re-presets doses when a goal exists", () => {
+  it("setJarSize switches between half and full without touching doses", () => {
     const g = new BlendsGame();
-    g.selectGoal("immunity");
+    g.selectHoney("sidr");
+    g.addDose("royalJelly", 2);
     const before = { ...g.doses };
     g.setJarSize("half");
     expect(g.jarSize).toBe("half");
-    expect(g.doses).toEqual(presetDoses(BLEND_GOALS[1], "half"));
-    expect(g.doses).not.toEqual(before);
+    g.setJarSize("full");
+    expect(g.jarSize).toBe("full");
+    expect(g.doses).toEqual(before);
   });
 
-  it("setJarSize keeps doses zeroed when no goal selected", () => {
+  it("addDose increments up to MAX_DOSE and removeDose clamps at zero", () => {
     const g = new BlendsGame();
-    g.setJarSize("half");
-    expect(g.jarSize).toBe("half");
-    expect(Object.values(g.doses).every((v) => v === 0)).toBe(true);
-  });
-
-  it("selectHoney advances to prep; addDose clamps at MAX_DOSE", () => {
-    const g = new BlendsGame();
-    g.selectGoal("energy");
-    g.selectHoney("clover");
-    expect(g.step).toBe("prep");
     for (let i = 0; i < 10; i++) g.addDose("propolis");
     expect(g.doses.propolis).toBe(MAX_DOSE);
+    expect(g.totalDoses).toBe(MAX_DOSE);
+    for (let i = 0; i < 5; i++) g.removeDose("propolis");
+    expect(g.doses.propolis).toBe(0);
+    expect(g.totalDoses).toBe(0);
     g.removeDose("propolis");
-    expect(g.doses.propolis).toBe(MAX_DOSE - 1);
+    expect(g.doses.propolis).toBe(0);
   });
 
-  it("finishStir requires completion but forceFinishStir always pours", () => {
+  it("addDose supports a custom amount and hasAdditives flips on/off", () => {
     const g = new BlendsGame();
-    g.selectGoal("vitality");
-    g.selectHoney("sidr");
-    g.startStir();
-    expect(g.step).toBe("stir");
-    g.finishStir();
-    expect(g.step).toBe("stir");
-    g.forceFinishStir();
-    expect(g.step).toBe("pour");
+    expect(g.hasAdditives).toBe(false);
+    g.addDose("ginseng", 2);
+    expect(g.doses.ginseng).toBe(2);
+    expect(g.hasAdditives).toBe(true);
+    g.removeDose("ginseng");
+    expect(g.hasAdditives).toBe(true);
+    g.removeDose("ginseng");
+    expect(g.hasAdditives).toBe(false);
   });
 
-  it("recordStir accumulates progress toward 1", () => {
+  it("setQuantity clamps between 1 and max", () => {
     const g = new BlendsGame();
-    g.selectGoal("vitality");
-    g.selectHoney("sidr");
-    g.startStir();
-    for (let i = 0; i < 20; i++) g.recordStir(0.5);
-    expect(g.mixProgress).toBeGreaterThan(0);
-  });
-
-  it("completePour moves to order and quantity clamps", () => {
-    const g = new BlendsGame();
-    g.selectGoal("children");
-    g.selectHoney("citrus");
-    g.startStir();
-    g.forceFinishStir();
-    g.setJarFill(1);
-    g.completePour();
-    expect(g.step).toBe("order");
     g.setQuantity(99, 10);
     expect(g.quantity).toBe(10);
     g.setQuantity(0, 10);
     expect(g.quantity).toBe(1);
+    g.setQuantity(3, 10);
+    expect(g.quantity).toBe(3);
   });
 
-  it("goBack walks backwards but never from pour/order/goal", () => {
+  it("reset clears the honey, doses, mix progress and quantity but keeps the jar size", () => {
     const g = new BlendsGame();
-    expect(g.goBack()).toBe(false);
-    g.selectGoal("digestive");
-    g.selectHoney("marjoram");
-    expect(g.goBack()).toBe(true);
-    expect(g.step).toBe("honey");
-    expect(g.goBack()).toBe(true);
-    expect(g.step).toBe("goal");
-    expect(g.goBack()).toBe(false);
-
-    g.selectGoal("digestive");
-    g.selectHoney("marjoram");
-    g.startStir();
-    g.forceFinishStir();
-    expect(g.step).toBe("pour");
-    expect(g.goBack()).toBe(false);
-    g.completePour();
-    expect(g.step).toBe("order");
-    expect(g.goBack()).toBe(false);
-  });
-
-  it("canBack tracks reversibility across the flow", () => {
-    const g = new BlendsGame();
-    expect(g.canBack).toBe(false);
-    g.selectGoal("digestive");
-    expect(g.canBack).toBe(true);
-    g.selectHoney("marjoram");
-    expect(g.canBack).toBe(true);
-    g.startStir();
-    expect(g.canBack).toBe(true);
-    g.forceFinishStir();
-    expect(g.canBack).toBe(false);
-    g.completePour();
-    expect(g.canBack).toBe(false);
-
-    g.reset();
-    g.selectGoal("digestive");
-    g.selectHoney("marjoram");
-    expect(g.goBack()).toBe(true);
-    expect(g.step).toBe("honey");
-    expect(g.canBack).toBe(true);
-    expect(g.goBack()).toBe(true);
-    expect(g.step).toBe("goal");
-    expect(g.canBack).toBe(false);
-  });
-
-  it("reset returns everything to initial values", () => {
-    const g = new BlendsGame();
-    g.selectGoal("immunity");
     g.selectHoney("sidr");
+    g.setJarSize("half");
+    g.addDose("royalJelly", 2);
+    g.recordStir(0.5);
+    g.next();
+    g.setQuantity(4, 10);
     g.reset();
-    expect(g.step).toBe("goal");
-    expect(g.goal).toBeNull();
+    expect(g.step).toBe("honey");
     expect(g.honeyId).toBeNull();
-    expect(Object.values(g.doses).every((v) => v === 0)).toBe(true);
+    expect(g.jarSize).toBe("half");
+    expect(g.doses).toEqual(zeroDoses());
+    expect(g.mixProgress).toBe(0);
+    expect(g.quantity).toBe(1);
   });
 
   it("exposes every additive key in doses", () => {
     const g = new BlendsGame();
     for (const k of ADDITIVE_KEYS) expect(g.doses[k]).toBe(0);
+  });
+
+  describe("gated step flow", () => {
+    it("starts on honey and cannot back from it", () => {
+      const g = new BlendsGame();
+      expect(g.step).toBe("honey");
+      expect(g.canBack).toBe(false);
+      // next is blocked until a honey is chosen
+      g.next();
+      expect(g.step).toBe("honey");
+    });
+
+    it("advances honey -> additives only after a honey is selected", () => {
+      const g = new BlendsGame();
+      g.selectHoney("clover");
+      expect(g.canNext).toBe(true);
+      g.next();
+      expect(g.step).toBe("additives");
+      expect(g.canBack).toBe(true);
+    });
+
+    it("advances additives -> mix only after at least one dose", () => {
+      const g = new BlendsGame();
+      g.selectHoney("clover");
+      g.next();
+      // no doses yet -> blocked
+      g.next();
+      expect(g.step).toBe("additives");
+      g.addDose("royalJelly");
+      g.next();
+      expect(g.step).toBe("mix");
+    });
+
+    it("mix requires completing the stir (mixProgress reaches 1)", () => {
+      const g = new BlendsGame();
+      g.selectHoney("clover");
+      g.next();
+      g.addDose("royalJelly");
+      g.next();
+      expect(g.step).toBe("mix");
+      // not done yet -> cannot advance (and mix is the last step anyway)
+      expect(g.isMixDone).toBe(false);
+      expect(g.canNext).toBe(false);
+      g.recordStir(0.6);
+      expect(g.isMixDone).toBe(false);
+      g.recordStir(0.4);
+      expect(g.isMixDone).toBe(true);
+      expect(g.canNext).toBe(true);
+      // mix is the final step; next() stays put
+      g.next();
+      expect(g.step).toBe("mix");
+    });
+
+    it("recordStir clamps progress to [0,1] and ignores non-finite input", () => {
+      const g = new BlendsGame();
+      g.recordStir(-3);
+      expect(g.mixProgress).toBe(0);
+      g.recordStir(Number.NaN);
+      expect(g.mixProgress).toBe(0);
+      g.recordStir(0.2);
+      g.recordStir(5);
+      expect(g.mixProgress).toBe(1);
+    });
+
+    it("back() returns to the previous step without resetting choices", () => {
+      const g = new BlendsGame();
+      g.selectHoney("clover");
+      g.next();
+      g.addDose("royalJelly");
+      g.next();
+      expect(g.step).toBe("mix");
+      g.back();
+      expect(g.step).toBe("additives");
+      expect(g.doses.royalJelly).toBe(1);
+      g.back();
+      expect(g.step).toBe("honey");
+      expect(g.honeyId).toBe("clover");
+      g.back();
+      expect(g.step).toBe("honey");
+    });
   });
 });

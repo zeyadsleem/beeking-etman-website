@@ -1,69 +1,77 @@
 import { getContext, setContext } from "svelte";
 import {
-  BLEND_GOALS,
+  ADDITIVE_KEYS,
   MAX_DOSE,
-  presetDoses,
   zeroDoses,
   type AdditiveKey,
   type BaseHoneyOption,
-  type BlendGoalId,
   type JarSize,
 } from "$lib/blends";
-import { accumulateStir, stirProgress } from "./stir-math";
-
-export type GameStep = "goal" | "honey" | "prep" | "stir" | "pour" | "order";
 
 const CONTEXT_KEY = "blendsGame";
 
-const PREV_STEP: Record<GameStep, GameStep | null> = {
-  goal: null,
-  honey: "goal",
-  prep: "honey",
-  stir: "prep",
-  pour: null,
-  order: null,
-};
+export type BlendStep = "honey" | "additives" | "mix";
 
+/** Steps in order; used for the gated wizard progress indicator. */
+export const BLEND_STEPS: readonly BlendStep[] = ["honey", "additives", "mix"];
+
+/**
+ * Gated wizard state for the blend experience. The customer moves through
+ * discrete steps — pick a base honey, add additive doses (by drag & drop or
+ * steppers), then mix by stirring a circular gesture — before ordering. Each
+ * step must satisfy its own condition before `next()` is allowed.
+ */
 export class BlendsGame {
-  step = $state<GameStep>("goal");
-  goal = $state<BlendGoalId | null>(null);
+  step = $state<BlendStep>("honey");
   honeyId = $state<BaseHoneyOption["id"] | null>(null);
   jarSize = $state<JarSize>("full");
   doses = $state<Record<AdditiveKey, number>>(zeroDoses());
-  stirTotal = $state(0);
-  jarFill = $state(0);
+  mixProgress = $state(0);
   quantity = $state(1);
-  inspected = $state<AdditiveKey | null>(null);
 
-  get mixProgress(): number {
-    return stirProgress(this.stirTotal);
+  get hasHoney(): boolean {
+    return this.honeyId !== null;
+  }
+
+  get hasAdditives(): boolean {
+    return ADDITIVE_KEYS.some((k) => this.doses[k] > 0);
+  }
+
+  get totalDoses(): number {
+    return ADDITIVE_KEYS.reduce((sum, k) => sum + this.doses[k], 0);
+  }
+
+  get isCompositionValid(): boolean {
+    return this.honeyId !== null;
+  }
+
+  /** Each step is gated: honey requires a selection, additives require at
+   * least one dose, mix requires the mix gesture to complete. */
+  get canNext(): boolean {
+    switch (this.step) {
+      case "honey":
+        return this.honeyId !== null;
+      case "additives":
+        return this.hasAdditives;
+      case "mix":
+        return this.mixProgress >= 1;
+    }
   }
 
   get canBack(): boolean {
-    return PREV_STEP[this.step] !== null;
+    return this.step !== "honey";
   }
 
-  selectGoal(id: BlendGoalId): void {
-    const goal = BLEND_GOALS.find((g) => g.id === id);
-    if (!goal) throw new Error(`Unknown blend goal: ${id}`);
-    this.goal = id;
-    this.doses = presetDoses(goal, this.jarSize);
-    this.step = "honey";
+  get isMixDone(): boolean {
+    return this.mixProgress >= 1;
   }
 
   selectHoney(id: BaseHoneyOption["id"] | null): void {
     this.honeyId = id;
-    this.step = "prep";
   }
 
   setJarSize(size: JarSize): void {
     this.jarSize = size;
-    const goal = BLEND_GOALS.find((g) => g.id === this.goal);
-    if (goal) this.doses = presetDoses(goal, size);
-  }
-
-  setInspected(key: AdditiveKey | null): void {
-    this.inspected = key;
   }
 
   addDose(key: AdditiveKey, n: number = 1): void {
@@ -74,33 +82,13 @@ export class BlendsGame {
     this.doses[key] = Math.max(0, this.doses[key] - 1);
   }
 
-  startStir(): void {
-    this.step = "stir";
-  }
-
-  recordStir(deltaRadians: number): void {
-    this.stirTotal = accumulateStir(this.stirTotal, deltaRadians);
-  }
-
-  finishStir(): void {
-    if (this.mixProgress >= 1) this.completeStir();
-  }
-
-  forceFinishStir(): void {
-    this.completeStir();
-  }
-
-  private completeStir(): void {
-    this.step = "pour";
-    this.inspected = null;
-  }
-
-  setJarFill(v: number): void {
-    this.jarFill = Math.min(1, Math.max(0, v));
-  }
-
-  completePour(): void {
-    this.step = "order";
+  /**
+   * Advances the stir gesture: `amount` is in [0, 1] and represents how much
+   * of the full stir this call contributes. Clamped so it can never exceed 1.
+   */
+  recordStir(amount: number): void {
+    if (!Number.isFinite(amount)) return;
+    this.mixProgress = Math.min(1, Math.max(0, this.mixProgress + amount));
   }
 
   setQuantity(q: number, maxQty: number): void {
@@ -108,22 +96,24 @@ export class BlendsGame {
     this.quantity = Math.min(cap, Math.max(1, q));
   }
 
-  goBack(): boolean {
-    const prev = PREV_STEP[this.step];
-    if (prev === null) return false;
-    this.step = prev;
-    return true;
+  /** Move to the next step; refuses to advance when the current step isn't complete. */
+  next(): void {
+    if (!this.canNext) return;
+    const idx = BLEND_STEPS.indexOf(this.step);
+    if (idx < BLEND_STEPS.length - 1) this.step = BLEND_STEPS[idx + 1];
+  }
+
+  back(): void {
+    const idx = BLEND_STEPS.indexOf(this.step);
+    if (idx > 0) this.step = BLEND_STEPS[idx - 1];
   }
 
   reset(): void {
-    this.step = "goal";
-    this.goal = null;
+    this.step = "honey";
     this.honeyId = null;
     this.doses = zeroDoses();
-    this.stirTotal = 0;
-    this.jarFill = 0;
+    this.mixProgress = 0;
     this.quantity = 1;
-    this.inspected = null;
   }
 }
 

@@ -3,61 +3,106 @@ import { test, waitForApp } from "./e2e-utils";
 
 test.use({ locale: "ar-EG" });
 
-/**
- * Activates an action-bar control the way assistive technology does. The
- * action bar is sr-only DOM mirroring every canvas interaction, so synthetic
- * pointer clicks would be hit-tested against whatever overlays it (the sticky
- * header) instead of reaching the button.
- */
-async function pressAction(page: Page, testId: string): Promise<void> {
-  await page.getByTestId(testId).dispatchEvent("click");
+/** Drives a full circular stir gesture on the mix zone (3 full turns). */
+async function completeStir(page: Page): Promise<void> {
+  const zone = page.getByTestId("mix-stir-zone");
+  await expect(zone).toBeVisible();
+  const box = await zone.boundingBox();
+  if (!box) throw new Error("mix stir zone has no bounding box");
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const r = Math.min(box.width, box.height) / 2 - 10;
+
+  // Dispatch synthesized pointer events (deterministic vs. mouse synthesis).
+  const pointerInit = (x: number, y: number) => ({
+    pointerId: 1,
+    pointerType: "mouse",
+    isPrimary: true,
+    bubbles: true,
+    clientX: x,
+    clientY: y,
+  });
+
+  await zone.dispatchEvent("pointerdown", pointerInit(cx + r, cy));
+  // 3 full turns × 24 evenly spaced positions.
+  for (let turn = 0; turn < 3; turn++) {
+    for (let i = 1; i <= 24; i++) {
+      const a = (i / 24) * 2 * Math.PI;
+      await zone.dispatchEvent(
+        "pointermove",
+        pointerInit(cx + r * Math.cos(a), cy + r * Math.sin(a)),
+      );
+    }
+  }
+  await zone.dispatchEvent("pointerup", pointerInit(cx + r, cy));
+
+  await expect(page.getByTestId("mix-done")).toBeVisible();
 }
 
-test("customer composes a blend in the phaser game and adds it to the cart", async ({ page }) => {
+test("customer composes a blend step by step and adds it to the cart", async ({ page }) => {
   await page.goto("/blends", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 
-  // Phaser boots asynchronously; the canvas replaces the spinner once ready.
   const scene = page.getByTestId("blends-scene");
-  await expect(scene.locator("canvas")).toBeVisible();
-  await expect(page.getByTestId("blends-boot-spinner")).toBeHidden();
+  await expect(scene).toBeVisible();
 
-  await pressAction(page, "action-goal-vitality");
+  // Step 1 — choose a base honey + size.
+  await page.getByTestId("honey-sidr").click();
+  await expect(page.getByTestId("honey-sidr")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("size-half").click();
+  await expect(page.getByTestId("size-half")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("size-full").click();
+  await expect(page.getByTestId("size-full")).toHaveAttribute("aria-pressed", "true");
 
-  await pressAction(page, "action-jar-half");
-  await expect(page.getByTestId("action-jar-half")).toHaveAttribute("aria-pressed", "true");
-  await pressAction(page, "action-jar-full");
-  await expect(page.getByTestId("action-jar-full")).toHaveAttribute("aria-pressed", "true");
-  await pressAction(page, "action-honey-clover");
+  // Next is enabled once a honey is chosen.
+  const next = page.getByTestId("blends-next");
+  await expect(next).toBeEnabled();
+  await next.click();
 
-  const addGinseng = page.getByTestId("action-dose-add-ginseng");
-  await expect(addGinseng).toBeEnabled();
-  await pressAction(page, "action-dose-add-ginseng");
-  await expect(page.getByTestId("action-dose-remove-ginseng")).toBeEnabled();
-  await pressAction(page, "action-stir-start");
+  // Step 2 — add an ingredient dose via the stepper.
+  await expect(scene).toContainText("المكونات");
+  await page.getByTestId("dose-add-royalJelly").click();
+  await expect(page.getByTestId("dose-count-royalJelly")).toHaveText(/×1/);
+  await next.click();
 
-  await expect(page.getByTestId("stir-progress-ring")).toBeVisible();
-  await pressAction(page, "action-stir-finish");
-
-  await expect(page.getByTestId("blends-pour-hint")).toBeVisible();
-  await pressAction(page, "action-pour");
-
-  await expect(page.getByRole("heading", { name: "خلطتك جاهزة!" })).toBeVisible();
-
+  // Step 3 — mix by stirring, then order.
+  await completeStir(page);
+  await expect(page.getByTestId("blends-order-panel")).toBeVisible();
   await page.getByTestId("add-to-cart-btn").click();
+
   const drawer = page.getByTestId("cart-drawer");
-  await expect(drawer).toContainText("برسيم");
+  await expect(drawer).toContainText("سدر");
   await expect(drawer).toContainText("غذاء ملكات");
 
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "English" }).click();
-  await expect(page.getByRole("heading", { name: "Your blend is ready!" })).toBeVisible();
+  await expect(page.getByTestId("blends-shell")).toBeVisible();
 });
 
-test("boots the phaser scene without the fallback error surface", async ({ page }) => {
+test("next is gated: ordering stays locked until each step is complete", async ({ page }) => {
   await page.goto("/blends", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 
-  await expect(page.getByTestId("blends-scene").locator("canvas")).toBeVisible();
-  await expect(page.getByTestId("blends-boot-error")).toHaveCount(0);
+  const next = page.getByTestId("blends-next");
+  const scene = page.getByTestId("blends-scene");
+
+  // Step 1: no honey chosen yet → next is disabled and no order panel exists.
+  await expect(next).toBeDisabled();
+  await expect(page.getByTestId("blends-order-panel")).toHaveCount(0);
+
+  await page.getByTestId("honey-clover").click();
+  await expect(next).toBeEnabled();
+  await next.click();
+
+  // Step 2: no dose added yet → next is disabled again.
+  await expect(scene).toContainText("المكونات");
+  await expect(next).toBeDisabled();
+  await page.getByTestId("dose-add-ginseng").click();
+  await expect(next).toBeEnabled();
+  await next.click();
+
+  // Step 3: mixing not done → no order panel.
+  await expect(page.getByTestId("blends-order-panel")).toHaveCount(0);
+  await completeStir(page);
+  await expect(page.getByTestId("blends-order-panel")).toBeVisible();
 });

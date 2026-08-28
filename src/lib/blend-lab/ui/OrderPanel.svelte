@@ -56,7 +56,7 @@
   );
 
   function orderBlend(): void {
-    if (!base || !game.goal || maxQty < 1) return;
+    if (!base || maxQty < 1) return;
     // Blend lines are fixed at one jar each in the cart model, so N jars
     // become N identical lines.
     const line: Omit<BlendCartItem, "kind" | "id"> = {
@@ -85,7 +85,10 @@
   }
 </script>
 
-<section class="pointer-events-auto absolute inset-x-4 bottom-6 z-20 mx-auto w-[min(96vw,34rem)] rounded-3xl bg-parchment/95 p-5 shadow-2xl ring-1 ring-cocoa-900/10 backdrop-blur" data-testid="blends-order-panel">
+<section
+  class="pointer-events-auto rounded-3xl bg-parchment/95 p-5 shadow-2xl ring-1 ring-cocoa-900/10 backdrop-blur"
+  data-testid="blends-order-panel"
+>
   <h2 class="headline text-xl font-bold text-cocoa-900">{t(lang, "blends.game.order.title")}</h2>
 
   <ul class="mt-2 space-y-1 text-sm text-cocoa-800">

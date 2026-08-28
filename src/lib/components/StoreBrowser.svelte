@@ -20,7 +20,7 @@
     lang?: Lang;
   } = $props();
 
-  const base = $derived(`/store/${department}`);
+  const base = $derived(`/${department}`);
 
   function navigate({ sort, category, page, q }: { sort?: SortOrder; category?: string | null; page?: number; q?: string }) {
     const params = new URLSearchParams();

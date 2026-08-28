@@ -25,10 +25,22 @@ export interface ProductSummary {
   image: string;
   images: string[];
   categoryId: string;
+  categorySlug: string;
+  department: Department;
   featured: number;
   createdAt: number;
   variants: ProductVariantSummary[];
   minPrice: number;
+}
+
+/**
+ * Build the canonical hierarchical storefront URL for a product:
+ * /{department}/{category-slug}/{product-slug}.
+ */
+export function productPath(
+  product: Pick<ProductSummary, "department" | "categorySlug" | "slug">,
+): string {
+  return `/${product.department}/${product.categorySlug}/${product.slug}`;
 }
 
 export type SortOrder = "newest" | "price-asc" | "price-desc";
@@ -39,6 +51,27 @@ export const DEPARTMENTS: readonly Department[] = ["honey", "equipment"];
 
 export function isDepartment(value: string | null): value is Department {
   return value === "honey" || value === "equipment";
+}
+
+/**
+ * Batch-load the slug for each product's category so callers can build the
+ * hierarchical /{department}/{categorySlug}/{slug} URL.
+ */
+export async function loadCategorySlugs(
+  db: LibSQLDatabase<typeof schema>,
+  productIds: string[],
+): Promise<Map<string, string>> {
+  const unique = [...new Set(productIds.filter(Boolean))];
+  if (unique.length === 0) return new Map();
+  const cats = await db
+    .select({
+      productId: schema.product.id,
+      slug: schema.category.slug,
+    })
+    .from(schema.product)
+    .innerJoin(schema.category, eq(schema.product.categoryId, schema.category.id))
+    .where(inArray(schema.product.id, unique));
+  return new Map(cats.map((c) => [c.productId, c.slug]));
 }
 
 export interface ProductFilters {
@@ -103,7 +136,15 @@ type ProductRow = typeof schema.product.$inferSelect;
 type ImageRow = typeof schema.productImage.$inferSelect;
 type ProductListRow = Pick<
   ProductRow,
-  "id" | "name" | "nameEn" | "slug" | "image" | "categoryId" | "featured" | "createdAt"
+  | "id"
+  | "name"
+  | "nameEn"
+  | "slug"
+  | "image"
+  | "categoryId"
+  | "department"
+  | "featured"
+  | "createdAt"
 >;
 
 const productListColumns = {
@@ -113,6 +154,7 @@ const productListColumns = {
   slug: schema.product.slug,
   image: schema.product.image,
   categoryId: schema.product.categoryId,
+  department: schema.product.department,
   featured: schema.product.featured,
   createdAt: schema.product.createdAt,
 };
@@ -151,6 +193,7 @@ export function withVariants(
   variantsByProduct: Map<string, VariantRow[]>,
   imagesByProduct: Map<string, ImageRow[]> = new Map(),
   lang: Lang = "ar",
+  categorySlugByProduct: Map<string, string> = new Map(),
 ): ProductSummary[] {
   return rows.map((row) => {
     const variants = (variantsByProduct.get(row.id) ?? [])
@@ -168,6 +211,9 @@ export function withVariants(
       image: row.image,
       images,
       categoryId: row.categoryId,
+      categorySlug: categorySlugByProduct.get(row.id) ?? "",
+      department:
+        row.department === "honey" || row.department === "equipment" ? row.department : "honey",
       featured: row.featured,
       createdAt: row.createdAt,
       variants: variants.map((v) => ({ ...v, name: localized(v.name, v.nameEn, lang) })),
@@ -299,11 +345,12 @@ export async function getFeaturedProducts(
     .orderBy(desc(schema.product.createdAt))
     .limit(clampLimit(limit, 8, 24));
   const ids = rows.map((r) => r.id);
-  const [variants, images] = await Promise.all([
+  const [variants, images, categorySlugs] = await Promise.all([
     loadVariantsForProducts(db, ids),
     loadImagesForProducts(db, ids),
+    loadCategorySlugs(db, ids),
   ]);
-  return withVariants(rows, variants, images, lang);
+  return withVariants(rows, variants, images, lang, categorySlugs);
 }
 
 function toFtsQuery(query: string): string {
@@ -379,11 +426,12 @@ export async function listProducts(
     .limit(clampLimit(filters.limit, MAX_LIST_LIMIT, MAX_LIST_LIMIT))
     .offset(filters.offset ?? 0);
   const ids = rows.map((r) => r.id);
-  const [variants, images] = await Promise.all([
+  const [variants, images, categorySlugs] = await Promise.all([
     loadVariantsForProducts(db, ids),
     loadImagesForProducts(db, ids),
+    loadCategorySlugs(db, ids),
   ]);
-  return withVariants(rows, variants, images, lang);
+  return withVariants(rows, variants, images, lang, categorySlugs);
 }
 
 export async function listProductsPage(
@@ -416,17 +464,20 @@ export async function listProductsPage(
     .limit(pageSize)
     .offset((page - 1) * pageSize);
   const ids = rows.map((r) => r.id);
-  const [variants, images] = await Promise.all([
+  const [variants, images, categorySlugs] = await Promise.all([
     loadVariantsForProducts(db, ids),
     loadImagesForProducts(db, ids),
+    loadCategorySlugs(db, ids),
   ]);
-  const summaries = withVariants(rows, variants, images, lang);
+  const summaries = withVariants(rows, variants, images, lang, categorySlugs);
   return { products: summaries, total, page, pageSize, totalPages };
 }
 
 export interface SearchSuggestionProduct {
   name: string;
   slug: string;
+  categorySlug: string;
+  department: Department;
   image: string;
   minPrice: number;
 }
@@ -457,21 +508,32 @@ export async function getSearchSuggestions(
           name: schema.product.name,
           nameEn: schema.product.nameEn,
           slug: schema.product.slug,
+          categoryId: schema.product.categoryId,
+          department: schema.product.department,
           image: schema.product.image,
           price: schema.product.price,
         })
         .from(schema.product)
         .where(inArray(schema.product.id, ids))
     : [];
-  const variants = await loadVariantsForProducts(
-    db,
-    rows.map((r) => r.id),
-  );
+  const [variants, categorySlugs] = await Promise.all([
+    loadVariantsForProducts(
+      db,
+      rows.map((r) => r.id),
+    ),
+    loadCategorySlugs(
+      db,
+      rows.map((r) => r.id),
+    ),
+  ]);
   const products: SearchSuggestionProduct[] = rows.map((row) => {
     const vs = variants.get(row.id) ?? [];
     return {
       name: localized(row.name, row.nameEn, lang),
       slug: row.slug,
+      categorySlug: categorySlugs.get(row.id) ?? "",
+      department:
+        row.department === "honey" || row.department === "equipment" ? row.department : "honey",
       image: row.image,
       minPrice: minPriceOf(vs, row.price),
     };
@@ -486,11 +548,12 @@ export async function getProductWithVariants(
 ): Promise<ProductSummary | null> {
   const row = await db.select().from(schema.product).where(eq(schema.product.slug, slug)).get();
   if (!row) return null;
-  const [variants, images] = await Promise.all([
+  const [variants, images, categorySlugs] = await Promise.all([
     loadVariantsForProducts(db, [row.id]),
     loadImagesForProducts(db, [row.id]),
+    loadCategorySlugs(db, [row.id]),
   ]);
-  const list = withVariants([row], variants, images, lang);
+  const list = withVariants([row], variants, images, lang, categorySlugs);
   return list[0];
 }
 
@@ -509,11 +572,12 @@ export async function getRelatedProducts(
     .orderBy(desc(schema.product.featured), desc(schema.product.createdAt))
     .limit(clampLimit(limit, 4, 24));
   const ids = rows.map((r) => r.id);
-  const [variants, images] = await Promise.all([
+  const [variants, images, categorySlugs] = await Promise.all([
     loadVariantsForProducts(db, ids),
     loadImagesForProducts(db, ids),
+    loadCategorySlugs(db, ids),
   ]);
-  return withVariants(rows, variants, images, lang);
+  return withVariants(rows, variants, images, lang, categorySlugs);
 }
 
 export interface ResolvedCart {
@@ -547,6 +611,7 @@ export async function resolveCartItems(
         .where(inArray(schema.product.id, [...new Set(variants.map((v) => v.productId))]));
       const productById = new Map(products.map((p) => [p.id, p]));
       const variantById = new Map(variants.map((v) => [v.id, v]));
+      const categorySlugs = await loadCategorySlugs(db, [...productById.keys()]);
       for (const line of regularLines) {
         const v = variantById.get(line.variantId);
         const p = v ? productById.get(v.productId) : undefined;
@@ -560,6 +625,8 @@ export async function resolveCartItems(
           name: localized(p.name, p.nameEn, lang),
           variantName: localized(v.name, v.nameEn, lang),
           slug: p.slug,
+          categorySlug: categorySlugs.get(p.id) ?? "",
+          department: p.department,
           image: v.image,
           price: v.price,
           stock: v.stock,

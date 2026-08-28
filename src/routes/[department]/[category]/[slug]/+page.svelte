@@ -14,10 +14,21 @@
   import { formatEGP } from "$lib/currency";
   import { trackProductView } from "$lib/analytics-events";
   import { t } from "$lib/i18n/messages";
+  import { categoryPath, departmentPath, productPath } from "$lib/storefront";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
   const lang = $derived(data.lang);
+  const productUrl = $derived(productPath(data.product));
+  const deptPath = $derived(departmentPath(data.product.department));
+  const catPath = $derived(
+    categoryPath(data.product.department, data.product.categorySlug),
+  );
+  const deptLabel = $derived(
+    data.product.department === "honey"
+      ? t(lang, "breadcrumb.honeyStore")
+      : t(lang, "breadcrumb.equipmentStore"),
+  );
   let selectedVariantId = $state<string | null>(null);
   let selectedVariant = $derived.by(() => {
     const id = selectedVariantId ?? data.product.variants[0].id;
@@ -58,13 +69,13 @@
 <Seo
   title={t(lang, "detail.pageTitle", { name: data.product.name })}
   description={metaDescription(data.product.description)}
-  path={`/products/${data.product.slug}`}
+  path={productUrl}
   siteName={t(lang, "brand.name")}
   image={data.product.image}
   ogType="product"
   jsonLd={[
     productJsonLd({
-      slug: data.product.slug,
+      path: productUrl,
       name: data.product.name,
       description: data.product.description,
       image: data.product.image,
@@ -73,7 +84,8 @@
     }),
     breadcrumbJsonLd([
       { name: t(lang, "nav.home"), path: "/" },
-      { name: t(lang, "nav.store"), path: "/products" },
+      { name: deptLabel, path: deptPath },
+      { name: data.categoryName, path: catPath },
       { name: data.product.name },
     ]),
   ]}
@@ -81,14 +93,15 @@
 
 {#key data.product.id}
 <Breadcrumb
-    lang={lang}
-    className="my-6"
-    items={[
-      { label: t(lang, "nav.home"), href: "/" },
-      { label: t(lang, "nav.store"), href: "/products" },
-      { label: data.product.name },
-    ]}
-  />
+  lang={lang}
+  className="my-6"
+  items={[
+    { label: t(lang, "nav.home"), href: "/" },
+    { label: deptLabel, href: deptPath },
+    { label: data.categoryName, href: catPath },
+    { label: data.product.name },
+  ]}
+/>
 
 <div class="grid gap-8 lg:grid-cols-2">
   <ProductImageGallery

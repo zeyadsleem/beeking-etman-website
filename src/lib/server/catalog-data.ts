@@ -10,7 +10,7 @@
  * - Rows 30 vs 140: kept both, renamed row 30 to "صندوق سفر ثقيل 5 برواز بدون قاعده"
  * - Rows 179 vs 187: kept both, renamed row 179 to distinguish (no SKU)
  * - Rows 90 vs 95: kept as same product name, different sizes
- * - SKU codes [1001], [1002], [300] promoted to product.sku
+ * - SKU codes [1001], [300] promoted to product.sku
  */
 
 import type { Department } from "./categories";
@@ -34,6 +34,15 @@ export interface CatalogProduct {
   sku?: string;
   /** Whether this product should appear in the storefront */
   published: boolean;
+  /**
+   * Optional seed image key (maps to the legacy IMG map in scripts/seed.ts).
+   * Catalog products default to the generic clover jar placeholder.
+   */
+  image?: string;
+  /**
+   * Whether this product is featured in the storefront hero (defaults to false).
+   */
+  featured?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +118,7 @@ const FOUNDATION_EXPORT = "foundation-export";
 
 // Equipment > Medicines & Treatments
 const TREATMENTS = "treatments";
+const BY_QUANTITY = "by-quantity";
 
 // ---------------------------------------------------------------------------
 // Products (EGP → piastres via × 100)
@@ -132,17 +142,6 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     published: true,
   },
   {
-    slug: "honey-clover-1kg-plastic-sku1002",
-    name: "[1002] عسل برسيم 1ك بلاستيك بدون استيكر",
-    nameEn: "Clover Honey 1kg Plastic (No Label)",
-    department: "honey",
-    categorySlug: CLOVER,
-    price: 120_00,
-    sku: "1002",
-    stock: 54,
-    published: true,
-  },
-  {
     slug: "honey-clover-1kg-squeeze",
     name: "عسل برسيم 1 ك بلاستيك اسكويز",
     nameEn: "Clover Honey 1kg Plastic Squeeze",
@@ -150,26 +149,6 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     categorySlug: CLOVER,
     price: 130_00,
     stock: 59,
-    published: true,
-  },
-  {
-    slug: "honey-clover-no1-500g",
-    name: "عسل برسيم رقم 1 500 جرام",
-    nameEn: "Clover Honey No.1 500g",
-    department: "honey",
-    categorySlug: CLOVER,
-    price: 90_00,
-    stock: 54,
-    published: true,
-  },
-  {
-    slug: "honey-clover-no1-1kg",
-    name: "عسل برسيم رقم 1 1ك",
-    nameEn: "Clover Honey No.1 1kg",
-    department: "honey",
-    categorySlug: CLOVER,
-    price: 180_00,
-    stock: 56,
     published: true,
   },
   {
@@ -214,7 +193,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "honey-clover-1kg-plastic-sku1001",
-    name: "[1001] عسل برسيم 1ك بلاستيك",
+    name: "عسل برسيم 1ك بلاستي",
     nameEn: "Clover Honey 1kg Plastic (SKU 1001)",
     department: "honey",
     categorySlug: CLOVER,
@@ -244,26 +223,6 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     categorySlug: CITRUS,
     price: 145_00,
     stock: 49,
-    published: true,
-  },
-  {
-    slug: "honey-citrus-no1-500g-glass",
-    name: "عسل موالح رقم 1 500 جرام زجاج",
-    nameEn: "Citrus Honey No.1 500g Glass",
-    department: "honey",
-    categorySlug: CITRUS,
-    price: 100_00,
-    stock: 42,
-    published: true,
-  },
-  {
-    slug: "honey-citrus-no1-1kg",
-    name: "عسل موالح رقم 1 1ك",
-    nameEn: "Citrus Honey No.1 1kg",
-    department: "honey",
-    categorySlug: CITRUS,
-    price: 200_00,
-    stock: 55,
     published: true,
   },
   {
@@ -338,6 +297,8 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 1000_00,
     stock: 50,
     published: true,
+    image: "glassDark",
+    featured: true,
   },
 
   // ── Black Seed Honey ─────────────────────────────────────────────────
@@ -434,7 +395,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
 
   {
     slug: "nuts-honey-can-400g-extra",
-    name: "عسل مكسرات كان 400 جم اكسترا",
+    name: "مكسرات بالعسل كان 400 جم اكسترا",
     nameEn: "Nuts in Honey Can 400g Extra",
     department: "honey",
     categorySlug: NUTS_HONEY,
@@ -444,7 +405,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "nuts-honey-500g-can",
-    name: "عسل مكسرات كان 500 جرام",
+    name: "مكسرات بالعسل كان 500 جرام",
     nameEn: "Nuts in Honey Can 500g",
     department: "honey",
     categorySlug: NUTS_HONEY,
@@ -454,17 +415,17 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "nuts-honey-400g-can",
-    name: "عسل مكسرات كان 400 جرام",
+    name: "مكسرات بالعسل كان 400 جرام",
     nameEn: "Nuts in Honey Can 400g",
     department: "honey",
     categorySlug: NUTS_HONEY,
-    price: 115_00,
+    price: 125_00,
     stock: 39,
     published: true,
   },
   {
     slug: "nuts-honey-500g-oval",
-    name: "عسل مكسرات 500 جم بيضاوي",
+    name: "مكسرات بالعسل 500 جم بيضاوي",
     nameEn: "Nuts in Honey 500g Oval",
     department: "honey",
     categorySlug: NUTS_HONEY,
@@ -474,7 +435,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "nuts-honey-500g-oval-incomplete",
-    name: "عسل مكسرات 500 جرام بيضاوي غير كامل",
+    name: "مكسرات بالعسل 500 جرام بيضاوي غير كامل",
     nameEn: "Nuts in Honey 500g Oval (Incomplete)",
     department: "honey",
     categorySlug: NUTS_HONEY,
@@ -484,7 +445,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "nuts-honey-370ml-round-glass",
-    name: "عسل مكسرات 370 ملي زجاج دائري",
+    name: "مكسرات بالعسل 370 ملي زجاج دائري",
     nameEn: "Nuts in Honey 370ml Round Glass",
     department: "honey",
     categorySlug: NUTS_HONEY,
@@ -494,7 +455,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "nuts-honey-370ml-plastic",
-    name: "عسل مكسرات 370 ملي بلاستيك",
+    name: "مكسرات بالعسل 370 ملي بلاستيك",
     nameEn: "Nuts in Honey 370ml Plastic",
     department: "honey",
     categorySlug: NUTS_HONEY,
@@ -504,7 +465,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "nuts-honey-1kg",
-    name: "عسل مكسرات 1 كيلو",
+    name: "مكسرات بالعسل 1 كيلو",
     nameEn: "Nuts in Honey 1kg",
     department: "honey",
     categorySlug: NUTS_HONEY,
@@ -514,7 +475,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "nuts-honey-1kg-extra",
-    name: "عسل مكسرات 1 ك اكسترا",
+    name: "مكسرات بالعسل 1 ك اكسترا",
     nameEn: "Nuts in Honey 1kg Extra",
     department: "honey",
     categorySlug: NUTS_HONEY,
@@ -524,13 +485,14 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "nuts-honey-800g",
-    name: "عسل بالمكسرات 800 جرام",
+    name: "مكسرات بالعسل 800 جرام",
     nameEn: "Honey with Nuts 800g",
     department: "honey",
     categorySlug: NUTS_HONEY,
     price: 210_00,
     stock: 49,
     published: true,
+    featured: true,
   },
 
   // ── Comb Honey ───────────────────────────────────────────────────────
@@ -840,6 +802,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 225_00,
     stock: 44,
     published: true,
+    image: "hiveBox",
   },
   {
     slug: "swedish-box-7f",
@@ -850,6 +813,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 250_00,
     stock: 54,
     published: true,
+    image: "hiveBox",
   },
   {
     slug: "swedish-box-8f",
@@ -860,6 +824,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 300_00,
     stock: 43,
     published: true,
+    image: "hiveBox",
   },
   {
     slug: "swedish-box-5f",
@@ -870,6 +835,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 200_00,
     stock: 55,
     published: true,
+    image: "hiveBox",
   },
   {
     slug: "swedish-base-10f",
@@ -900,6 +866,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 350_00,
     stock: 48,
     published: true,
+    image: "hiveBox",
   },
 
   // ── Travel Hives ─────────────────────────────────────────────────────
@@ -913,6 +880,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 350_00,
     stock: 55,
     published: true,
+    image: "hiveBox",
   },
   {
     slug: "travel-hive-heavy-5f",
@@ -923,6 +891,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 350_00,
     stock: 51,
     published: true,
+    image: "hiveBox",
   },
   {
     slug: "travel-hive-8f",
@@ -933,6 +902,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 550_00,
     stock: 41,
     published: true,
+    image: "hiveBox",
   },
   {
     slug: "travel-hive-7f",
@@ -943,6 +913,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 450_00,
     stock: 52,
     published: true,
+    image: "hiveBox",
   },
 
   // ── Frames ───────────────────────────────────────────────────────────
@@ -1065,6 +1036,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 23_00,
     stock: 43,
     published: true,
+    image: "feeder",
   },
   {
     slug: "feeder-plastic-1.5l",
@@ -1075,6 +1047,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 19_00,
     stock: 50,
     published: true,
+    image: "feeder",
   },
 
   // ── Queen Excluders ──────────────────────────────────────────────────
@@ -1088,6 +1061,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 35_00,
     stock: 56,
     published: true,
+    image: "queenExcluder",
   },
   {
     slug: "queen-excluder-plastic-small",
@@ -1098,6 +1072,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 25_00,
     stock: 46,
     published: true,
+    image: "queenExcluder",
   },
   {
     slug: "queen-excluder-plastic-2f",
@@ -1108,6 +1083,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 70_00,
     stock: 50,
     published: true,
+    image: "queenExcluder",
   },
 
   // ── Other Hive Parts ─────────────────────────────────────────────────
@@ -1121,6 +1097,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 60_00,
     stock: 52,
     published: true,
+    image: "fixingWheel",
   },
   {
     slug: "hive-tool-large",
@@ -1131,6 +1108,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 30_00,
     stock: 43,
     published: true,
+    image: "hiveTool",
   },
   {
     slug: "hive-tool-small",
@@ -1141,6 +1119,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 25_00,
     stock: 54,
     published: true,
+    image: "hiveTool",
   },
   {
     slug: "queen-rearing-cups",
@@ -1161,6 +1140,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 65_00,
     stock: 57,
     published: true,
+    image: "queenExcluder",
   },
 
   // ════════════════════════════════════════════════════════════════════════
@@ -1178,6 +1158,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 6000_00,
     stock: 24,
     published: true,
+    image: "extractor4Manual",
   },
   {
     slug: "extractor-stainless-3f-manual",
@@ -1198,6 +1179,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 11000_00,
     stock: 24,
     published: true,
+    image: "extractor6Electric",
   },
   {
     slug: "extractor-6f-galvanized-crank",
@@ -1218,6 +1200,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 10000_00,
     stock: 18,
     published: true,
+    image: "extractor4Electric",
   },
   {
     slug: "extractor-4f-galvanized-crank",
@@ -1281,6 +1264,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 90_00,
     stock: 45,
     published: true,
+    image: "veilRound",
   },
   {
     slug: "veil-face-syrian-wire",
@@ -1291,6 +1275,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 85_00,
     stock: 31,
     published: true,
+    image: "veilRound",
   },
   {
     slug: "veil-face-round-tulle-small",
@@ -1301,6 +1286,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 70_00,
     stock: 47,
     published: true,
+    image: "veilRound",
   },
   {
     slug: "veil-face-round-tulle-large",
@@ -1311,6 +1297,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 80_00,
     stock: 36,
     published: true,
+    image: "veilRound",
   },
   {
     slug: "veil-face-white-heavy",
@@ -1321,6 +1308,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 60_00,
     stock: 46,
     published: true,
+    image: "veilRound",
   },
   {
     slug: "veil-shirt-syrian",
@@ -1331,6 +1319,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 190_00,
     stock: 38,
     published: true,
+    image: "jacket",
   },
   {
     slug: "veil-shirt-super",
@@ -1341,6 +1330,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 270_00,
     stock: 41,
     published: true,
+    image: "jacket",
   },
   {
     slug: "veil-shirt-heavy-round-tulle",
@@ -1351,6 +1341,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 180_00,
     stock: 43,
     published: true,
+    image: "jacket",
   },
   {
     slug: "veil-shirt-white",
@@ -1361,6 +1352,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 140_00,
     stock: 39,
     published: true,
+    image: "jacket",
   },
 
   // ── Suits ────────────────────────────────────────────────────────────
@@ -1374,6 +1366,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 600_00,
     stock: 42,
     published: true,
+    image: "suit",
   },
   {
     slug: "suit-no-veil-colors",
@@ -1384,6 +1377,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 650_00,
     stock: 42,
     published: true,
+    image: "suit",
   },
   {
     slug: "suit-no-veil-syrian-fabric",
@@ -1394,6 +1388,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 550_00,
     stock: 47,
     published: true,
+    image: "suit",
   },
   {
     slug: "suit-no-veil-white",
@@ -1404,6 +1399,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 650_00,
     stock: 47,
     published: true,
+    image: "suit",
   },
   {
     slug: "suit-with-veil-wire",
@@ -1414,6 +1410,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 650_00,
     stock: 36,
     published: true,
+    image: "suitEmbroidered",
   },
   {
     slug: "suit-with-veil-round-tulle-fabric",
@@ -1424,6 +1421,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 650_00,
     stock: 45,
     published: true,
+    image: "suitEmbroidered",
   },
   {
     slug: "suit-with-veil-round-tulle",
@@ -1434,6 +1432,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 650_00,
     stock: 35,
     published: true,
+    image: "suitEmbroidered",
   },
 
   // ── Gloves ───────────────────────────────────────────────────────────
@@ -1447,6 +1446,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 100_00,
     stock: 37,
     published: true,
+    image: "gloves",
   },
   {
     slug: "gloves-suede-leather",
@@ -1457,6 +1457,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 55_00,
     stock: 36,
     published: true,
+    image: "gloves",
   },
 
   // ── Other Protection ─────────────────────────────────────────────────
@@ -1470,6 +1471,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 550_00,
     stock: 43,
     published: true,
+    image: "suitEmbroidered",
   },
 
   // ════════════════════════════════════════════════════════════════════════
@@ -1487,6 +1489,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 200_00,
     stock: 55,
     published: true,
+    image: "smoker",
   },
 
   // ── Bee Brushes ──────────────────────────────────────────────────────
@@ -1500,6 +1503,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 35_00,
     stock: 50,
     published: true,
+    image: "beeBrush",
   },
 
   // ── Traps ────────────────────────────────────────────────────────────
@@ -1566,6 +1570,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 50_00,
     stock: 42,
     published: true,
+    image: "graftingNeedle",
   },
 
   // ── Sprays ───────────────────────────────────────────────────────────
@@ -1602,6 +1607,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 50_00,
     stock: 55,
     published: true,
+    image: "wireSpool",
   },
   {
     slug: "super-fork",
@@ -1612,6 +1618,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 50_00,
     stock: 49,
     published: true,
+    image: "superFork",
   },
   {
     slug: "plastic-roll-large-300",
@@ -1621,16 +1628,6 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     categorySlug: OTHER_TOOLS,
     price: 30_00,
     stock: 60,
-    published: true,
-  },
-  {
-    slug: "plastic-roll-medium-150",
-    name: "بكره لصق وسط 150",
-    nameEn: "Tape Roll Medium 150",
-    department: "equipment",
-    categorySlug: OTHER_TOOLS,
-    price: 35_00,
-    stock: 43,
     published: true,
   },
   {
@@ -1728,16 +1725,6 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     categorySlug: JARS,
     price: 1_00,
     stock: 126,
-    published: true,
-  },
-  {
-    slug: "jar-plastic-1kg-ribbed-imported-row4",
-    name: "برطمان بلاستيك 1 ك مضلع بالغطاء المستورد",
-    nameEn: "Plastic Jar 1kg Ribbed with Imported Lid",
-    department: "equipment",
-    categorySlug: JARS,
-    price: 8_00,
-    stock: 120,
     published: true,
   },
   {
@@ -1882,7 +1869,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
   },
   {
     slug: "jar-plastic-500g-squeeze-imported-sku300",
-    name: "[300] برطمان 500 جرام بلاستيك اسكويز بالغطاء المستورد",
+    name: "برطمان 500 جرام بلاستيك اسكويز بالغطاء المستورد",
     nameEn: "Plastic Jar 500g Squeeze with Imported Lid (SKU 300)",
     department: "equipment",
     categorySlug: JARS,
@@ -2209,6 +2196,7 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     price: 425_00,
     stock: 63,
     published: true,
+    image: "foundationWax",
   },
   {
     slug: "foundation-local-2kg",
@@ -2218,6 +2206,89 @@ export const CATALOG_PRODUCTS: CatalogProduct[] = [
     categorySlug: FOUNDATION_LOCAL,
     price: 500_00,
     stock: 60,
+    published: true,
+    image: "foundationWax",
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // HONEY > COMB HONEY (شمع بالعسل) — sold by quantity per kilo
+  // ════════════════════════════════════════════════════════════════════════
+
+  {
+    slug: "comb-honey-per-kg-clover",
+    name: "برواز شمع بالعسل برسيم (سعر الكيلو)",
+    nameEn: "Comb Honey Clover (per kg)",
+    department: "honey",
+    categorySlug: COMB_HONEY,
+    price: 170_00,
+    stock: 999,
+    published: true,
+    image: "combFrame",
+  },
+  {
+    slug: "comb-honey-per-kg-citrus",
+    name: "برواز شمع بالعسل موالح (سعر الكيلو)",
+    nameEn: "Comb Honey Citrus (per kg)",
+    department: "honey",
+    categorySlug: COMB_HONEY,
+    price: 180_00,
+    stock: 999,
+    published: true,
+    image: "combFrameCitrus",
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // EQUIPMENT > PRODUCTS BY QUANTITY (منتجات بالكمية)
+  // ════════════════════════════════════════════════════════════════════════
+
+  {
+    slug: "royal-jelly-by-quantity",
+    name: "غذاء ملكات مستورد بالكمية",
+    nameEn: "Royal Jelly (by Quantity)",
+    department: "equipment",
+    categorySlug: BY_QUANTITY,
+    price: 300,
+    stock: 999,
+    published: true,
+  },
+  {
+    slug: "palm-pollen-by-quantity",
+    name: "طلع نخل بالكمية",
+    nameEn: "Palm Pollen (by Quantity)",
+    department: "equipment",
+    categorySlug: BY_QUANTITY,
+    price: 45,
+    stock: 999,
+    published: true,
+  },
+  {
+    slug: "bee-pollen-corn-by-quantity",
+    name: "حبوب لقاح ذرة بالكمية",
+    nameEn: "Corn Bee Pollen (by Quantity)",
+    department: "equipment",
+    categorySlug: BY_QUANTITY,
+    price: 55,
+    stock: 999,
+    published: true,
+  },
+  {
+    slug: "bee-pollen-clover-by-quantity",
+    name: "حبوب لقاح برسيم بالكمية",
+    nameEn: "Clover Bee Pollen (by Quantity)",
+    department: "equipment",
+    categorySlug: BY_QUANTITY,
+    price: 65,
+    stock: 999,
+    published: true,
+  },
+  {
+    slug: "propolis-by-quantity",
+    name: "بروبليس بالكمية",
+    nameEn: "Propolis (by Quantity)",
+    department: "equipment",
+    categorySlug: BY_QUANTITY,
+    price: 400,
+    stock: 999,
     published: true,
   },
 ];

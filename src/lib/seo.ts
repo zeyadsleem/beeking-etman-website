@@ -58,7 +58,7 @@ export function breadcrumbJsonLd(entries: BreadcrumbEntry[]): JsonLdObject {
 }
 
 export interface ProductJsonLdInput {
-  slug: string;
+  path: string;
   name: string;
   description: string;
   image: string;
@@ -75,7 +75,7 @@ export function productJsonLd(product: ProductJsonLdInput): JsonLdObject {
     image: product.image.startsWith("http") ? product.image : canonicalUrl(product.image),
     offers: {
       "@type": "Offer",
-      url: canonicalUrl(`/products/${product.slug}`),
+      url: canonicalUrl(product.path),
       priceCurrency: "EGP",
       price: (product.minPrice / 100).toFixed(2),
       availability: product.inStock

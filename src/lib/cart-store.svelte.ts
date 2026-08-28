@@ -24,6 +24,8 @@ const RegularItemSchema = z.object({
   name: z.string(),
   variantName: z.string(),
   slug: z.string(),
+  categorySlug: z.string(),
+  department: z.string(),
   image: z.string(),
   quantity: z.number(),
   price: z.number(),

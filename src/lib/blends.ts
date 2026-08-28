@@ -78,36 +78,36 @@ export const BASE_HONEY_OPTIONS: readonly BaseHoneyOption[] = [
     id: "clover",
     nameAr: "برسيم",
     nameEn: "Clover",
-    halfProductSlug: "clover-honey-500g-glass",
-    fullProductSlug: "clover-honey-1kg-glass",
+    halfProductSlug: "honey-clover-500g",
+    fullProductSlug: "honey-clover-1kg",
   },
   {
     id: "citrus",
     nameAr: "موالح",
     nameEn: "Citrus",
-    halfProductSlug: "citrus-honey-half-vib",
-    fullProductSlug: "citrus-honey-1kg-vib",
+    halfProductSlug: "honey-citrus-500g",
+    fullProductSlug: "honey-citrus-1kg",
   },
   {
     id: "marjoram",
     nameAr: "بردقوش",
     nameEn: "Marjoram",
-    halfProductSlug: "marjoram-honey-500g",
-    fullProductSlug: "marjoram-honey-1kg-glass",
+    halfProductSlug: "honey-marjoram-500g",
+    fullProductSlug: "honey-marjoram-1kg",
   },
   {
     id: "sidr",
     nameAr: "سدر",
     nameEn: "Sidr",
-    halfProductSlug: "sidr-honey-500g",
-    fullProductSlug: "sidr-honey-1kg",
+    halfProductSlug: "honey-sidr-500g",
+    fullProductSlug: "honey-sidr-1kg",
   },
   {
     id: "blackseed",
     nameAr: "حبة البركة",
     nameEn: "Black Seed",
-    halfProductSlug: "blackseed-honey-half",
-    fullProductSlug: "blackseed-honey-1kg",
+    halfProductSlug: "honey-blackseed-500g",
+    fullProductSlug: "honey-blackseed-1kg",
   },
 ] as const;
 
@@ -120,11 +120,11 @@ export const ADDITIVE_LABELS: Record<AdditiveKey, { ar: string; en: string }> = 
 };
 
 export const ADDITIVE_PRODUCT_SLUGS: Record<AdditiveKey, string> = {
-  royalJelly: "royal-jelly-5g",
-  propolis: "propolis-box",
-  ginseng: "ginseng-box",
-  palmPollen: "palm-pollen-box",
-  beePollen: "bee-pollen-box",
+  royalJelly: "royal-jelly-5g-local",
+  propolis: "propolis-10g",
+  ginseng: "ginseng-10g",
+  palmPollen: "jar-palm-pollen",
+  beePollen: "pollen-clover-20g",
 };
 
 export const ADDITIVE_KEYS: readonly AdditiveKey[] = [

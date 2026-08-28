@@ -1,10 +1,10 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
 import { siteOrigin } from "$lib/site";
 import type { RequestHandler } from "./$types";
 
-const STATIC_PATHS = ["/", "/store/honey", "/store/equipment", "/blends"];
+const STATIC_PATHS = ["/", "/honey", "/equipment", "/blends"];
 
 function xmlEscape(value: string): string {
   return value
@@ -14,20 +14,36 @@ function xmlEscape(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-/** Dynamic sitemap: static entry points plus one URL per product. Product
- * slugs are ASCII-safe but escaped anyway so a malformed slug can never
- * break the document; private areas stay out via robots.txt. */
+/** Dynamic sitemap: static entry points, one URL per category, plus one URL per
+ * product under its department/category. Product slugs are ASCII-safe but
+ * escaped anyway so a malformed slug can never break the document; private
+ * areas stay out via robots.txt. */
 export const GET: RequestHandler = async () => {
   const origin = siteOrigin();
-  const products = await db
-    .select({ slug: schema.product.slug, createdAt: schema.product.createdAt })
-    .from(schema.product)
-    .orderBy(desc(schema.product.createdAt));
+  const [categories, products] = await Promise.all([
+    db
+      .select({ slug: schema.category.slug, department: schema.category.department })
+      .from(schema.category),
+    db
+      .select({
+        slug: schema.product.slug,
+        department: schema.product.department,
+        categorySlug: schema.category.slug,
+        createdAt: schema.product.createdAt,
+      })
+      .from(schema.product)
+      .innerJoin(schema.category, eq(schema.product.categoryId, schema.category.id))
+      .orderBy(desc(schema.product.createdAt)),
+  ]);
 
   const entries = [
     ...STATIC_PATHS.map((path) => ({ path, lastmod: undefined as string | undefined })),
+    ...categories.map((c) => ({
+      path: `/${c.department}/${c.slug}`,
+      lastmod: undefined as string | undefined,
+    })),
     ...products.map((product) => ({
-      path: `/products/${product.slug}`,
+      path: `/${product.department}/${product.categorySlug}/${product.slug}`,
       lastmod: new Date(product.createdAt).toISOString().slice(0, 10),
     })),
   ];
