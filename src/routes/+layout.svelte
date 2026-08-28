@@ -7,6 +7,7 @@
   import Header from "$lib/components/Header.svelte";
   import Footer from "$lib/components/Footer.svelte";
   import CartDrawer from "$lib/components/CartDrawer.svelte";
+  import ScrollToTop from "$lib/components/ScrollToTop.svelte";
   import type { LayoutData } from "./$types";
 
   let { children, data }: { children: import("svelte").Snippet; data: LayoutData } = $props();
@@ -94,4 +95,5 @@
   </main>
   <Footer lang={data.lang} />
   <CartDrawer lang={data.lang} />
+  <ScrollToTop lang={data.lang} />
 </div>
