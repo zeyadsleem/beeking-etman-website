@@ -108,6 +108,10 @@ const ar = {
   "hero.statGovernorates": "محافظة نوصلها",
   "hero.statCustomers": "عميل سعيد",
   "hero.imgAlt": "عسل طبيعي من مملكة النحل",
+  "hero.sidrAlt": "برطمان عسل السدر المصري",
+  "hero.foundationWax": "شمع أساس",
+  "hero.foundationWaxNote": "من منتجات مناحلنا",
+  "common.scrollToTop": "العودة للأعلى",
   "home.title": "مملكة النحل — متجر العسل الطبيعي",
   "meta.home.description":
     "عسل طبيعي 100% من مناحل مصرية: سدر، برسيم، موالح وخلطات مخصوصة. شحن لكل المحافظات ودفع عند الاستلام، ومجاني فوق 600 ج.م.",
@@ -618,6 +622,10 @@ const en: Record<MessageKey, string> = {
   "hero.statGovernorates": "Governorates we deliver to",
   "hero.statCustomers": "Happy customer",
   "hero.imgAlt": "Natural honey from Kingdom of Honey",
+  "hero.sidrAlt": "Egyptian sidr honey jar",
+  "hero.foundationWax": "Foundation Wax",
+  "hero.foundationWaxNote": "From our apiaries",
+  "common.scrollToTop": "Back to top",
   "home.title": "Kingdom of Honey — Natural Honey Store",
   "meta.home.description":
     "100% natural Egyptian honey: sidr, clover, citrus and custom blends. Nationwide shipping with cash on delivery — free over 600 EGP.",

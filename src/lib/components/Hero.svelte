@@ -2,17 +2,15 @@
   import { AspectRatio } from "bits-ui";
   import { countUp } from "$lib/actions/countup.svelte";
   import { t, type Lang } from "$lib/i18n/messages";
-  import type { ProductSummary } from "$lib/server/store";
   import Button from "./Button.svelte";
 
   let {
     lang = "ar",
-    featured,
     productCount,
-  }: { lang?: Lang; featured: ProductSummary[]; productCount: number } = $props();
+  }: { lang?: Lang; productCount: number } = $props();
 
-  const main = $derived(featured[0]);
-  const mainImage = $derived(main?.variants[0]?.image ?? main?.image);
+  const mainImage = "/images/Beeking Etman/برطمان السدر المصرى.jpg";
+  const foundationWaxImage = "/images/Beeking Etman/شمع اساس.jpg";
 </script>
 
 <section class="relative start-1/2 -ms-[50vw] w-screen overflow-x-clip pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-14 lg:pb-16">
@@ -109,15 +107,29 @@
       <figure class="group relative">
         <div class="absolute inset-0 -z-10 rounded-full bg-honey-100/70 blur-2xl" aria-hidden="true"></div>
         <div class="relative overflow-hidden rounded-t-full rounded-b-2xl border border-honey-200 bg-parchment shadow-warm-lg lg:rounded-b-[1.5rem]">
-          {#if mainImage}
-            <AspectRatio.Root ratio={4 / 5} class="transition-transform duration-700 ease-out group-hover:scale-105">
-              <img src={mainImage} alt={main?.name ?? t(lang, "hero.imgAlt")} class="h-full w-full object-cover" />
-            </AspectRatio.Root>
-          {/if}
+          <AspectRatio.Root ratio={4 / 5} class="transition-transform duration-700 ease-out group-hover:scale-105">
+            <img src={mainImage} alt={t(lang, "hero.sidrAlt")} class="h-full w-full object-cover" />
+          </AspectRatio.Root>
           <div
             class="pointer-events-none absolute inset-3 rounded-t-full rounded-b-2xl ring-1 ring-inset ring-parchment/70 lg:rounded-b-[1.2rem]"
             aria-hidden="true"
           ></div>
+        </div>
+
+        <div
+          class="absolute -bottom-5 -start-4 z-10 flex max-w-[10.5rem] items-center gap-3 rounded-2xl border border-honey-200 bg-parchment/95 p-3 shadow-warm backdrop-blur motion-safe:animate-honey-bob sm:-start-6 sm:max-w-[12rem]"
+          aria-hidden="true"
+        >
+          <img
+            src={foundationWaxImage}
+            alt=""
+            draggable="false"
+            class="h-12 w-12 shrink-0 rounded-xl object-cover ring-1 ring-inset ring-honey-200 sm:h-14 sm:w-14"
+          />
+          <span class="min-w-0">
+            <span class="block truncate text-sm font-semibold text-cocoa-900">{t(lang, "hero.foundationWax")}</span>
+            <span class="block truncate text-xs text-cocoa-500">{t(lang, "hero.foundationWaxNote")}</span>
+          </span>
         </div>
       </figure>
     </div>

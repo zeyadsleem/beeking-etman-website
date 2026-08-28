@@ -64,7 +64,7 @@
   jsonLd={[organizationJsonLd(lang), websiteJsonLd(lang)]}
 />
 
-<Hero lang={lang} featured={data.featured} productCount={data.products.length} />
+<Hero lang={lang} productCount={data.products.length} />
 
 <div class="border-y border-cocoa-100 bg-parchment/70">
   <div class="mx-auto grid max-w-3xl grid-cols-3 px-4 py-4 text-center sm:px-6 sm:py-5">
