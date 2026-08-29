@@ -117,21 +117,15 @@
         </div>
 
         <figure
-          class="absolute -bottom-6 -start-4 z-10 w-36 rounded-2xl border border-honey-200 bg-parchment p-2.5 shadow-warm sm:-start-8 sm:w-44 sm:p-3"
+          class="absolute -bottom-6 -start-4 z-10 w-40 shadow-warm sm:-start-8 sm:w-52"
           data-testid="hero-foundation-wax"
         >
-          <div class="overflow-hidden rounded-xl bg-honey-50 ring-1 ring-inset ring-honey-100">
-            <img
-              src={foundationWaxImage}
-              alt={t(lang, "hero.foundationWax")}
-              draggable="false"
-              class="aspect-[4/3] w-full object-cover"
-            />
-          </div>
-          <figcaption class="mt-2 text-center">
-            <span class="block truncate text-sm font-semibold text-cocoa-900">{t(lang, "hero.foundationWax")}</span>
-            <span class="block truncate text-xs text-cocoa-500">{t(lang, "hero.foundationWaxNote")}</span>
-          </figcaption>
+          <img
+            src={foundationWaxImage}
+            alt={t(lang, "hero.foundationWax")}
+            draggable="false"
+            class="aspect-[4/3] w-full rounded-2xl border border-honey-200/60 object-cover"
+          />
         </figure>
       </figure>
     </div>
