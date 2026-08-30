@@ -125,7 +125,7 @@ Nothing remains in this section — merge is the only step left.
 - [ ] Vanished-product image upload returns `fail(404)` instead of a false
       success.
 - [ ] Corrupt stored order status logs `console.error` on the write path.
-- [ ] `not_found` transition results map to 404 (see decisions 2026-08-23 #5).
+- [x] `not_found` transition results map to 404 (see decisions 2026-08-23 #5).
 - [ ] Slug-issue mapping exact-matches both constants.
 - [ ] Pasted image URLs restricted to `https:`.
 - [ ] `deleteVariant` scoped by `productId`.

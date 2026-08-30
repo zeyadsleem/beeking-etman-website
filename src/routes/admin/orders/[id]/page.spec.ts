@@ -317,23 +317,18 @@ describe("admin order detail update action", () => {
     expect(result.message).toBe(t("ar", "admin.order.invalidTransition"));
   });
 
-  it("maps a vanished order to the same transition failure", async () => {
-    // Brief-faithful single-branch mapping: both TransitionResult failure
-    // reasons surface as the 409 invalid-transition message.
+  it("maps a vanished order to a 404 not-found failure", async () => {
     await seedOrder(currentDb());
 
-    const result = failureOf(
-      await update(
+    await expect(
+      update(
         fakeEvent(
           crypto.randomUUID(),
           { role: "admin" },
           { id: crypto.randomUUID(), status: "shipped" },
         ),
       ),
-    );
-
-    expect(result.status).toBe(409);
-    expect(result.message).toBe(t("ar", "admin.order.invalidTransition"));
+    ).rejects.toMatchObject({ status: 404 });
   });
 
   it("cancelling restocks variant inventory through the real service", async () => {
