@@ -6,6 +6,7 @@ import { getLang } from "$lib/server/lang";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
+  event.setHeaders({ "cache-control": "s-maxage=60, stale-while-revalidate=300" });
   const lang = getLang(event);
   const raw = event.params.department;
   if (!isDepartment(raw)) error(404, t(lang, "products.notFound"));

@@ -18,6 +18,7 @@ const SORTS = new Set(["newest", "price-asc", "price-desc"]);
 
 export const load: PageServerLoad = async (event) => {
   const { url } = event;
+  event.setHeaders({ "cache-control": "s-maxage=60, stale-while-revalidate=300" });
   const lang = getLang(event);
   const rawQ = url.searchParams.get("q")?.toString().trim() ?? "";
   const rawCategory = url.searchParams.get("category")?.toString().trim() ?? "";

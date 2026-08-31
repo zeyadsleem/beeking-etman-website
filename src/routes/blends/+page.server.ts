@@ -44,6 +44,7 @@ export interface BlendAdditiveCatalog {
 }
 
 export const load: PageServerLoad = async (event) => {
+  event.setHeaders({ "cache-control": "s-maxage=120, stale-while-revalidate=600" });
   const lang = getLang(event);
 
   const slugs = [

@@ -4,6 +4,7 @@ import { getLang } from "$lib/server/lang";
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async (event) => {
+  event.setHeaders({ "cache-control": "s-maxage=60, stale-while-revalidate=300" });
   const lang = getLang(event);
   const categories = await getCategories(db, lang);
   return {
