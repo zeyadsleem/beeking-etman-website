@@ -35,6 +35,7 @@
     return data.product.variants.find((v) => v.id === id) ?? data.product.variants[0];
   });
   let quantity = $state(1);
+  let adding = $state(false);
 
   $effect(() => {
     const p = data.product;
@@ -62,7 +63,9 @@
   }
 
   function handleAdd() {
+    adding = true;
     addToCart(regularItemPayload(data.product, selectedVariant), quantity);
+    setTimeout(() => { adding = false; }, 1500);
   }
 </script>
 
@@ -156,7 +159,14 @@
     {#if selectedVariant.stock > 0}
       <div class="mt-2 flex flex-wrap items-center gap-4">
         <QuantityPicker lang={lang} value={quantity} max={selectedVariant.stock} onChange={(q) => (quantity = q)} />
-        <Button variant="primary" type="button" onclick={handleAdd}>{t(lang, "detail.addToCart")}</Button>
+        <Button variant="primary" type="button" onclick={handleAdd} disabled={adding} class={adding ? '!bg-olive-600' : ''}>
+          {#if adding}
+            <span class="spinner spinner-sm !border-t-white !border-cocoa-200/30"></span>
+            {t(lang, "product.added")}
+          {:else}
+            {t(lang, "detail.addToCart")}
+          {/if}
+        </Button>
       </div>
       <p class="text-sm font-semibold text-cocoa-500">{t(lang, "detail.total", { total: formatEGP(selectedVariant.price * quantity, lang) })}</p>
     {/if}

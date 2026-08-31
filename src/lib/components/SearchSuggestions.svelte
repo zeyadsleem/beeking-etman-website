@@ -5,6 +5,7 @@
   import { getDir, t, type Lang } from "$lib/i18n/messages";
   import { productPath } from "$lib/storefront";
   import Button from "./Button.svelte";
+  import SearchSkeleton from "./SearchSkeleton.svelte";
 
   interface SuggestionItem {
     value: string;
@@ -161,7 +162,7 @@
           >
             <Combobox.Viewport>
               {#if loading}
-                <p class="px-4 py-3 text-sm text-cocoa-500">{t(lang, "search.searching")}</p>
+                <SearchSkeleton />
               {:else if items.length === 0}
                 <p class="px-4 py-3 text-sm text-cocoa-500">{t(lang, "search.noMatches")}</p>
               {:else}

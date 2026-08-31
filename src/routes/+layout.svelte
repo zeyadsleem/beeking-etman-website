@@ -8,6 +8,7 @@
   import Footer from "$lib/components/Footer.svelte";
   import CartDrawer from "$lib/components/CartDrawer.svelte";
   import ScrollToTop from "$lib/components/ScrollToTop.svelte";
+  import TopProgressBar from "$lib/components/TopProgressBar.svelte";
   import type { LayoutData } from "./$types";
 
   let { children, data }: { children: import("svelte").Snippet; data: LayoutData } = $props();
@@ -98,6 +99,7 @@
 </svelte:head>
 
 <div class="flex min-h-screen flex-col overflow-x-clip">
+  <TopProgressBar />
   <Header user={data.user} lang={data.lang} />
   <main class="mx-auto w-full max-w-7xl flex-1 px-4">
     {@render children()}

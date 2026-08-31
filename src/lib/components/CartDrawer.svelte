@@ -2,17 +2,22 @@
   import { onMount } from "svelte";
   import { Dialog } from "bits-ui";
   import { formatEGP } from "$lib/currency";
-  import { closeDrawer, getTotals, loadCart, state as cartState } from "$lib/cart-store.svelte";
+  import { closeDrawer, getSyncError, getTotals, loadCart, state as cartState } from "$lib/cart-store.svelte";
   import { itemId } from "$lib/cart";
   import Button from "./Button.svelte";
   import CartLineItem from "./CartLineItem.svelte";
+  import CartDrawerSkeleton from "./CartDrawerSkeleton.svelte";
   import HoneycombIcon from "./HoneycombIcon.svelte";
   import Price from "./Price.svelte";
   import { t, type Lang } from "$lib/i18n/messages";
 
   let { lang = "ar" }: { lang?: Lang } = $props();
+  let loaded = $state(false);
 
-  onMount(loadCart);
+  onMount(() => {
+    loadCart();
+    loaded = true;
+  });
 </script>
 
 <Dialog.Root bind:open={cartState.drawerOpen}>
@@ -35,7 +40,9 @@
         </Dialog.Close>
       </header>
 
-      {#if cartState.items.length === 0}
+      {#if !loaded}
+        <CartDrawerSkeleton />
+      {:else if cartState.items.length === 0}
         <div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
           <HoneycombIcon size={40} class="text-cocoa-300" />
           <p class="text-cocoa-500">{t(lang, "cart.emptyDrawer")}</p>
@@ -49,8 +56,11 @@
         </ul>
       {/if}
 
-      {#if cartState.items.length > 0}
+      {#if loaded && cartState.items.length > 0}
         <footer class="border-t border-cocoa-200 bg-paper p-4">
+          {#if getSyncError()}
+            <p class="mb-2 text-xs font-semibold text-clay-600">{t(lang, "cart.syncError")}</p>
+          {/if}
           <div class="mb-1 flex justify-between text-sm text-cocoa-700">
             <span>{t(lang, "cart.subtotal")}</span>
             <Price amount={getTotals().subtotal} lang={lang} />

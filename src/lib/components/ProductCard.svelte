@@ -12,14 +12,10 @@
 
   const href = $derived(productPath(product));
 
-  // The image element whose snapshot morphs into the product page image.
   let imageEl = $state<HTMLImageElement>();
+  let added = $state(false);
+  let addedTimer: ReturnType<typeof setTimeout> | undefined;
 
-  // Opt the clicked card image into a shared-element view transition BEFORE
-  // navigation starts (the element's onclick fires before SvelteKit's nav).
-  // The name is applied per-click instead of statically because the same
-  // product can appear more than once on a page (featured + rails), and
-  // duplicate view-transition-name values would throw InvalidStateError.
   function beginImageTransition() {
     if (!imageEl) return;
     imageEl.style.viewTransitionName = `product-${product.id}`;
@@ -31,6 +27,12 @@
     const v = product.variants[0];
     if (v.stock <= 0) return;
     addToCart(regularItemPayload(product, v));
+    // Flash the "added" state
+    added = true;
+    clearTimeout(addedTimer);
+    addedTimer = setTimeout(() => {
+      added = false;
+    }, 1800);
   }
 </script>
 
@@ -80,12 +82,19 @@
       {:else}
         <button
           type="button"
-          class="btn-primary w-full shrink-0 px-4 py-2 sm:w-auto"
+          class="btn-primary w-full shrink-0 px-4 py-2 sm:w-auto {added ? '!bg-olive-600 !text-white' : ''}"
           disabled={product.variants[0]?.stock === 0}
           onclick={handleAdd}
           data-testid="add-to-cart"
         >
-          {product.variants[0]?.stock === 0 ? t(lang, "product.unavailable") : t(lang, "product.addToCartShort")}
+          {#if added}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="animate-added-check">
+              <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="24" />
+            </svg>
+            {t(lang, "product.added")}
+          {:else}
+            {product.variants[0]?.stock === 0 ? t(lang, "product.unavailable") : t(lang, "product.addToCartShort")}
+          {/if}
         </button>
       {/if}
     </div>

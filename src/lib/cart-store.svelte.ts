@@ -68,6 +68,14 @@ interface CartUiState {
 
 const state = $state<CartUiState>({ items: [], drawerOpen: false });
 
+// ---- Optimistic rollback infrastructure ----
+
+/** IDs of items with in-flight server sync — components can key off these for spinners. */
+const syncing = $state<Set<string>>(new Set());
+
+/** Last sync error message — clears on next successful sync. */
+let syncError = $state<string | null>(null);
+
 function toEntries(items: CartItem[]): CartEntry[] {
   return items.map((i) =>
     isBlendItem(i)
@@ -82,23 +90,45 @@ function toEntries(items: CartItem[]): CartEntry[] {
   );
 }
 
-function persist(items: CartItem[]): void {
+/** Snapshot current items before an optimistic mutation so we can rollback. */
+function snapshot(): CartItem[] {
+  return state.items.map((i) => ({ ...i }));
+}
+
+function persist(prev: CartItem[], next: CartItem[], opKey?: string): void {
   if (!browser) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
-    // Storage unavailable (private mode / quota); the in-memory cart keeps the update.
+    // Storage unavailable; the in-memory cart keeps the update.
   }
+
+  if (opKey) syncing.add(opKey);
   syncPending = true;
+
   void fetch("/api/cart", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items: toEntries(items) }),
+    body: JSON.stringify({ items: toEntries(next) }),
   })
-    .then(() => {
+    .then((res) => {
+      if (!res.ok) throw new Error(`cart sync ${res.status}`);
       syncPending = false;
+      syncError = null;
+      if (opKey) syncing.delete(opKey);
     })
-    .catch(() => undefined);
+    .catch(() => {
+      // Rollback: restore previous items
+      state.items = prev;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(prev));
+      } catch {
+        // Storage unavailable; in-memory rollback already applied.
+      }
+      syncPending = false;
+      syncError = "sync";
+      if (opKey) syncing.delete(opKey);
+    });
 }
 
 let syncBound = false;
@@ -187,8 +217,9 @@ async function refreshNamesFromServer(): Promise<void> {
 }
 
 export function addToCart(product: Omit<RegularCartItem, "quantity">, quantity = 1): void {
+  const prev = snapshot();
   state.items = addItem(state.items, product, quantity);
-  persist(state.items);
+  persist(prev, state.items, `add:${product.variantId}`);
   trackAddToCart({
     variantId: product.variantId,
     productId: product.productId,
@@ -199,22 +230,25 @@ export function addToCart(product: Omit<RegularCartItem, "quantity">, quantity =
 }
 
 export function addBlend(blend: Omit<BlendCartItem, "kind" | "id">): void {
+  const prev = snapshot();
   state.items = addBlendItem(state.items, blend);
-  persist(state.items);
+  persist(prev, state.items, `blend:${blend.baseVariantId}`);
 }
 
 export function setQuantity(variantId: string, quantity: number): void {
   const current = state.items.find((i) => !isBlendItem(i) && i.variantId === variantId);
   if (!current) return;
+  const prev = snapshot();
   state.items = adjustQuantity(state.items, variantId, quantity - current.quantity);
-  persist(state.items);
+  persist(prev, state.items, `qty:${variantId}`);
 }
 
 export function setBlendQuantity(id: string, quantity: number): void {
   const current = state.items.find((i) => isBlendItem(i) && i.id === id);
   if (!current) return;
+  const prev = snapshot();
   state.items = adjustBlendQuantity(state.items, id, quantity - current.quantity);
-  persist(state.items);
+  persist(prev, state.items, `bqty:${id}`);
 }
 
 export function removeFromCart(id: string): void {
@@ -225,13 +259,15 @@ export function removeFromCart(id: string): void {
       name: item.name,
     });
   }
+  const prev = snapshot();
   state.items = removeById(state.items, id);
-  persist(state.items);
+  persist(prev, state.items, `rm:${id}`);
 }
 
 export function clearCart(): void {
+  const prev = snapshot();
   state.items = [];
-  persist(state.items);
+  persist(prev, state.items, "clear");
 }
 
 export function openDrawer(): void {
@@ -248,6 +284,21 @@ export function getTotals(): CartTotals {
 
 export function cartCount(): number {
   return state.items.reduce((n, i) => n + i.quantity, 0);
+}
+
+/** Check if a specific item is currently syncing to the server. */
+export function isSyncing(opKey: string): boolean {
+  return syncing.has(opKey);
+}
+
+/** Check if any item is currently syncing. */
+export function hasSyncPending(): boolean {
+  return syncing.size > 0;
+}
+
+/** Last sync error message — clears on next successful sync. */
+export function getSyncError(): string | null {
+  return syncError;
 }
 
 export { state };
