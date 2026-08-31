@@ -15,15 +15,15 @@
 	siteName={t(data.lang, "brand.name")}
 />
 
-<div class="relative min-h-dvh bg-cocoa-950" data-testid="blends-shell">
+<div class="relative min-h-dvh bg-paper" data-testid="blends-shell">
 	{#if !browser}
 		<div class="blends-ssr-fallback flex min-h-dvh flex-col items-center justify-center px-6 text-center">
-			<h1 class="mb-4 text-3xl font-bold text-honey-100">.Blend Lab — صمم خليتك الخاصة</h1>
-			<p class="mb-6 max-w-lg text-lg leading-relaxed text-honey-200/80">
+			<h1 class="headline mb-4 text-3xl font-bold text-cocoa-900">.Blend Lab — صمم خليتك الخاصة</h1>
+			<p class="mb-6 max-w-lg text-lg leading-relaxed text-cocoa-700">
 				اختار عسل الأساس، أضف المكملات اللي تناسبك، واكتب خلطة طبيعية مخصوصة بيك.
 				عسل مملكة النحل — من المناحل لحد بابك.
 			</p>
-			<a href="/products" class="rounded-full bg-honey-500 px-6 py-3 font-semibold text-cocoa-900 transition hover:bg-honey-400">
+			<a href="/products" class="btn-primary px-6 py-3 font-semibold">
 				افتح الموقع على موبايلك لتجربة مختبر الخلط
 			</a>
 		</div>

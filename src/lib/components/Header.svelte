@@ -30,11 +30,7 @@
 
   const q = $derived(String(page.url.searchParams.get("q") ?? ""));
   const isHome = $derived(page.url.pathname === "/");
-  const isStore = $derived(
-    /^\/(honey|equipment)(\/|$)/.test(page.url.pathname) ||
-      page.url.pathname.startsWith("/products/"),
-  );
-  const showHeaderSearch = $derived(isHome || isStore);
+  const showHeaderSearch = $derived(isHome);
 
   $effect(() => {
     count = cartCount();

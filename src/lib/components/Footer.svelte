@@ -19,7 +19,8 @@
     <nav class="flex flex-col gap-2 text-sm" aria-label={t(lang, "footer.navAria")}>
       <span class="mb-1 font-bold text-cocoa-800">{t(lang, "footer.site")}</span>
       <a href="/" class="transition-colors text-cocoa-600 hover:text-honey-700">{t(lang, "nav.home")}</a>
-      <a href="/products" class="transition-colors text-cocoa-600 hover:text-honey-700">{t(lang, "nav.store")}</a>
+      <a href="/honey" class="transition-colors text-cocoa-600 hover:text-honey-700">{t(lang, "nav.storeHoney")}</a>
+      <a href="/equipment" class="transition-colors text-cocoa-600 hover:text-honey-700">{t(lang, "nav.storeEquipment")}</a>
       <a href="/blends" class="transition-colors text-cocoa-600 hover:text-honey-700">{t(lang, "blends.nav")}</a>
       <a href="/cart" class="transition-colors text-cocoa-600 hover:text-honey-700">{t(lang, "nav.cart")}</a>
     </nav>

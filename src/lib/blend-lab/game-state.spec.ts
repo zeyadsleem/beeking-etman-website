@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { ADDITIVE_KEYS, MAX_DOSE, zeroDoses } from "$lib/blends";
+import { ADDITIVE_KEYS, zeroDoses } from "$lib/blends";
 import { BlendsGame } from "./game-state.svelte";
 
 describe("BlendsGame configurator", () => {
@@ -35,12 +35,12 @@ describe("BlendsGame configurator", () => {
     expect(g.doses).toEqual(before);
   });
 
-  it("addDose increments up to MAX_DOSE and removeDose clamps at zero", () => {
+  it("addDose accumulates without a cap and removeDose clamps at zero", () => {
     const g = new BlendsGame();
     for (let i = 0; i < 10; i++) g.addDose("propolis");
-    expect(g.doses.propolis).toBe(MAX_DOSE);
-    expect(g.totalDoses).toBe(MAX_DOSE);
-    for (let i = 0; i < 5; i++) g.removeDose("propolis");
+    expect(g.doses.propolis).toBe(10);
+    expect(g.totalDoses).toBe(10);
+    for (let i = 0; i < 12; i++) g.removeDose("propolis");
     expect(g.doses.propolis).toBe(0);
     expect(g.totalDoses).toBe(0);
     g.removeDose("propolis");

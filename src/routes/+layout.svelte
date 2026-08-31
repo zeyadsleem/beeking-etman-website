@@ -52,6 +52,15 @@
     }
   }
 
+  // Prevent images from opening in a new tab (right-click / long-press) or
+  // being dragged (desktop + mobile). Scoped to <img> only so nav/UI menus stay intact.
+  function onContextMenu(event: MouseEvent) {
+    if (event.target instanceof HTMLImageElement) event.preventDefault();
+  }
+  function onDragStart(event: DragEvent) {
+    if (event.target instanceof HTMLImageElement) event.preventDefault();
+  }
+
   beforeNavigate(() => {
     // Entrance animations only play on the initial full page load; on
     // client-side navigations the view transition already handles the fade.
@@ -82,7 +91,7 @@
   });
 </script>
 
-<svelte:window onclickcapture={onClick} />
+<svelte:window onclickcapture={onClick} oncontextmenu={onContextMenu} ondragstart={onDragStart} />
 <svelte:head>
   <link rel="icon" href="/images/logo.png" type="image/png" />
   <title>{t(data.lang, "brand.tagline")}</title>

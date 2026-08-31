@@ -2,7 +2,7 @@
   import QuantityPicker from "./QuantityPicker.svelte";
   import Price from "./Price.svelte";
   import { formatEGP } from "$lib/currency";
-  import { closeDrawer, removeFromCart, setQuantity } from "$lib/cart-store.svelte";
+  import { closeDrawer, removeFromCart, setBlendQuantity, setQuantity } from "$lib/cart-store.svelte";
   import { isBlendItem, itemId, lineTotal } from "$lib/cart";
   import { blendLineDetail } from "$lib/blends";
   import { t, type Lang } from "$lib/i18n/messages";
@@ -73,7 +73,7 @@
     {/if}
     <div class="mt-auto flex items-center justify-between gap-2 pt-1.5">
       {#if isBlendItem(item)}
-        <span class="text-xs text-cocoa-500">× 1</span>
+        <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setBlendQuantity(item.id, q)} />
       {:else}
         <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
       {/if}

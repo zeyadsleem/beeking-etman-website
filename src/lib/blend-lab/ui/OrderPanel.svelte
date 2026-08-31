@@ -57,8 +57,7 @@
 
   function orderBlend(): void {
     if (!base || maxQty < 1) return;
-    // Blend lines are fixed at one jar each in the cart model, so N jars
-    // become N identical lines.
+    // A single adjustable blend line carries the jar count on `quantity`.
     const line: Omit<BlendCartItem, "kind" | "id"> = {
       baseVariantId: base.variantId,
       productId: base.productId,
@@ -68,7 +67,7 @@
       jarSize: game.jarSize,
       basePrice: base.price,
       stock: base.stock,
-      quantity: 1,
+      quantity: game.quantity,
       additives: selectedAdditives.map((a) => ({
         key: a.entry.key,
         variantId: a.entry.variantId,
@@ -80,7 +79,7 @@
         stock: a.entry.stock,
       })),
     };
-    for (let i = 0; i < game.quantity; i++) addBlend(line);
+    addBlend(line);
     openDrawer();
   }
 </script>

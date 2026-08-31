@@ -1,7 +1,6 @@
 import { getContext, setContext } from "svelte";
 import {
   ADDITIVE_KEYS,
-  MAX_DOSE,
   zeroDoses,
   type AdditiveKey,
   type BaseHoneyOption,
@@ -75,7 +74,7 @@ export class BlendsGame {
   }
 
   addDose(key: AdditiveKey, n: number = 1): void {
-    this.doses[key] = Math.min(MAX_DOSE, this.doses[key] + n);
+    this.doses[key] = this.doses[key] + n;
   }
 
   removeDose(key: AdditiveKey): void {

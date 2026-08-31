@@ -10,12 +10,12 @@
     JAR_SIZES,
     isAdditiveKey,
     jarLabel,
-    MAX_DOSE,
     type AdditiveKey,
   } from "$lib/blends";
   import { HONEY_COLORS, INGREDIENT_COLORS } from "$lib/blend-lab/benefits";
   import { blendUnitPrice } from "$lib/blend-lab/pricing";
   import { mixIngredients } from "$lib/blend-lab/color-mix";
+  import { prefersReducedMotion, sfx } from "$lib/blend-lab/ui/fx-utils";
   import { formatEGP } from "$lib/currency";
   import { t } from "$lib/i18n/messages";
 
@@ -48,6 +48,42 @@
   const mixedColor = $derived(mixIngredients(baseHex, additiveWeights, progress));
   const fillPercent = $derived(game.hasHoney ? Math.min(100, 45 + game.totalDoses * 10) : 0);
 
+  // --- image-based "game elements": one ingredient token per selected additive,
+  //     positioned deterministically so the jar fills with the actual images ---
+  const anim = $derived(!prefersReducedMotion());
+
+  interface JarToken {
+    key: AdditiveKey;
+    dose: number;
+    image: string;
+    name: string;
+    left: number;
+    top: number;
+    angle: number;
+    delay: number;
+  }
+
+  const jarTokens = $derived<JarToken[]>(
+    selectedDoses
+      .map((d) => {
+        const entry = additiveMap.get(d.key);
+        const seed = Math.abs(
+          [...d.key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0),
+        );
+        return {
+          key: d.key,
+          dose: d.dose,
+          image: entry?.image ?? "",
+          name: entry?.label ?? "",
+          left: 12 + (seed % 66),
+          top: 14 + ((seed >> 3) % 56),
+          angle: ((seed >> 5) % 22) - 11,
+          delay: (seed % 5) * 40,
+        };
+      })
+      .filter((x) => x.image),
+  );
+
   // --- drag & drop (HTML5 for desktop; steppers + mix gesture cover touch) ---
   let dragging = $state<AdditiveKey | null>(null);
 
@@ -68,14 +104,14 @@
 </script>
 
 <div
-  class="min-h-dvh bg-cocoa-950 pb-40 text-cocoa-100"
+  class="min-h-dvh bg-paper pb-40 text-cocoa-900"
   data-testid="blends-scene"
 >
-  <header class="sticky top-0 z-30 border-b border-cocoa-800 bg-cocoa-950/80 backdrop-blur">
+  <header class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper/80 backdrop-blur">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
       <div>
-        <h1 class="headline text-xl font-bold text-honey-100">{t(data.lang, "blends.game.title")}</h1>
-        <p class="text-xs text-cocoa-300">{t(data.lang, "blends.game.subtitle")}</p>
+        <h1 class="headline text-xl font-bold text-cocoa-900">{t(data.lang, "blends.game.title")}</h1>
+        <p class="text-xs text-cocoa-600">{t(data.lang, "blends.game.subtitle")}</p>
       </div>
       <button
         type="button"
@@ -96,8 +132,8 @@
               type="button"
               class="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-2 py-1.5 text-xs font-semibold transition"
               class:bg-honey-500={game.step === step}
-              class:text-cocoa-900={game.step === step}
-              class:text-cocoa-200={game.step !== step}
+              class:text-cocoa-950={game.step === step}
+              class:text-cocoa-600={game.step !== step}
               class:opacity-60={game.step !== step && !(i < BLEND_STEPS.indexOf(game.step))}
               aria-current={game.step === step ? "step" : undefined}
               disabled={(i > BLEND_STEPS.indexOf(game.step) && !(game.step === "mix")) || i === BLEND_STEPS.indexOf(game.step)}
@@ -106,13 +142,13 @@
               }}
               data-testid={`step-${step}`}
             >
-              <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-cocoa-950/30 text-[10px]">
+              <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-cocoa-200/70 text-[10px]">
                 {i + 1}
               </span>
               <span class="truncate">{stepLabel(step)}</span>
             </button>
             {#if i < BLEND_STEPS.length - 1}
-              <span class="h-px w-3 shrink-0 bg-cocoa-700" aria-hidden="true"></span>
+              <span class="h-px w-3 shrink-0 bg-cocoa-300" aria-hidden="true"></span>
             {/if}
           </li>
         {/each}
@@ -125,16 +161,16 @@
     {#if game.step === "honey"}
       <section>
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 class="headline text-lg font-bold text-honey-100">{t(data.lang, "blends.section.honey")}</h2>
+          <h2 class="headline text-lg font-bold text-cocoa-900">{t(data.lang, "blends.section.honey")}</h2>
 
-          <div class="inline-flex overflow-hidden rounded-full border border-cocoa-600" role="group" aria-label={t(data.lang, "blends.size.label")}>
+          <div class="inline-flex overflow-hidden rounded-full border border-cocoa-200 bg-parchment" role="group" aria-label={t(data.lang, "blends.size.label")}>
             {#each JAR_SIZES as size (size)}
               <button
                 type="button"
                 class="px-4 py-1.5 text-sm font-semibold transition"
                 class:bg-honey-500={game.jarSize === size}
-                class:text-cocoa-900={game.jarSize === size}
-                class:text-cocoa-200={game.jarSize !== size}
+                class:text-cocoa-950={game.jarSize === size}
+                class:text-cocoa-700={game.jarSize !== size}
                 aria-pressed={game.jarSize === size}
                 onclick={() => game.setJarSize(size)}
                 data-testid={`size-${size}`}
@@ -151,14 +187,14 @@
             {#if entry}
               <button
                 type="button"
-                class="group flex flex-col overflow-hidden rounded-2xl bg-cocoa-900/60 text-start ring-1 ring-cocoa-800 transition hover:-translate-y-0.5 hover:ring-honey-500"
+                class="group flex flex-col overflow-hidden rounded-2xl bg-parchment text-start shadow-warm-sm ring-1 ring-cocoa-200 transition hover:-translate-y-0.5 hover:shadow-warm hover:ring-honey-400"
                 class:ring-2={game.honeyId === option.id}
-                class:ring-honey-400={game.honeyId === option.id}
+                class:ring-honey-500={game.honeyId === option.id}
                 aria-pressed={game.honeyId === option.id}
                 onclick={() => game.selectHoney(option.id)}
                 data-testid={`honey-${option.id}`}
               >
-                <div class="relative aspect-square overflow-hidden bg-cocoa-950/40">
+                <div class="relative aspect-square overflow-hidden bg-paper-deep">
                   <img
                     src={entry.image}
                     alt={entry.name}
@@ -167,10 +203,10 @@
                   />
                 </div>
                 <div class="p-3">
-                  <p class="truncate font-bold text-parchment">
+                  <p class="truncate font-bold text-cocoa-900">
                     {data.lang === "ar" ? option.nameAr : option.nameEn}
                   </p>
-                  <p class="mt-0.5 text-sm font-semibold text-honey-300">
+                  <p class="mt-0.5 text-sm font-semibold text-honey-700">
                     {formatEGP(entry.price, data.lang)}
                   </p>
                 </div>
@@ -185,23 +221,26 @@
     {#if game.step === "additives"}
       <!-- Your jar: live summary + drop target -->
       <section
-        class="rounded-3xl bg-cocoa-900/60 p-5 ring-1 ring-cocoa-800 transition"
+        class="rounded-3xl bg-parchment p-5 shadow-warm-sm ring-1 ring-cocoa-200 transition"
         class:ring-honey-500={dragging !== null}
-        class:scale-[1.01]={dragging !== null}
+        class:shadow-warm={dragging !== null}
         role="group"
         aria-label={t(data.lang, "blends.section.yourJar")}
         ondrop={(e) => {
           e.preventDefault();
           const key = e.dataTransfer?.getData("text/plain");
-          if (key && isAdditiveKey(key)) game.addDose(key);
+          if (key && isAdditiveKey(key)) {
+            game.addDose(key);
+            sfx.pop();
+          }
           dragging = null;
         }}
         ondragover={(e) => e.preventDefault()}
         data-testid="blend-drop-zone"
       >
         <div class="mb-4 flex items-center justify-between">
-          <h2 class="headline text-lg font-bold text-honey-100">{t(data.lang, "blends.section.yourJar")}</h2>
-          <span class="text-xs text-cocoa-300">{t(data.lang, "blends.mixHint")}</span>
+          <h2 class="headline text-lg font-bold text-cocoa-900">{t(data.lang, "blends.section.yourJar")}</h2>
+          <span class="text-xs text-cocoa-600">{t(data.lang, "blends.mixHint")}</span>
         </div>
 
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -210,25 +249,45 @@
               <img
                 src={baseEntry.image}
                 alt={baseEntry.name}
-                class="h-20 w-20 rounded-2xl object-cover ring-1 ring-cocoa-700"
+                class="h-20 w-20 rounded-2xl object-cover ring-1 ring-cocoa-200"
               />
             {:else}
-              <div class="grid h-20 w-20 place-items-center rounded-2xl bg-cocoa-800 text-2xl" aria-hidden="true">🍯</div>
+              <div class="grid h-20 w-20 place-items-center rounded-2xl bg-paper-deep text-2xl" aria-hidden="true">🍯</div>
             {/if}
 
-            <div class="flex h-24 flex-col justify-end" aria-hidden="true">
-              <div class="w-14 overflow-hidden rounded-b-xl rounded-t-md border border-cocoa-600 bg-cocoa-950/40">
+            <div class="relative h-40 w-32 shrink-0 overflow-hidden rounded-b-[2rem] rounded-t-xl border-2 border-cocoa-200 bg-parchment shadow-warm-sm" aria-hidden="true">
+              <!-- liquid fill -->
+              <div
+                class="absolute inset-x-0 bottom-0 transition-[height] duration-500 ease-out"
+                style={`height:${fillPercent}%;background:linear-gradient(180deg,${mixedColor},${mixedColor}cc)`}
+              ></div>
+              <!-- floating ingredient images -->
+              {#each jarTokens as tok (tok.key)}
                 <div
-                  class="w-full transition-[height] duration-500 ease-out"
-                  style="height:{fillPercent}%;background:linear-gradient(180deg,{mixedColor},{mixedColor}99)"
-                ></div>
-              </div>
+                  class="absolute flex flex-col items-center {anim ? 'animate-pop' : ''}"
+                  style={`left:${tok.left}%;top:${tok.top}%;animation-delay:${tok.delay}ms`}
+                >
+                  <img
+                    src={tok.image}
+                    alt=""
+                    class="h-9 w-9 rounded-full border border-white/70 object-cover shadow-sm"
+                    style={`transform:rotate(${tok.angle}deg)`}
+                    loading="lazy"
+                  />
+                  {#key tok.dose}
+                    <span
+                      class="mt-0.5 rounded-full px-1.5 text-[10px] font-bold leading-4"
+                      style={`background:${INGREDIENT_COLORS[tok.key]};color:#1c1914`}
+                    >×{tok.dose}</span>
+                  {/key}
+                </div>
+              {/each}
             </div>
 
             <div class="min-w-0">
               {#if game.honeyId && baseEntry}
-                <p class="truncate font-bold text-parchment">{baseEntry.name}</p>
-                <p class="text-sm text-cocoa-300">{jarLabel(data.lang, game.jarSize)}</p>
+                <p class="truncate font-bold text-cocoa-900">{baseEntry.name}</p>
+                <p class="text-sm text-cocoa-600">{jarLabel(data.lang, game.jarSize)}</p>
                 {#if selectedDoses.length > 0}
                   <ul class="mt-2 flex flex-wrap gap-1">
                     {#each selectedDoses as d (d.key)}
@@ -238,17 +297,17 @@
                     {/each}
                   </ul>
                 {:else}
-                  <p class="mt-1 text-sm text-cocoa-300">{t(data.lang, "blends.noHoney")}</p>
+                  <p class="mt-1 text-sm text-cocoa-600">{t(data.lang, "blends.noHoney")}</p>
                 {/if}
               {:else}
-                <p class="font-bold text-honey-200">{t(data.lang, "blends.choosePrompt")}</p>
+                <p class="font-bold text-honey-700">{t(data.lang, "blends.choosePrompt")}</p>
               {/if}
             </div>
           </div>
 
           <div class="mt-4 flex items-center justify-between sm:mt-0 sm:flex-col sm:items-end">
-            <p class="text-sm text-cocoa-300">{t(data.lang, "blends.game.order.unitPrice")}</p>
-            <p class="text-2xl font-extrabold text-honey-300" data-testid="live-price">
+            <p class="text-sm text-cocoa-600">{t(data.lang, "blends.game.order.unitPrice")}</p>
+            <p class="text-2xl font-extrabold text-honey-700" data-testid="live-price">
               {formatEGP(unitPrice, data.lang)}
             </p>
           </div>
@@ -257,13 +316,13 @@
 
       <!-- ingredient shelf -->
       <section>
-        <h2 class="headline mb-3 text-lg font-bold text-honey-100">{t(data.lang, "blends.section.additives")}</h2>
+        <h2 class="headline mb-3 text-lg font-bold text-cocoa-900">{t(data.lang, "blends.section.additives")}</h2>
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {#each ADDITIVE_KEYS as key (key)}
             {@const entry = additiveMap.get(key)}
             {#if entry}
               <div
-                class="flex flex-col overflow-hidden rounded-2xl bg-cocoa-900/60 ring-1 ring-cocoa-800"
+                class="flex flex-col overflow-hidden rounded-2xl bg-parchment shadow-warm-sm ring-1 ring-cocoa-200"
                 role="group"
                 aria-label={entry.label}
                 draggable="true"
@@ -274,7 +333,7 @@
                 ondragend={() => (dragging = null)}
                 data-testid={`additive-${key}`}
               >
-                <div class="relative aspect-square overflow-hidden bg-cocoa-950/40">
+                <div class="relative aspect-square overflow-hidden bg-paper-deep">
                   <img
                     src={entry.image}
                     alt={entry.name}
@@ -291,24 +350,26 @@
                   {/if}
                 </div>
                 <div class="flex flex-1 flex-col p-3">
-                  <p class="truncate text-sm font-bold text-parchment">{entry.label}</p>
-                  <p class="mt-0.5 text-xs text-cocoa-300">{formatEGP(entry.price, data.lang)}{t(data.lang, "blends.perDose")}</p>
+                  <p class="truncate text-sm font-bold text-cocoa-900">{entry.label}</p>
+                  <p class="mt-0.5 text-xs text-cocoa-600">{formatEGP(entry.price, data.lang)}{t(data.lang, "blends.perDose")}</p>
                   <div class="mt-2 inline-flex items-center justify-between">
                     <button
                       type="button"
-                      class="grid h-9 w-9 place-items-center rounded-full bg-cocoa-800 text-lg font-bold text-parchment transition hover:bg-cocoa-700 disabled:opacity-30"
+                      class="grid h-9 w-9 place-items-center rounded-full bg-cocoa-100 text-lg font-bold text-cocoa-700 transition hover:bg-cocoa-200 disabled:opacity-30"
                       aria-label={t(data.lang, "blends.game.action.doseRemove")}
                       disabled={game.doses[key] <= 0}
                       onclick={() => game.removeDose(key)}
                       data-testid={`dose-remove-${key}`}
                     >−</button>
-                    <span class="min-w-8 text-center font-bold text-honey-200">{game.doses[key]}</span>
+                    <span class="min-w-8 text-center font-bold text-honey-700">{game.doses[key]}</span>
                     <button
                       type="button"
-                      class="grid h-9 w-9 place-items-center rounded-full bg-honey-500 text-lg font-bold text-cocoa-900 transition hover:bg-honey-400 disabled:opacity-40"
+                      class="grid h-9 w-9 place-items-center rounded-full bg-honey-500 text-lg font-bold text-cocoa-950 transition hover:bg-honey-400 active:scale-90"
                       aria-label={t(data.lang, "blends.game.action.doseAdd")}
-                      disabled={game.doses[key] >= MAX_DOSE}
-                      onclick={() => game.addDose(key)}
+                      onclick={() => {
+                        game.addDose(key);
+                        sfx.pop();
+                      }}
                       data-testid={`dose-add-${key}`}
                     >+</button>
                   </div>
@@ -323,7 +384,7 @@
     <!-- STEP 3: interactive mix -->
     {#if game.step === "mix"}
       <section class="flex flex-col items-center gap-4">
-        <h2 class="headline text-lg font-bold text-honey-100">{t(data.lang, "blends.game.stir.title")}</h2>
+        <h2 class="headline text-lg font-bold text-cocoa-900">{t(data.lang, "blends.game.stir.title")}</h2>
         <MixStep
           lang={data.lang}
           color={mixedColor}
@@ -356,7 +417,7 @@
         />
       {:else}
         <div
-          class="flex items-center justify-between gap-3 rounded-3xl bg-cocoa-900/95 px-5 py-4 ring-1 ring-cocoa-800"
+          class="flex items-center justify-between gap-3 rounded-3xl bg-parchment/95 px-5 py-4 shadow-warm-lg ring-1 ring-cocoa-200 backdrop-blur"
         >
           <button
             type="button"
@@ -369,8 +430,8 @@
           </button>
 
           <div class="min-w-0 text-center">
-            <p class="text-xs text-cocoa-300">{gateHint}</p>
-            <p class="text-lg font-bold text-honey-300" data-testid="live-price">
+            <p class="text-xs text-cocoa-600">{gateHint}</p>
+            <p class="text-lg font-bold text-honey-700" data-testid="live-price">
               {formatEGP(unitPrice, data.lang)}
             </p>
           </div>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   addBlendItem,
   addItem,
+  adjustBlendQuantity,
   adjustQuantity,
   blendItemSignature,
   blendTotal,
@@ -139,6 +140,7 @@ describe("blend items", () => {
   });
   it("lineTotal equals blendTotal for blends and price×qty otherwise", () => {
     expect(lineTotal(blend())).toBe(blendTotal(blend()));
+    expect(lineTotal(blend({ quantity: 5 }))).toBe(blendTotal(blend()) * 5);
     expect(lineTotal(item(product, 2))).toBe(2 * 380_00);
   });
   it("addBlendItem appends with a generated id", () => {
@@ -156,15 +158,32 @@ describe("blend items", () => {
     expect(removeById(lines, "blend-1")).toEqual([regular]);
     expect(removeById(lines, "v1")).toEqual([blend()]);
   });
-  it("computeTotals includes additive doses and counts quantity as 1", () => {
+  it("computeTotals includes additive doses and counts quantity", () => {
     const totals = computeTotals([blend()]);
     expect(totals.itemCount).toBe(1);
     expect(totals.subtotal).toBe(380_00 + 85_00 + 2 * 160_00);
+
+    const multi = computeTotals([blend({ quantity: 3 })]);
+    expect(multi.itemCount).toBe(3);
+    expect(multi.subtotal).toBe((380_00 + 85_00 + 2 * 160_00) * 3);
   });
   it("adjustQuantity and removeItem never touch blends", () => {
     const lines: CartItem[] = [blend()];
     expect(adjustQuantity(lines, "rj-1", -1)).toEqual(lines);
     expect(removeItem(lines, "rj-1")).toEqual(lines);
+  });
+  it("adjustBlendQuantity increments by id and removes at zero", () => {
+    const lines: CartItem[] = [blend()];
+    const up = adjustBlendQuantity(lines, "blend-1", 2);
+    expect(isBlendItem(up[0])).toBe(true);
+    if (isBlendItem(up[0])) expect(up[0].quantity).toBe(3);
+    expect(adjustBlendQuantity(lines, "blend-1", -1)).toHaveLength(0);
+  });
+  it("adjustBlendQuantity clamps to the blend stock cap", () => {
+    const lines: CartItem[] = [blend({ stock: 4 })];
+    const out = adjustBlendQuantity(lines, "blend-1", 3);
+    expect(isBlendItem(out[0])).toBe(true);
+    if (isBlendItem(out[0])) expect(out[0].quantity).toBe(4);
   });
 });
 
@@ -236,6 +255,17 @@ describe("addBlendItem merging", () => {
     if (isBlendItem(cart[0])) {
       expect(cart[0].quantity).toBe(3);
     }
+  });
+  it("merges by summing the incoming quantity, capped at stock", () => {
+    const { id: _id, kind: _kind, ...rest } = blend({ quantity: 2, stock: 5 });
+    let cart = addBlendItem([], rest);
+    cart = addBlendItem(cart, rest);
+    expect(cart).toHaveLength(1);
+    if (isBlendItem(cart[0])) expect(cart[0].quantity).toBe(4);
+
+    const capped = addBlendItem(cart, { ...rest, quantity: 2 });
+    expect(capped).toHaveLength(1);
+    if (isBlendItem(capped[0])) expect(capped[0].quantity).toBe(5);
   });
   it("does not merge blends with different additives", () => {
     const b1 = blend();

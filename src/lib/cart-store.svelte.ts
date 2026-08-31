@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   addBlendItem,
   addItem,
+  adjustBlendQuantity,
   adjustQuantity,
   computeTotals,
   isBlendItem,
@@ -206,6 +207,13 @@ export function setQuantity(variantId: string, quantity: number): void {
   const current = state.items.find((i) => !isBlendItem(i) && i.variantId === variantId);
   if (!current) return;
   state.items = adjustQuantity(state.items, variantId, quantity - current.quantity);
+  persist(state.items);
+}
+
+export function setBlendQuantity(id: string, quantity: number): void {
+  const current = state.items.find((i) => isBlendItem(i) && i.id === id);
+  if (!current) return;
+  state.items = adjustBlendQuantity(state.items, id, quantity - current.quantity);
   persist(state.items);
 }
 

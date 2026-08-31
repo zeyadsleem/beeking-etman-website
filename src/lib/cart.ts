@@ -112,7 +112,7 @@ export function blendTotal(item: BlendCartItem): number {
 }
 
 export function lineTotal(item: CartItem): number {
-  return isBlendItem(item) ? blendTotal(item) : item.price * item.quantity;
+  return isBlendItem(item) ? blendTotal(item) * item.quantity : item.price * item.quantity;
 }
 
 export interface CartTotals {
@@ -189,9 +189,15 @@ export function addBlendItem(
     (i) => isBlendItem(i) && blendItemSignature(i.baseVariantId, i.jarSize, i.additives) === sig,
   );
   if (existing && isBlendItem(existing)) {
-    return items.map((i) => (i === existing ? { ...i, quantity: i.quantity + 1 } : i));
+    const next = Math.min(existing.quantity + Math.max(0, blend.quantity), existing.stock);
+    return items.map((i) => (i === existing ? { ...i, quantity: next } : i));
   }
-  const item: BlendCartItem = { ...blend, kind: "blend", id: `blend-${crypto.randomUUID()}` };
+  const item: BlendCartItem = {
+    ...blend,
+    kind: "blend",
+    id: `blend-${crypto.randomUUID()}`,
+    quantity: Math.min(Math.max(1, blend.quantity), blend.stock),
+  };
   return [...items, item];
 }
 
@@ -202,6 +208,13 @@ export function adjustQuantity(items: CartItem[], variantId: string, delta: numb
     )
     .filter((i) => i.quantity > 0)
     .map((i) => (!isBlendItem(i) ? { ...i, quantity: Math.min(i.quantity, i.stock) } : i));
+}
+
+export function adjustBlendQuantity(items: CartItem[], id: string, delta: number): CartItem[] {
+  return items
+    .map((i) => (isBlendItem(i) && i.id === id ? { ...i, quantity: i.quantity + delta } : i))
+    .filter((i) => i.quantity > 0)
+    .map((i) => (isBlendItem(i) ? { ...i, quantity: Math.min(i.quantity, i.stock) } : i));
 }
 
 export function removeItem(items: CartItem[], variantId: string): CartItem[] {

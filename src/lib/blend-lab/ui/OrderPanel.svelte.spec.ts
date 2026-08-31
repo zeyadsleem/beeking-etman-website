@@ -201,17 +201,17 @@ describe("OrderPanel", () => {
     expect(openDrawerMock).toHaveBeenCalledTimes(1);
   });
 
-  it("adds one line per jar when several jars are ordered", async () => {
+  it("adds a single adjustable line carrying the jar count", async () => {
     const game = orderGame();
     await renderPanel(game);
 
     await page.getByRole("button", { name: t(LANG, "qty.increase") }).click();
 
     await page.getByTestId("add-to-cart-btn").click();
-    expect(addBlendMock).toHaveBeenCalledTimes(2);
-    for (const call of addBlendMock.mock.calls) {
-      expect(call[0]).toMatchObject({ quantity: 1, baseVariantId: BASE_ENTRY.variantId });
-    }
+    expect(addBlendMock).toHaveBeenCalledTimes(1);
+    expect(addBlendMock).toHaveBeenCalledWith(
+      expect.objectContaining({ quantity: 2, baseVariantId: BASE_ENTRY.variantId }),
+    );
     expect(openDrawerMock).toHaveBeenCalledTimes(1);
   });
 

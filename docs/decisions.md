@@ -1196,3 +1196,56 @@ the `foundation-export` category, whose storefront heading read "شمع أساس
 "شمع أساس" (English "Foundation Wax") in both `local.db` and the local D1 seed,
 while the parent `foundation-wax` keeps its own "شمع أساس" heading. Catalog
 remains 191 products, unchanged.
+
+## 2026-08-31: Blend Lab becomes a light-theme game with juice, unlimited doses, and image-based ingredients
+
+**Context:** The Blend Lab (خلطة) custom-blend game at `/blends` was originally
+built dark-themed (`bg-cocoa-950`) while the rest of the storefront uses a light
+cream `paper`/`parchment` palette. The owner asked (in Arabic) to (1) restyle the
+game to match the site, (2) make it more game-like, (3) remove the per-additive
+dose limit so users can add as much of each ingredient as they want, and (4)
+present the ingredients as visible image-based game elements. Separately, cart
+behaviour for blends was wrong: ordering N jars produced N identical non-editable
+rows, and multi-quantity blend totals were not multiplied by quantity.
+
+**Decision:**
+
+- **Light theme:** Rewrote `BlendGame.svelte`, `MixStep.svelte`, and the
+  `+page.svelte` shell from dark cocoa to the site's `paper` background,
+  `parchment` surfaces, `cocoa` text, and `honey` accents. OrderPanel was
+  already light. Purely visual; no logic/test changes.
+- **Game juice (feel):** Added `src/lib/blend-lab/ui/sfx.ts` (a small Web Audio
+  `SoundFx` singleton — no audio assets — synthesizing a rising-pitch stir
+  plink, a C-major completion chime, and a pop thud) and `fx-utils.ts`
+  (`sfx` + a cached `prefersReducedMotion()`). Global squash-and-stretch
+  (`mix-stir-pulse`) and pop-in (`animate-pop`) keyframes/classes live in
+  `layout.css`; the existing global `prefers-reduced-motion` block zeroes them.
+  `MixStep` now pulses on every stir, plays a combo/streak readout (×n, decay
+  after 1600ms of inactivity) and a perfect-blend state, plus a persisted mute
+  toggle (localStorage `honey_blend_muted`). New i18n keys
+  `blends.game.stir.combo`/`blends.game.stir.perfect` added in AR and EN.
+- **Unlimited additive doses:** `BlendsGame.addDose` no longer clamps to
+  `MAX_DOSE`; the `+` stepper is never disabled by a dose cap. Real ingredient
+  **stock** (the composite floor in `OrderPanel.maxQty`) remains the inventory
+  guard. The now-dead `MAX_DOSE` export was removed from `$lib/blends.ts`.
+- **Image-based game elements:** In the additives step, each selected
+  ingredient is rendered as an **image token** that pops into a larger jar
+  visualization (deterministic pseudo-random position/rotation, staggered pop,
+  live ×dose badge re-poping via `{#key}`). Clicking `+` or dropping an
+  ingredient onto the jar plays the pop sound; the container is `aria-hidden`
+  so tests (text-only) are unaffected.
+- **Cart model for blends:** `OrderPanel.orderBlend()` now emits **one** blend
+  line carrying `quantity: game.quantity` (previously N lines of qty 1).
+  `cart.ts` `lineTotal` multiplies blend totals by `quantity`;
+  `addBlendItem` merges by signature **summing** the incoming quantity (capped
+  at stock); new `adjustBlendQuantity` + `cart-store.setBlendQuantity(id, q)`
+  let a blend line be adjusted freely (capped at stock, removed at 0).
+  `CartLineItem` renders the `QuantityPicker` for blend items too, so a user can
+  bump a blend to 2, 5, etc. in the cart drawer and totals recalculate.
+
+**Consequences:** The game visually matches the storefront and now feels
+game-like without external assets (synthesized audio, reduced-motion safe).
+Doses are unlimited while stock stays real. Each jar orders as a single
+adjustable cart line and blend totals are correct at any quantity. Verified:
+`vp check` 0 errors; 26 server + 7 client blend tests pass; tests assert text
+and behaviour only, so the visual changes are safe.
