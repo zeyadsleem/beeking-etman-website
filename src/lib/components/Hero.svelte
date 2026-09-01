@@ -117,7 +117,7 @@
         </div>
 
         <div
-          class="absolute -bottom-6 start-1/2 z-10 w-60 -translate-x-1/2 motion-safe:animate-fade-up sm:w-72"
+          class="absolute inset-x-0 -bottom-6 z-10 mx-auto w-60 motion-safe:animate-fade-up sm:w-72"
           style="animation-delay: 240ms"
           data-testid="hero-foundation-wax"
         >
