@@ -345,6 +345,10 @@ const ar = {
   "blends.eyebrow": "صناعة مخصوصة",
   "blends.title": "اصنع خلطتك المخصوصة",
   "blends.subtitle": "اختار هدفك، اسحب المكملات، وصنع خلطة طبيعية بعسل مملكة النحل",
+  "blends.ssrFallbackTitle": ".Blend Lab — صمم خليتك الخاصة",
+  "blends.ssrFallbackBody":
+    "اختار عسل الأساس، أضف المكملات اللي تناسبك، واكتب خلطة طبيعية مخصوصة بيك. عسل مملكة النحل — من المناحل لحد بابك.",
+  "blends.ssrFallbackCta": "افتح الموقع على موبايلك لتجربة مختبر الخلط",
   "blends.stepGoal": "اختار هدفك",
   "blends.stepBase": "العسل والحجم",
   "blends.stepMix": "الخلط",
@@ -884,6 +888,10 @@ const en: Record<MessageKey, string> = {
   "blends.title": "Craft your own blend",
   "blends.subtitle":
     "Pick your goal, drag in the boosters, and craft a natural blend from Kingdom of Bees honey.",
+  "blends.ssrFallbackTitle": ".Blend Lab — design your own cell",
+  "blends.ssrFallbackBody":
+    "Pick your base honey, add the boosters that suit you, and craft a natural blend made just for you. Kingdom of Bees honey — from the apiaries to your door.",
+  "blends.ssrFallbackCta": "Open the site on your phone to try the Blend Lab",
   "blends.stepGoal": "Pick your goal",
   "blends.stepBase": "Honey & size",
   "blends.stepMix": "Mix it",

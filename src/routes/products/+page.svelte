@@ -14,10 +14,11 @@
   let { data }: { data: PageData } = $props();
 
   const lang = $derived(data.lang);
-  const DEPT_LABELS: Record<Department, { key: string; badge?: number }> = {
-    honey: { key: "dept.honey", badge: data.departmentCounts?.honey },
-    equipment: { key: "dept.equipment", badge: data.departmentCounts?.equipment },
-  };
+  const DEPT_COUNTS = $derived(data.departmentCounts);
+  const DEPT_LABELS = $derived<Record<Department, { key: string; badge?: number }>>({
+    honey: { key: "dept.honey", badge: DEPT_COUNTS?.honey },
+    equipment: { key: "dept.equipment", badge: DEPT_COUNTS?.equipment },
+  });
 
   function navigate({ sort, category, page, q, dept }: { sort?: SortOrder; category?: string | null; page?: number; q?: string; dept?: Department }) {
     const params = new URLSearchParams();

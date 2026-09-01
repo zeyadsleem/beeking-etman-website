@@ -30,6 +30,8 @@ const GAME_KEYS = [
   "blends.game.stir.title",
   "blends.game.stir.hint",
   "blends.game.stir.done",
+  "blends.game.stir.combo",
+  "blends.game.stir.perfect",
   "blends.game.pour.title",
   "blends.game.order.title",
   "blends.game.order.quantity",

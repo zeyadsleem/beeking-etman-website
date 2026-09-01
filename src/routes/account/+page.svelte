@@ -12,7 +12,7 @@
   let name = $state(data.user.name);
 </script>
 
-<svelte:head><title>{t(lang, "account.title")} — مملكة النحل</title></svelte:head>
+<svelte:head><title>{t(lang, "account.title")} — {t(lang, "brand.name")}</title></svelte:head>
 
 <div class="mx-auto mt-8 w-full max-w-2xl px-4">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "account.title")}</SectionTitle>

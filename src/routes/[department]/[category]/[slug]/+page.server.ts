@@ -16,7 +16,7 @@ import { productPath } from "$lib/server/store";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  event.setHeaders({ "cache-control": "s-maxage=120, stale-while-revalidate=600" });
+  event.setHeaders({ "cache-control": "private, max-age=120" });
   const lang = getLang(event);
   const { department: rawDepartment, category: rawCategory, slug } = event.params;
 

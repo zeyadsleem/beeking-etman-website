@@ -16,7 +16,7 @@
   }
 </script>
 
-<svelte:head><title>{t(lang, "orders.title")} — مملكة النحل</title></svelte:head>
+<svelte:head><title>{t(lang, "orders.title")} — {t(lang, "brand.name")}</title></svelte:head>
 
 <div class="mt-8">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "orders.title")}</SectionTitle>

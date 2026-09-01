@@ -17,7 +17,7 @@ import type { PageServerLoad } from "./$types";
 const SORTS = new Set(["newest", "price-asc", "price-desc"]);
 
 export const load: PageServerLoad = async (event) => {
-  event.setHeaders({ "cache-control": "s-maxage=60, stale-while-revalidate=300" });
+  event.setHeaders({ "cache-control": "private, max-age=60" });
   const lang = getLang(event);
   const { department: rawDepartment, category } = event.params;
   if (!isDepartment(rawDepartment)) error(404, t(lang, "products.notFound"));

@@ -9,7 +9,7 @@
   const lang = $derived(data.lang);
 </script>
 
-<svelte:head><title>{data.order.number} — مملكة النحل</title></svelte:head>
+<svelte:head><title>{data.order.number} — {t(lang, "brand.name")}</title></svelte:head>
 
 <div class="mx-auto mt-8 w-full max-w-2xl px-4">
   <div class="flex flex-wrap items-center justify-between gap-3">
