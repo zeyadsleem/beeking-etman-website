@@ -1,59 +1,14 @@
 <script lang="ts">
-  import Button from "$lib/components/Button.svelte";
   import Hero from "$lib/components/Hero.svelte";
-  import ProductCard from "$lib/components/ProductCard.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import Seo from "$lib/components/Seo.svelte";
   import { organizationJsonLd, websiteJsonLd } from "$lib/seo";
-  import { hasMessage, t } from "$lib/i18n/messages";
-  import type { ProductSummary } from "$lib/server/store";
+  import { t } from "$lib/i18n/messages";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
 
   const lang = $derived(data.lang);
-
-  const bySlug = (slugs: string[]): ProductSummary[] => {
-    const wanted = new Set(slugs);
-    return data.products.filter((p) => wanted.has(p.slug));
-  };
-
-  const hasStory = (slug: string): boolean => hasMessage(`category.story.${slug}`);
-
-  const rails = [
-    {
-      slugs: [
-        "honey-sidr-1kg",
-        "royal-jelly-5g-local",
-        "propolis-10g",
-        "honey-blackseed-1kg",
-        "blend-hexagonal-1kg-plastic",
-        "ginseng-10g",
-        "jar-palm-pollen",
-        "pollen-clover-20g",
-      ],
-    },
-    {
-      slugs: [
-        "honey-clover-1kg",
-        "honey-citrus-1kg",
-        "honey-marjoram-500g",
-        "comb-honey-clover-500g",
-        "comb-honey-per-kg-clover",
-      ],
-    },
-    {
-      slugs: [
-        "nuts-honey-370ml-plastic",
-        "hazelnut-100g",
-        "pistachio-100g",
-        "almond-100g",
-        "cashew-100g",
-        "mixed-nuts-100g",
-        "nuts-honey-500g-can",
-      ],
-    },
-  ];
 </script>
 
 <Seo
@@ -95,126 +50,6 @@
     </p>
   </div>
 </div>
-
-<section class="mx-auto mt-12 max-w-4xl px-4 sm:mt-14 sm:px-6 lg:mt-16">
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-    <a
-      href="/honey"
-      class="group relative overflow-hidden rounded-2xl border border-honey-200 bg-gradient-to-br from-honey-50 to-parchment p-8 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-honey-300 hover:shadow-warm"
-    >
-      <div class="paper-grain pointer-events-none absolute inset-0" aria-hidden="true"></div>
-      <div class="relative flex items-start justify-between gap-6">
-        <div class="min-w-0">
-          <p class="eyebrow text-honey-700">{t(lang, "brand.name")}</p>
-          <h2 class="headline mt-2 text-2xl text-cocoa-900">{t(lang, "home.deptShopHoney")}</h2>
-          <p class="mt-2 text-sm leading-relaxed text-cocoa-500">{t(lang, "home.deptShopHoneyDesc")}</p>
-        </div>
-        <img
-          src="/images/Beeking Etman/برطمان السدر المصرى.jpg"
-          alt=""
-          draggable="false"
-          loading="lazy"
-          class="h-20 w-20 shrink-0 rounded-2xl object-cover ring-2 ring-inset ring-honey-100 transition-transform duration-300 group-hover:scale-105 sm:h-24 sm:w-24"
-        />
-      </div>
-      <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-honey-700 transition-all duration-300 group-hover:gap-3">
-        {t(lang, "home.shopNow")}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </span>
-    </a>
-    <a
-      href="/equipment"
-      class="group relative overflow-hidden rounded-2xl border border-cocoa-200 bg-gradient-to-br from-cocoa-50 to-parchment p-8 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-cocoa-300 hover:shadow-warm"
-    >
-      <div class="paper-grain pointer-events-none absolute inset-0" aria-hidden="true"></div>
-      <div class="relative flex items-start justify-between gap-6">
-        <div class="min-w-0">
-          <p class="eyebrow text-cocoa-600">{t(lang, "brand.name")}</p>
-          <h2 class="headline mt-2 text-2xl text-cocoa-900">{t(lang, "home.deptShopEquipment")}</h2>
-          <p class="mt-2 text-sm leading-relaxed text-cocoa-500">{t(lang, "home.deptShopEquipmentDesc")}</p>
-        </div>
-        <img
-          src="/images/Beeking Etman/مدخن نحل استانليس.jpg"
-          alt=""
-          draggable="false"
-          loading="lazy"
-          class="h-20 w-20 shrink-0 rounded-2xl object-cover ring-2 ring-inset ring-cocoa-100 transition-transform duration-300 group-hover:scale-105 sm:h-24 sm:w-24"
-        />
-      </div>
-      <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-cocoa-700 transition-all duration-300 group-hover:gap-3">
-        {t(lang, "home.shopNow")}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </span>
-    </a>
-  </div>
-</section>
-
-<section class="mt-14 sm:mt-16 lg:mt-20">
-  <div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-    <div>
-      <p class="eyebrow">{t(lang, "home.featuredEyebrow")}</p>
-      <SectionTitle className="mt-2 text-3xl">{t(lang, "home.featuredTitle")}</SectionTitle>
-    </div>
-    <Button variant="outline" href="/honey" class="text-sm">{t(lang, "home.allProducts")}</Button>
-  </div>
-  <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-    {#each data.featured as product (product.id)}
-      <ProductCard lang={lang} {product} />
-    {/each}
-  </div>
-</section>
-
-<section id="categories" class="mt-14 scroll-mt-24 sm:mt-16 lg:mt-20">
-  <div>
-    <p class="eyebrow">{t(lang, "home.categoriesEyebrow")}</p>
-    <SectionTitle className="mt-2 text-3xl">{t(lang, "home.categoriesTitle")}</SectionTitle>
-  </div>
-  <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {#each data.categories as cat (cat.id)}
-      <a
-        href={`/products?category=${cat.slug}`}
-        class="group relative overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-cocoa-200 hover:shadow-warm"
-      >
-        <span class="eyebrow">{t(lang, "brand.name")}</span>
-        <h3 class="headline mt-2 text-2xl text-cocoa-900">{cat.name}</h3>
-        {#if hasStory(cat.slug)}
-          <p class="mt-2 text-sm leading-relaxed text-cocoa-500">
-            {t(lang, `category.story.${cat.slug}`)}
-          </p>
-        {/if}
-        <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-honey-700 transition-all duration-300 group-hover:gap-3">
-          {t(lang, "home.shopNow")}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </span>
-      </a>
-    {/each}
-  </div>
-</section>
-
-{#each rails as rail, r (r)}
-  {#if bySlug(rail.slugs).length > 0}
-    <section class="mt-14 sm:mt-16 lg:mt-20">
-      <div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-        <div>
-          <SectionTitle className="text-3xl">{t(lang, `home.rail${r + 1}.title`)}</SectionTitle>
-          <p class="mt-1 text-sm text-cocoa-500">{t(lang, `home.rail${r + 1}.note`)}</p>
-        </div>
-        <Button variant="outline" href="/products" class="text-sm">{t(lang, "home.browseAll")}</Button>
-      </div>
-      <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {#each bySlug(rail.slugs) as product (product.id)}
-          <ProductCard lang={lang} {product} />
-        {/each}
-      </div>
-    </section>
-  {/if}
-{/each}
 
 <section class="paper-panel mt-14 px-6 py-12 text-center sm:mt-16 sm:px-10 lg:mt-20">
   <SectionTitle className="mx-auto text-3xl">{t(lang, "home.whyTitle")}</SectionTitle>
