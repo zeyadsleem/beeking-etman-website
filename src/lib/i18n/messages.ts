@@ -134,6 +134,24 @@ const ar = {
   "home.whyFastBody": "لكل المحافظات خلال 2-4 أيام عمل، ومجاني فوق 600 ج.م.",
   "home.whyQuality": "جودة نقيّة",
   "home.whyQualityBody": "عسل خام غير مبستر، يُعبأ بأيدي نحّالينا وقلوبهم.",
+  "story.eyebrow": "رحلة العسل",
+  "story.cta": "تسوق الآن",
+  "story.ch.1.num": "01",
+  "story.ch.1.title": "الملكة",
+  "story.ch.1.body":
+    "في عمق الخلية يبدأ كل شيء — ملكة النحل تنسج المستقبل، وكل قرصٍ حكاية منظمة لا تعرف الفوضى.",
+  "story.ch.2.num": "02",
+  "story.ch.2.title": "الرحيق",
+  "story.ch.2.body":
+    "من سفوح سيناء وحقول الدلتا، تجمع النحلة رحيق السدر والبرسيم — حلاوة الطبيعة في كل رحلة.",
+  "story.ch.3.num": "03",
+  "story.ch.3.title": "الشمع",
+  "story.ch.3.body":
+    "شمع أساس نقي يُبنى قرصًا بعد قرص — عمارة الخلية التي تصنعها أجنحةٌ ومشطٌ يتقن الجمال.",
+  "story.ch.4.num": "04",
+  "story.ch.4.title": "الحصاد",
+  "story.ch.4.body":
+    "نحصد ببطء ونعُبّأ بحب — من قلب المناحل إلى جرةٍ على مائدتك، لنشاركك صفاء الطبيعة.",
   "home.rail1.title": "للمناعة والطاقة",
   "home.rail1.note": "سدر، غذاء ملكات، بروبليس، حبة البركة",
   "home.rail2.title": "للعائلة والإفطار",
@@ -651,6 +669,24 @@ const en: Record<MessageKey, string> = {
   "home.whyFastBody": "To all governorates within 2-4 business days, free above EGP 600.",
   "home.whyQuality": "Pure quality",
   "home.whyQualityBody": "Raw unpasteurized honey, packed by our beekeepers' hands and hearts.",
+  "story.eyebrow": "The Honey Journey",
+  "story.cta": "Shop now",
+  "story.ch.1.num": "01",
+  "story.ch.1.title": "The Queen",
+  "story.ch.1.body":
+    "Deep inside the hive it all begins — the queen weaves the future, and every comb is a story of order, never chaos.",
+  "story.ch.2.num": "02",
+  "story.ch.2.title": "The Nectar",
+  "story.ch.2.body":
+    "From Sinai's slopes to the Delta's fields, the bee gathers sidr and clover nectar — nature's sweetness with every flight.",
+  "story.ch.3.num": "03",
+  "story.ch.3.title": "The Wax",
+  "story.ch.3.body":
+    "Pure foundation wax, built comb by comb — the hive's architecture, shaped by wings and a tongue that perfects beauty.",
+  "story.ch.4.num": "04",
+  "story.ch.4.title": "The Harvest",
+  "story.ch.4.body":
+    "We harvest slowly and pack with love — from the heart of the apiaries to a jar on your table, sharing nature's clarity.",
   "home.rail1.title": "For immunity & energy",
   "home.rail1.note": "Sidr, royal jelly, propolis, black seed",
   "home.rail2.title": "For family & breakfast",
