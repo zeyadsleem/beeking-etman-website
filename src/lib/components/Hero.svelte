@@ -104,7 +104,7 @@
         />
       </div>
 
-      <figure class="group relative">
+      <figure class="relative">
         <div class="absolute inset-0 -z-10 rounded-full bg-honey-100/70 blur-2xl" aria-hidden="true"></div>
         <div class="relative overflow-hidden rounded-t-full rounded-b-2xl border border-honey-200 bg-parchment shadow-warm-lg lg:rounded-b-[1.5rem]">
           <AspectRatio.Root ratio={4 / 5} class="transition-transform duration-700 ease-out group-hover:scale-105">
@@ -116,17 +116,33 @@
           ></div>
         </div>
 
-        <figure
-          class="absolute -bottom-6 -start-4 z-10 w-40 shadow-warm sm:-start-8 sm:w-52"
+        <div
+          class="absolute -bottom-6 start-1/2 z-10 w-60 -translate-x-1/2 motion-safe:animate-fade-up sm:w-72"
+          style="animation-delay: 240ms"
           data-testid="hero-foundation-wax"
         >
-          <img
-            src={foundationWaxImage}
-            alt={t(lang, "hero.foundationWax")}
-            draggable="false"
-            class="aspect-[4/3] w-full rounded-2xl border border-honey-200/60 object-cover"
-          />
-        </figure>
+          <div class="relative overflow-hidden rounded-2xl border border-honey-200/70 bg-parchment shadow-warm">
+            <img
+              src={foundationWaxImage}
+              alt={t(lang, "hero.foundationWax")}
+              draggable="false"
+              class="aspect-[4/3] w-full object-cover"
+            />
+            <div
+              class="pointer-events-none absolute inset-0 bg-gradient-to-t from-cocoa-950/60 via-transparent to-transparent"
+              aria-hidden="true"
+            ></div>
+            <figcaption class="absolute bottom-2.5 start-3 flex items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-parchment/95 px-3 py-1 text-[11px] font-semibold text-cocoa-900 shadow-sm">
+                <svg class="h-3 w-3 text-honey-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 9l3.5 2.5L14 15l-2 3-2-3-1.5-3.5L12 9ZM4 8l3 2-1 3L4 15l-1-2 1-5Zm16 0 1 5-1 2-2-2-1-3 3-2Z" />
+                </svg>
+                {t(lang, "hero.foundationWax")}
+              </span>
+              <span class="hidden text-[11px] font-medium text-parchment/90 sm:inline">{t(lang, "hero.foundationTagline")}</span>
+            </figcaption>
+          </div>
+        </div>
       </figure>
     </div>
 

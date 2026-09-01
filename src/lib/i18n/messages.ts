@@ -112,6 +112,7 @@ const ar = {
   "hero.imgAlt": "عسل طبيعي من مملكة النحل",
   "hero.sidrAlt": "برطمان عسل السدر المصري",
   "hero.foundationWax": "شمع أساس",
+  "hero.foundationTagline": "أساس منتجاتنا منذ 1940",
   "common.scrollToTop": "العودة للأعلى",
   "home.title": "مملكة النحل — متجر العسل الطبيعي",
   "meta.home.description":
@@ -651,6 +652,7 @@ const en: Record<MessageKey, string> = {
   "hero.imgAlt": "Natural honey from Kingdom of Honey",
   "hero.sidrAlt": "Egyptian sidr honey jar",
   "hero.foundationWax": "Foundation Wax",
+  "hero.foundationTagline": "Our foundation since 1940",
   "common.scrollToTop": "Back to top",
   "home.title": "Kingdom of Honey — Natural Honey Store",
   "meta.home.description":
