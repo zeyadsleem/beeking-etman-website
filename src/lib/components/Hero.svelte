@@ -15,8 +15,15 @@
 
 <section class="relative start-1/2 -ms-[50vw] w-screen overflow-x-clip pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-14 lg:pb-16">
   <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
-    <div class="absolute -top-40 end-[-8rem] h-[30rem] w-[30rem] rounded-full bg-honey-100/60 blur-3xl"></div>
-    <div class="absolute bottom-[-10rem] start-[-8rem] h-[26rem] w-[26rem] rounded-full bg-clay-100/50 blur-3xl"></div>
+    <img
+      src="/images/hero-background-honey.jpeg"
+      alt=""
+      draggable="false"
+      class="absolute inset-0 h-full w-full object-cover saturate-150 {lang === 'en' ? '-scale-x-100' : ''}"
+    />
+    <div class="absolute inset-0 bg-gradient-to-b from-parchment/55 via-parchment/20 to-parchment/35"></div>
+    <div class="absolute -top-40 end-[-8rem] h-[30rem] w-[30rem] rounded-full bg-honey-200/50 blur-3xl"></div>
+    <div class="absolute bottom-[-10rem] start-[-8rem] h-[26rem] w-[26rem] rounded-full bg-clay-200/40 blur-3xl"></div>
   </div>
 
   <div class="hero-grid mx-auto w-full max-w-7xl gap-x-8 gap-y-8 px-4 sm:gap-x-10 sm:gap-y-10 sm:px-6 lg:gap-x-14 lg:gap-y-9 lg:px-8">
@@ -34,6 +41,7 @@
           class="h-full w-full select-none"
         />
       </div>
+
       <p class="brand-wordmark flex items-center gap-2.5">
         <svg class="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">
           <defs>
@@ -48,12 +56,12 @@
       </p>
 
       <p class="mt-2 flex items-center gap-3 text-sm tracking-wider text-honey-700">
-        <span class="h-px w-6 bg-honey-400"></span>
+        <span class="h-px w-3 bg-honey-400"></span>
         {t(lang, "hero.since")}
-        <span class="h-px w-6 bg-honey-400"></span>
+        <span class="h-px w-3 bg-honey-400"></span>
       </p>
 
-      <h1 class="headline mt-4 text-4xl leading-[1.15] text-cocoa-950 sm:text-5xl lg:mt-5 lg:text-7xl">
+      <h1 class="headline mt-4 text-4xl leading-[1.15] text-cocoa-950 sm:text-5xl lg:mt-5 lg:text-7xl" style="text-shadow: 0 1px 3px rgba(255,255,255,0.7)">
         {t(lang, "hero.titleA")}<br />
         <span class="relative inline-block text-honey-700">
           {t(lang, "hero.titleB")}
@@ -69,7 +77,7 @@
         </span>
       </h1>
 
-      <p class="mt-4 max-w-md text-base leading-relaxed text-cocoa-500 sm:text-lg lg:mt-6">
+      <p class="mt-4 max-w-md text-base font-medium leading-relaxed text-cocoa-700 sm:text-lg lg:mt-6 {lang === 'en' ? '!text-cocoa-900' : ''}" style="text-shadow: 0 1px 2px rgba(255,250,240,0.85)">
         {t(lang, "hero.subtitle")}
       </p>
 
@@ -151,15 +159,15 @@
       style="animation-delay: 240ms"
     >
       <div>
-        <dt class="text-xs font-semibold text-cocoa-500">{t(lang, "hero.statProducts")}</dt>
+        <dt class="text-xs font-semibold text-cocoa-700 {lang === 'en' ? '!text-cocoa-800' : ''}">{t(lang, "hero.statProducts")}</dt>
         <dd class="headline mt-1 text-2xl text-cocoa-950 sm:text-3xl" use:countUp={{ target: productCount, lang }}>0</dd>
       </div>
       <div>
-        <dt class="text-xs font-semibold text-cocoa-500">{t(lang, "hero.statGovernorates")}</dt>
+        <dt class="text-xs font-semibold text-cocoa-700 {lang === 'en' ? '!text-cocoa-800' : ''}">{t(lang, "hero.statGovernorates")}</dt>
         <dd class="headline mt-1 text-2xl text-cocoa-950 sm:text-3xl" use:countUp={{ target: 27, lang }}>0</dd>
       </div>
       <div>
-        <dt class="text-xs font-semibold text-cocoa-500">{t(lang, "hero.statCustomers")}</dt>
+        <dt class="text-xs font-semibold text-cocoa-700 {lang === 'en' ? '!text-cocoa-800' : ''}">{t(lang, "hero.statCustomers")}</dt>
         <dd class="headline mt-1 text-2xl text-cocoa-950 sm:text-3xl" use:countUp={{ target: 12000, lang }}>0</dd>
       </div>
     </dl>

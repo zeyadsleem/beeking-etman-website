@@ -220,7 +220,7 @@ html:lang(en) body {
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-cocoa-300 bg-transparent px-6 py-2.5 text-sm font-semibold text-cocoa-800 transition-all duration-300 hover:border-cocoa-900 hover:text-cocoa-950 disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-cocoa-500 bg-parchment/40 px-6 py-2.5 text-sm font-semibold text-cocoa-800 backdrop-blur-md transition-all duration-300 hover:border-cocoa-900 hover:bg-parchment/60 hover:text-cocoa-950 disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .btn-ghost {
