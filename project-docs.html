@@ -1,0 +1,1205 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>توثيق المشروع — مملكة النحل (Beeking Etman)</title>
+    <style>
+      :root {
+        --honey: #d97706;
+        --honey-light: #fbbf24;
+        --honey-bg: #fffbeb;
+        --cocoa: #78350f;
+        --cocoa-light: #a16207;
+        --parchment: #fefce8;
+        --bg: #fefdf6;
+        --text: #1c1917;
+        --muted: #78716c;
+        --border: #e7e5e4;
+        --code-bg: #f5f5f4;
+        --danger: #dc2626;
+        --success: #16a34a;
+        --info: #2563eb;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, "Noto Sans SC", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+        padding: 0;
+      }
+      .hero {
+        background: linear-gradient(135deg, var(--cocoa) 0%, var(--honey) 100%);
+        color: #fff;
+        padding: 3rem 2rem;
+        text-align: center;
+      }
+      .hero h1 {
+        font-size: 2.2rem;
+        margin-bottom: 0.5rem;
+      }
+      .hero p {
+        opacity: 0.9;
+        font-size: 1.1rem;
+      }
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+      .card h2 {
+        color: var(--cocoa);
+        font-size: 1.35rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid var(--honey-light);
+        padding-bottom: 0.5rem;
+      }
+      .card h3 {
+        color: var(--honey);
+        font-size: 1.1rem;
+        margin: 1rem 0 0.5rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.75rem 0;
+        font-size: 0.92rem;
+      }
+      th,
+      td {
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--border);
+        text-align: right;
+      }
+      th {
+        background: var(--honey-bg);
+        font-weight: 600;
+        color: var(--cocoa);
+      }
+      code {
+        background: var(--code-bg);
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.88rem;
+        direction: ltr;
+        unicode-bidi: embed;
+      }
+      pre {
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        direction: ltr;
+        unicode-bidi: embed;
+        margin: 0.75rem 0;
+      }
+      pre code {
+        background: none;
+        color: inherit;
+        padding: 0;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin: 0.15rem;
+      }
+      .badge-strength {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .badge-weakness {
+        background: #fef2f2;
+        color: #991b1b;
+      }
+      .badge-info {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .badge-warn {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      ul {
+        padding-right: 1.5rem;
+        margin: 0.5rem 0;
+      }
+      li {
+        margin-bottom: 0.35rem;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 640px) {
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .env-box {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+      }
+      .env-box strong {
+        color: #92400e;
+      }
+      .toc {
+        background: var(--honey-bg);
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+      .toc a {
+        color: var(--honey);
+        text-decoration: none;
+      }
+      .toc a:hover {
+        text-decoration: underline;
+      }
+      .section-num {
+        color: var(--honey);
+        font-weight: 700;
+      }
+      .highlight {
+        background: #fef9c3;
+        padding: 0.1rem 0.3rem;
+        border-radius: 3px;
+      }
+      .dir-ltr {
+        direction: ltr;
+        unicode-bidi: embed;
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <h1>مملكة النحل — Kingdom of Honey</h1>
+      <p>توثيق شامل للمشروع: البنية، الميزات، نقاط القوة والضعف</p>
+      <p style="opacity: 0.7; font-size: 0.9rem; margin-top: 0.5rem">
+        Beeking Etman Website &mdash; Svelte 5 + SvelteKit 2 + Tailwind v4 + Cloudflare
+      </p>
+    </div>
+
+    <div class="container">
+      <!-- TOC -->
+      <div class="toc">
+        <strong>فهرس المحتويات</strong>
+        <ul style="margin-top: 0.5rem">
+          <li><a href="#overview">1. نظرة عامة على المشروع</a></li>
+          <li><a href="#stack">2. Tech Stack</a></li>
+          <li><a href="#features">3. الميزات الرئيسية</a></li>
+          <li><a href="#admin">4. لوحة التحكم (Admin)</a></li>
+          <li><a href="#database">5. قاعدة البيانات</a></li>
+          <li><a href="#architecture">6. بنية المشروع</a></li>
+          <li><a href="#deployment">7. النشر</a></li>
+          <li><a href="#strengths">8. نقاط القوة</a></li>
+          <li><a href="#weaknesses">9. نقاط الضعف</a></li>
+          <li><a href="#env">10. متغيرات البيئة</a></li>
+          <li><a href="#history">11. سجل التطوير وسد الثغرات</a></li>
+        </ul>
+      </div>
+
+      <!-- 1. Overview -->
+      <div class="card" id="overview">
+        <h2><span class="section-num">1.</span> نظرة عامة على المشروع</h2>
+        <p>
+          <strong>مملكة النحل</strong> (Beeking Etman) هو متجر إلكتروني عربي first للعسل الطبيعي
+          ومستلزمات تربية النحل. يتضمن كتالوج منتجات، مختبر خلط العسل التفاعلي (/blends)، سلة تسوق
+          بكوكيز موقّع، صفحة checkout مع دفع وهمي (بدون بطاقة حقيقية)، حسابات اختيارية، ودعم كامل
+          للغتين العربية والإنجليزية.
+        </p>
+        <p style="margin-top: 0.75rem">
+          المشروع مبني على <strong>Svelte 5</strong> (runes) مع <strong>SvelteKit 2</strong> ويعمل
+          على <strong>Cloudflare Pages</strong> مجاناً بالكامل ($0/شهر).
+        </p>
+        <div style="margin-top: 1rem">
+          <span class="badge badge-info">RTL Arabic-first</span>
+          <span class="badge badge-info">Bilingual (AR/EN)</span>
+          <span class="badge badge-info">Free Tier Hosting</span>
+          <span class="badge badge-info">Interactive Blend Lab</span>
+          <span class="badge badge-info">Full Admin Dashboard</span>
+        </div>
+      </div>
+
+      <!-- 2. Stack -->
+      <div class="card" id="stack">
+        <h2><span class="section-num">2.</span> Tech Stack</h2>
+        <table>
+          <tr>
+            <th>المكون</th>
+            <th>التقنية</th>
+            <th>الملاحظات</th>
+          </tr>
+          <tr>
+            <td>Framework</td>
+            <td>SvelteKit 2 + Svelte 5 (runes)</td>
+            <td>TypeScript strict</td>
+          </tr>
+          <tr>
+            <td>CSS</td>
+            <td>Tailwind CSS v4</td>
+            <td>Cairo variable font, RTL</td>
+          </tr>
+          <tr>
+            <td>UI Primitives</td>
+            <td>bits-ui v2</td>
+            <td>Dialog, Combobox, Button, ToggleGroup</td>
+          </tr>
+          <tr>
+            <td>ORM</td>
+            <td>Drizzle ORM</td>
+            <td>SQLite driver (D1 in prod, libsql local)</td>
+          </tr>
+          <tr>
+            <td>Database</td>
+            <td>Cloudflare D1</td>
+            <td>SQLite edge DB, FTS5 search</td>
+          </tr>
+          <tr>
+            <td>Auth</td>
+            <td>Better Auth</td>
+            <td>Password provider, admin plugin</td>
+          </tr>
+          <tr>
+            <td>Analytics</td>
+            <td>PostHog</td>
+            <td>Optional, public key inlined at build</td>
+          </tr>
+          <tr>
+            <td>Testing</td>
+            <td>Vitest + Playwright</td>
+            <td>Unit tests (*.spec.ts) + E2E (*.e2e.ts)</td>
+          </tr>
+          <tr>
+            <td>Toolchain</td>
+            <td>Vite+ (vp)</td>
+            <td>dev, build, test, check</td>
+          </tr>
+          <tr>
+            <td>Package Manager</td>
+            <td>pnpm 11.21</td>
+            <td>Pinned via devEngines</td>
+          </tr>
+          <tr>
+            <td>Hosting</td>
+            <td>Cloudflare Pages</td>
+            <td>Free tier, adapter-cloudflare</td>
+          </tr>
+          <tr>
+            <td>Media Storage</td>
+            <td>Workers KV</td>
+            <td>MEDIA namespace for product images</td>
+          </tr>
+          <tr>
+            <td>Email</td>
+            <td>Cloudflare Email Service</td>
+            <td>Optional, best-effort</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 3. Features -->
+      <div class="card" id="features">
+        <h2><span class="section-num">3.</span> الميزات الرئيسية</h2>
+
+        <h3>المتجر (Storefront)</h3>
+        <ul>
+          <li>كتالوج منتجات مع variants (أحجام/أنواع مختلفة)</li>
+          <li>بحث FTS5 بالعربية والإنجليزية مع autocomplete</li>
+          <li>فرز وتصفح (12 منتج/صفحة)</li>
+          <li>صفحة منتج تفصيلية مع معرض صور</li>
+          <li>عرض الأسعار بالجنيه المصري (أرقام عربية أو إنجليزية حسب اللغة)</li>
+        </ul>
+
+        <h3>سلة التسوق (Cart)</h3>
+        <ul>
+          <li>سلة client-side مع مزامنة عبر كويكيز موقّع (HMAC, HttpOnly)</li>
+          <li>شحن ثابت 60 ج.م / مجاني فوق 600 ج.م</li>
+          <li>مزامنة السلة عبر التبويبات (storage listener)</li>
+          <li>دعم خلط العسل كعنصر واحد في السلة</li>
+        </ul>
+
+        <h3>صفحة الدفع (Checkout)</h3>
+        <ul>
+          <li>إدخال بيانات الشحن مع تحقق zod</li>
+          <li>دفع وهمي (mock payment) — لا تُجمع بيانات بطاقات حقيقية</li>
+          <li>Idempotent order creation عبر nonce</li>
+          <li>صفحة نجاح مع كويكيز موقّع للوصول</li>
+          <li>فواتير PDF قابلة للتحميل</li>
+        </ul>
+
+        <h3>مختبر الخلط (Blend Lab — /blends)</h3>
+        <ul>
+          <li>واجهة خلط تفاعلية خفيفة (DOM mix UI) بمؤثرات صوتية Web Audio</li>
+          <li>5 أهداف ( الطاقة، المناعة، الصحة العامة، العناية بالبشرة، الهضم)</li>
+          <li>5 أنواع عسل أساسية + 5 مضافات</li>
+          <li>حساب تكلفة تلقائي من قاعدة البيانات</li>
+          <li>فن procedural كامل (بدون ملفات ثابتة)</li>
+          <li>دعم reduced-motion + وصول بديل (sr-only action bar) لقارئات الشاشة و E2E</li>
+        </ul>
+
+        <h3>الحسابات (Accounts)</h3>
+        <ul>
+          <li>تسجيل دخول / إنشاء حساب بـ Better Auth</li>
+          <li>صفحة ملف شخصي (الاسم، كلمة المرور، تسجيل الخروج)</li>
+          <li>عناوين الشحن المحفوظة (حتى 10 عناوين)</li>
+          <li>طلبات سابقة مع تفاصيل</li>
+        </ul>
+
+        <h3>الدعم اللغوي (i18n)</h3>
+        <ul>
+          <li>عربية (RTL) بشكل افتراضي + إنجليزية</li>
+          <li>كشف لغة المتصفر من Accept-Language header</li>
+          <li>كتالوج ثنائي اللغة (name + name_en)</li>
+          <li>تنسيق عملة حسب اللغة</li>
+        </ul>
+
+        <h3>لوحة التحكم (Admin)</h3>
+        <ul>
+          <li>لوحة إحصائيات (إيرادات، طلبات، عملاء، منخفضي المخزون)</li>
+          <li>إدارة الطلبات مع حالات وتحديث المخزون</li>
+          <li>إدارة المنتجات (إنشاء، تعديل، variants، رفع صور)</li>
+          <li>إدارة التصنيفات</li>
+          <li>سجل التدقيق (audit log)</li>
+          <li>إدارة وسائط الصور</li>
+          <li>تصدير الطلبات CSV</li>
+        </ul>
+
+        <h3>الأمان (Security)</h3>
+        <ul>
+          <li>Rate limiting DB-backed (login: 10/60s, register: 5/1h)</li>
+          <li>Guard على admin routes (role check server-side)</li>
+          <li>Kosy موقّع (HMAC) للسلة والطلبات</li>
+          <li>Validation على كل الإدخالات (zod)</li>
+          <li>No card data collection (mock payment)</li>
+          <li>Boot-time env validation</li>
+        </ul>
+      </div>
+
+      <!-- 4. Admin -->
+      <div class="card" id="admin">
+        <h2><span class="section-num">4.</span> لوحة التحكم (Admin)</h2>
+
+        <h3>كيف تحصل على صلاحية Admin؟</h3>
+
+        <div class="env-box" style="background: #dcfce7; border-color: #16a34a">
+          <strong style="color: #166534">تم الإعداد!</strong>
+          <p style="margin-top: 0.5rem">
+            البريد الإلكتروني لل Admin:
+            <code
+              style="background: #fff; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700"
+              >zeyadsleem1@gmail.com</code
+            >
+          </p>
+        </div>
+
+        <p>المشروع يستخدم <strong>Better Auth</strong> مع نظام bootstrap لل-admin. الطريقة:</p>
+        <ol style="padding-right: 1.5rem">
+          <li>
+            المتغير <code>ADMIN_EMAIL</code> تم إضافته في <code>.env</code> و
+            <code>.dev.vars</code> بالبريد: <code>zeyadsleem1@gmail.com</code>
+          </li>
+          <li>
+            سجّل حساب جديد في صفحة <code>/register</code> باستخدام البريد:
+            <code>zeyadsleem1@gmail.com</code>
+          </li>
+          <li>
+            بعد التسجيل، الموقع يتعرف تلقائياً على البريد ويرقّي الحساب لدور
+            <code>admin</code> تلقائياً
+          </li>
+          <li>يمكنك الآن الوصول لـ <code>/admin</code> وجميع الصفحات التابعة</li>
+        </ol>
+
+        <div class="env-box">
+          <strong>ملاحظة أمنية:</strong> لا يوجد "باسورد ادمين" واحد ثابت. كل مستخدم ينشئ حسابه
+          بكلمة مرور خاصة به عند التسجيل. صلاحية Admin تُمنح فقط عبر البريد المطابق لـ
+          <code>ADMIN_EMAIL</code>.
+        </div>
+
+        <h3>صفحات Admin</h3>
+        <table>
+          <tr>
+            <th>الصفحة</th>
+            <th>المسار</th>
+            <th>الوظيفة</th>
+          </tr>
+          <tr>
+            <td>لوحة الإحصائيات</td>
+            <td><code>/admin</code></td>
+            <td>KPIs: إيرادات، طلبات، عملاء، 30 يوم، منخفضي مخزون</td>
+          </tr>
+          <tr>
+            <td>الطلبات</td>
+            <td><code>/admin/orders</code></td>
+            <td>قائمة الطلبات + تفاصيل + تحديث الحالة + تخزين مجدد</td>
+          </tr>
+          <tr>
+            <td>المنتجات</td>
+            <td><code>/admin/products</code></td>
+            <td>إنشاء/تعديل منتجات + variants + صور</td>
+          </tr>
+          <tr>
+            <td>التصنيفات</td>
+            <td><code>/admin/categories</code></td>
+            <td>إضافة/تعديل/حذف تصنيفات</td>
+          </tr>
+          <tr>
+            <td>فوائد الخلط</td>
+            <td><code>/admin/blend-benefits</code></td>
+            <td>إدارة محتوى فوائد الخلط</td>
+          </tr>
+          <tr>
+            <td>المؤسسات</td>
+            <td><code>/admin/funnels</code></td>
+            <td>إدارة قنوات البيع</td>
+          </tr>
+          <tr>
+            <td>سجل التدقيق</td>
+            <td><code>/admin/audit</code></td>
+            <td>سجل جميع إجراءات Admin</td>
+          </tr>
+          <tr>
+            <td>الوسائط</td>
+            <td><code>/admin/media</code></td>
+            <td>إدارة ورفع صور المنتجات</td>
+          </tr>
+        </table>
+
+        <h3>الأمان في Admin</h3>
+        <ul>
+          <li>
+            Guard على level الـ layout: <code>user.role === "admin"</code> (redirect to /login)
+          </li>
+          <li>Re-check server-side على كل form action (defense-in-depth)</li>
+          <li>
+            صفحات Admin لها <code>&lt;meta name="robots" content="noindex, nofollow"&gt;</code>
+          </li>
+          <li>سجل تدقيق (audit log) لكل إجراء مع timestamp</li>
+        </ul>
+      </div>
+
+      <!-- 5. Database -->
+      <div class="card" id="database">
+        <h2><span class="section-num">5.</span> قاعدة البيانات</h2>
+        <p>
+          تستخدم <strong>Drizzle ORM</strong> مع <strong>SQLite</strong> — D1 في الإنتاج، libsql
+          محلياً.
+        </p>
+
+        <h3>الجداول</h3>
+        <table>
+          <tr>
+            <th>الجدول</th>
+            <th>الوصف</th>
+          </tr>
+          <tr>
+            <td><code>store_category</code></td>
+            <td>التصنيفات (اسم، slug، قسم)</td>
+          </tr>
+          <tr>
+            <td><code>store_product</code></td>
+            <td>المنتجات (اسم، وصف، صورة، تصنيف، ميز feature)</td>
+          </tr>
+          <tr>
+            <td><code>store_product_variant</code></td>
+            <td>الأحجام/الأنواع القابلة للبيع (سعر، مخزون، صورة)</td>
+          </tr>
+          <tr>
+            <td><code>store_product_image</code></td>
+            <td>صور المنتجات المتعددة</td>
+          </tr>
+          <tr>
+            <td><code>store_order</code></td>
+            <td>الطلبات (رقم، بريد، هاتف، عنوان، إجمالي، حالة)</td>
+          </tr>
+          <tr>
+            <td><code>store_order_item</code></td>
+            <td>عناصر الطلب</td>
+          </tr>
+          <tr>
+            <td><code>store_address</code></td>
+            <td>عناوين الشحن المحفوظة (حتى 10/مستخدم)</td>
+          </tr>
+          <tr>
+            <td><code>store_rate_limit</code></td>
+            <td>Rate limiting (نافذة ثابتة)</td>
+          </tr>
+          <tr>
+            <td><code>store_admin_audit</code></td>
+            <td>سجل تدقيق إجراءات Admin</td>
+          </tr>
+          <tr>
+            <td><code>store_blend_benefit</code></td>
+            <td>فوائد الخلط ثنائي اللغة</td>
+          </tr>
+          <tr>
+            <td><code>user</code></td>
+            <td>المستخدمون (Better Auth)</td>
+          </tr>
+          <tr>
+            <td><code>session</code></td>
+            <td>الجلسات (Better Auth)</td>
+          </tr>
+          <tr>
+            <td><code>account</code></td>
+            <td>حسابات المصادقة (Better Auth)</td>
+          </tr>
+        </table>
+
+        <h3>البحث</h3>
+        <p>
+          يستخدم <strong>FTS5</strong> (Full-Text Search) لدعم البحث بالعربية والإنجليزية مع prefix
+          tokens.
+        </p>
+
+        <h3>الأوامر المفيدة</h3>
+        <pre><code>pnpm db:reset          # ترحيل + زراعة local.db
+pnpm db:studio         # تصفح قاعدة البيانات
+pnpm d1:migrate        # ترحيل D1 محلي
+pnpm d1:seed           # زراعة D1 محلي
+pnpm d1:reset          # إعادة تعيين كاملة لـ D1 المحلي</code></pre>
+      </div>
+
+      <!-- 6. Architecture -->
+      <div class="card" id="architecture">
+        <h2><span class="section-num">6.</span> بنية المشروع</h2>
+
+        <h3>هيكل المجلدات</h3>
+        <pre><code>src/
+├── hooks.server.ts          # Better Auth + rate limiting middleware
+├── routes/
+│   ├── +layout.svelte       # Layout رئيسي (Header, Footer, CartDrawer)
+│   ├── +layout.server.ts    # تحميل الفئات + المستخدم
+│   ├── +page.svelte         # الصفحة الرئيسية (Hero + ميزات)
+│   ├── products/            # كتالوج المنتجات
+│   ├── blends/              # مختبر الخلط التفاعلي (Phaser)
+│   ├── cart/                # سلة التسوق
+│   ├── checkout/            # صفحة الدفع
+│   ├── login/               # تسجيل الدخول
+│   ├── register/            # إنشاء حساب
+│   ├── account/             # ملف شخصي + عناوين + طلبات
+│   ├── admin/               # لوحة التحكم
+│   │   ├── orders/          # إدارة الطلبات
+│   │   ├── products/        # إدارة المنتجات
+│   │   ├── categories/      # إدارة التصنيفات
+│   │   ├── blend-benefits/  # فوائد الخلط
+│   │   ├── funnels/         # القنوات
+│   │   ├── audit/           # سجل التدقيق
+│   │   └── media/           # إدارة الوسائط
+│   ├── api/
+│   │   ├── cart/            # مزامنة السلة
+│   │   ├── lang/            # تبديل اللغة
+│   │   ├── search/          # اقتراحات البحث
+│   │   └── health/          # فحص صحة النظام
+│   └── media/[...key]/      # تقديم الصور من KV
+├── lib/
+│   ├── server/
+│   │   ├── db/              # Drizzle schema + client
+│   │   ├── auth.ts          # Better Auth setup
+│   │   ├── env.ts           # Boot-time env validation
+│   │   ├── store.ts         # استعلامات الكتالوج
+│   │   ├── orders.ts        # خدمة الطلبات
+│   │   ├── addresses.ts     # خدمة العناوين
+│   │   ├── rate-limit.ts    # Rate limiting DB-backed
+│   │   ├── cart-cookie.ts   # كويكيز السلة الموقّع
+│   │   ├── admin/           # خدمات Admin
+│   │   └── email.ts         # إرسال البريد (Cloudflare Email)
+│   ├── blend-lab/           # منطق مختبر الخلط
+│   ├── components/          # مكونات Svelte قابلة لإعادة الاستخدام
+│   ├── i18n/messages.ts     # كتالوجات اللغات (AR + EN)
+│   └── cart-store.svelte.ts # متجر السلة client-side
+├── lib/blend-lab/phaser/    # محرك Phaser 3
+└── drizzle/                 # Migration files</code></pre>
+
+        <h3>تدفق البيانات</h3>
+        <ul>
+          <li><strong>Cart:</strong> Client store → signed cookie → server resolves at checkout</li>
+          <li><strong>Blend:</strong> Client composition → DB re-pricing at order time</li>
+          <li><strong>Auth:</strong> Better Auth session → hooks.server.ts → event.locals</li>
+          <li><strong>Media:</strong> Upload → Workers KV → edge-cached serving</li>
+        </ul>
+      </div>
+
+      <!-- 7. Deployment -->
+      <div class="card" id="deployment">
+        <h2><span class="section-num">7.</span> النشر (Deployment)</h2>
+        <table>
+          <tr>
+            <th>المكوّن</th>
+            <th>الخدمة</th>
+            <th>الملاحظات</th>
+          </tr>
+          <tr>
+            <td>Hosting</td>
+            <td>Cloudflare Pages</td>
+            <td>Free tier — 100K requests/day</td>
+          </tr>
+          <tr>
+            <td>Database</td>
+            <td>Cloudflare D1</td>
+            <td>Free: 5M reads/day, 100K writes/day</td>
+          </tr>
+          <tr>
+            <td>Media</td>
+            <td>Workers KV</td>
+            <td>Binding: MEDIA</td>
+          </tr>
+          <tr>
+            <td>CI/CD</td>
+            <td>GitHub Actions</td>
+            <td>check → unit → build → e2e → deploy</td>
+          </tr>
+          <tr>
+            <td>Domain</td>
+            <td>beeking-etman-website.pages.dev</td>
+            <td>Cloudflare subdomain</td>
+          </tr>
+        </table>
+
+        <h3>التوافق</h3>
+        <ul>
+          <li><code>nodejs_als</code> (required) + <code>nodejs_compat</code> (HMAC crypto)</li>
+          <li>
+            Build output: <code>.svelte-kit/cloudflare</code> → single <code>_worker.js</code>
+          </li>
+        </ul>
+
+        <h3>أوامر النشر</h3>
+        <pre><code># بناء ونشر
+pnpm build && pnpm wrangler pages deploy .svelte-kit/cloudflare
+
+# ترحيل D1 في الإنتاج
+pnpm wrangler d1 migrations apply beeking --remote
+pnpm wrangler d1 execute beeking --remote --file=d1-seed.sql</code></pre>
+      </div>
+
+      <!-- 8. Strengths -->
+      <div class="card" id="strengths">
+        <h2><span class="section-num">8.</span> نقاط القوة</h2>
+
+        <div style="margin-bottom: 1rem">
+          <span class="badge badge-strength">معمارية</span>
+          <span class="badge badge-strength">أمان</span>
+          <span class="badge badge-strength">تجربة مستخدم</span>
+          <span class="badge badge-strength">تكلفة</span>
+          <span class="badge badge-strength">صيانة</span>
+        </div>
+
+        <ul>
+          <li>
+            <strong> $ 0/شهر — مجاناً بالكامل:</strong> Cloudflare Free tier يكفي تماماً لموقع بهذا
+            الحجم. لا تكاليف خفية.
+          </li>
+          <li>
+            <strong>عمليات صارمة على الأموال:</strong> الأسعار تُحسب من قاعدة البيانات عند الطلب (مش
+            من الكوكيز)، والمدفوعات وهمية — لا خطر تسرب بيانات بطاقات.
+          </li>
+          <li>
+            <strong>Security-first:</strong> Rate limiting DB-backed، guard على admin routes (layout
+            + action)، Kosy موقّع، zod validation على كل الإدخالات، boot-time env validation.
+          </li>
+          <li>
+            <strong>Bilingual RTL:</strong> دعم كامل للعربية والإنجليزية مع RTL تلقائي، كتالوج ثنائي
+            اللغة، تنسيق عملة حسب اللغة.
+          </li>
+          <li>
+            <strong>Blend Lab:</strong> تجربة تفاعلية فريدة بمحرك خفيف (DOM + صوت Web Audio) تضيف
+            قيمة تنافسية للمتجر.
+          </li>
+          <li>
+            <strong>Admin Dashboard شامل:</strong> إحصائيات، إدارة طلبات/منتجات/تصنيفات، سجل تدقيق،
+            رفع صور.
+          </li>
+          <li>
+            <strong>Clean Architecture:</strong> فصل واضح بين المنطق النظيف (lib/) والخدمات
+            (server/) والعرض (routes/components).
+          </li>
+          <li>
+            <strong>Testing متكامل:</strong> Vitest للوحدات + Playwright لـ E2E، مع صور procedural
+            لل blend lab.
+          </li>
+          <li><strong>Edge-first:</strong> D1 + KV + Pages كلها edge — أداء سريع عالمياً.</li>
+          <li><strong>Content Protection:</strong> منع فتح الصور في تبويب جديد + منع السحب.</li>
+          <li><strong>View Transitions:</strong> انتقالات سلسة بين الصفحات بدون ومض أبيض.</li>
+          <li><strong>Idempotent Orders:</strong> نظام nonce يمنع تكرار الطلبات.</li>
+        </ul>
+      </div>
+
+      <!-- 9. Weaknesses -->
+      <div class="card" id="weaknesses">
+        <h2><span class="section-num">9.</span> نقاط الضعف والملاحظات</h2>
+
+        <div style="margin-bottom: 1rem">
+          <span class="badge badge-weakness">محدودية</span>
+          <span class="badge badge-weakness">تقني</span>
+          <span class="badge badge-weakness">تجربة</span>
+          <span class="badge badge-warn">تنبيه</span>
+        </div>
+
+        <ul>
+          <li>
+            <strong>Dev server لا يعمل hydration:</strong> <code>vp dev</code> يقدم HTML بدون
+            سكريبتات client-side، مما يعني أن السلة والدفع لا تعملان في وضع التطوير. يجب استخدام
+            <code>pnpm run build && pnpm run preview</code> لأي شيء تفاعلي.
+          </li>
+          <li>
+            <strong>لا نظام دفع حقيقي:</strong> الدفع وهمي فقط (mock payment). لا يوجد تكامل مع
+            بوابات الدفع الفعلية (PayPal, Stripe, مصر للدفع الإلكتروني).
+          </li>
+          <li>
+            <strong>لا إدارة مخزون متقدمة:</strong> لا يوجد تنبيهات مخزون منخفض تلقائية، لا تاريخ
+            مخزون، لا دعم Multi-warehouse.
+          </li>
+          <li>
+            <strong>لا تصنيفات فرعية متقدمة:</strong> الهيكل يدعم parent_id لكن لا يوجد UI لتصنيفات
+            متعددة المستويات.
+          </li>
+          <li>
+            <strong>لا إشعارات بالبريد:</strong> إرسال البريد best-effort و/fire-and-forget — لا
+            يوجد تأكيد وصول.
+          </li>
+          <li>
+            <strong>لا CDN للصور:</strong> الصور مخزنة في KV وتُقدم من Edge لكن لا يوجد
+            transform/on-the-fly resize.
+          </li>
+          <li>
+            <strong>لا مراجعات/تقييمات منتجات:</strong> لا يوجد نظام مراجعات أو تقييمات من العملاء.
+          </li>
+          <li><strong>لا کuponات أو خصومات:</strong> لا يوجد نظام كوبونات أو عروض ترويجية.</li>
+          <li>
+            <strong>لا شحن حقيقي:</strong> شحن ثابت (60 ج.م) بدون تكامل مع شركات الشحن أو حساب
+            الوزن/المسافة.
+          </li>
+          <li>
+            <strong>لا تتبّع للأرباح:</strong> لا يوجد dashboard لتتبع أرباح/churn/متوسط قيمة الطلب
+            على المدى الطويل.
+          </li>
+          <li>
+            <strong>SQLite محدود:</strong> D1 Free tier له حدود (5M reads/day، 100K writes/day) — قد
+            يكفي لكنه ليس للنمو الكبير.
+          </li>
+          <li>
+            <strong>دعم محدود لـ Multiple Admin users:</strong> يدعم عدة admin لكن آلية bootstrap
+            تعتمد على ADMIN_EMAIL واحد فقط.
+          </li>
+          <li><strong> لا يوجد SOPA:</strong> لا يوجد تعليق/"archive" للمنتجات — فقط حذف.</li>
+          <li>
+            <strong>High coupling to Cloudflare:</strong> المشروع مقترن بشدة بـ Cloudflare (D1, KV,
+            Pages) — ترحيل لمنصة أخرى يتطلب إعادة هيكلة.
+          </li>
+        </ul>
+
+        <h3>scalability notes</h3>
+        <ul>
+          <li>
+            FTS5 search on D1 works well at current scale but may need external search
+            (Algolia/Meilisearch) for large catalogs.
+          </li>
+          <li>
+            No server-side rendering for product images — all served from KV with immutable caching
+            (good but no transforms).
+          </li>
+        </ul>
+      </div>
+
+      <!-- 10. Env Vars -->
+      <div class="card" id="env">
+        <h2><span class="section-num">10.</span> متغيرات البيئة</h2>
+
+        <h3>المطلوبة في الإنتاج</h3>
+        <table>
+          <tr>
+            <th>المتغير</th>
+            <th>الوصف</th>
+            <th>مثال</th>
+          </tr>
+          <tr>
+            <td><code>BETTER_AUTH_SECRET</code></td>
+            <td>سر المصادقة (≥ 32 حرف)</td>
+            <td><code>openssl rand -base64 32</code></td>
+          </tr>
+          <tr>
+            <td><code>ORDER_ACCESS_SECRET</code></td>
+            <td>سر HMAC لكوكيز الطلبات</td>
+            <td><code>openssl rand -base64 32</code></td>
+          </tr>
+          <tr>
+            <td><code>ORIGIN</code></td>
+            <td>رابط الموقع</td>
+            <td><code>https://beeking-etman-website.pages.dev</code></td>
+          </tr>
+        </table>
+
+        <h3>اختيارية</h3>
+        <table>
+          <tr>
+            <th>المتغير</th>
+            <th>الحالة</th>
+            <th>الوصف</th>
+          </tr>
+          <tr>
+            <td><code>ADMIN_EMAIL</code></td>
+            <td><span class="badge badge-strength">تم الإعداد</span></td>
+            <td><code>zeyadsleem1@gmail.com</code> — يرقّي المستخدم تلقائياً</td>
+          </tr>
+          <tr>
+            <td><code>EMAIL_API_KEY</code></td>
+            <td><span class="badge badge-warn">غير مُعد</span></td>
+            <td>مفتاح Cloudflare Email (اختياري)</td>
+          </tr>
+          <tr>
+            <td><code>SMTP_HOST/PORT/USER/PASS/FROM</code></td>
+            <td><span class="badge badge-warn">غير مُعد</span></td>
+            <td>إعدادات SMTP (محفوظ لمستقبلي)</td>
+          </tr>
+          <tr>
+            <td><code>PUBLIC_POSTHOG_KEY</code></td>
+            <td><span class="badge badge-warn">غير مُعد</span></td>
+            <td>مفتاح PostHog للتحليلات</td>
+          </tr>
+        </table>
+
+        <h3>التطوير المحلي</h3>
+        <table>
+          <tr>
+            <th>المتغير</th>
+            <th>القيمة</th>
+          </tr>
+          <tr>
+            <td><code>DATABASE_URL</code></td>
+            <td><code>file:local.db</code></td>
+          </tr>
+          <tr>
+            <td><code>BETTER_AUTH_SECRET</code></td>
+            <td><code>dev-only-secret-0123456789abcdef</code></td>
+          </tr>
+          <tr>
+            <td><code>ORDER_ACCESS_SECRET</code></td>
+            <td><code>dev-only-order-access-secret-0123456789abcdef</code></td>
+          </tr>
+          <tr>
+            <td><code>ORIGIN</code></td>
+            <td><code>http://localhost:4173</code></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 11. Development History & Gap Closing -->
+      <div class="card" id="history">
+        <h2><span class="section-num">11.</span> سجل التطوير وسد الثغرات</h2>
+        <p>
+          هذا القسم مستخرج من سجل git: <strong>232 commit</strong> خلال الفترة من
+          <strong>2026-08-12</strong> (أول commit — التصميم spec) إلى
+          <strong>2026-09-01</strong> (آخر تحديث)، أي <strong>~3 أسابيع</strong> من التطوير
+          المتواصل. يوثّق خريطة المراحل الزمنية، الحوادث والثغرات التي اكتُشفت أثناء البناء وكيف
+          سُدّت، وما زال مفتوحاً حسب <code>docs/plan-2026-09-02-priority-overhaul.md</code>.
+        </p>
+
+        <h3>خريطة مراحل التطوير (من جيت لوغ)</h3>
+        <table>
+          <tr>
+            <th>الفترة</th>
+            <th>المرحلة</th>
+            <th>أبرز ما أُنْجِز</th>
+          </tr>
+          <tr>
+            <td>12 أغسطس</td>
+            <td>التخطيط والتمهيد</td>
+            <td>
+              design spec + خطة التنفيذ، schema المتجر + جداول auth، سكربت البيئة، عدادات العملة
+              والسلة (كوكيز موقّعة HMAC)
+            </td>
+          </tr>
+          <tr>
+            <td>13 أغسطس</td>
+            <td>النواة التجارية</td>
+            <td>
+              الرئيسية + الكتالوج + صفحة المنتج، السلة، checkout بدفع وهمي، الطلبات، login/register
+              والحساب، rate limiting + تقييد الطلبات بالملكية، E2E + بوابة الجودة
+            </td>
+          </tr>
+          <tr>
+            <td>14 أغسطس</td>
+            <td>تمثيل العلامة التجارية</td>
+            <td>
+              إعادة تصميم «مملكة النحل» royal، نظام الـ variants (سعر أدنى + chips + إجمالي لحظي)،
+              زراعة كتالوج 43 منتجاً بأسعار مدروسة، view transitions
+            </td>
+          </tr>
+          <tr>
+            <td>17–18 أغسطس</td>
+            <td>i18n والبحث</td>
+            <td>عربي-أولاً (كشف لغة المتصفح)، محتوى ثنائي اللغة، بحث/فرز UX، معارض صور المنتجات</td>
+          </tr>
+          <tr>
+            <td>19 أغسطس</td>
+            <td>النقل إلى Cloudflare Pages</td>
+            <td>
+              استبدال adapter-node + Docker بـ Pages + D1، إصلاحات CI (deploy بعد الاختبار، إعداد
+              Playwright و DATABASE_URL)
+            </td>
+          </tr>
+          <tr>
+            <td>20–21 أغسطس</td>
+            <td>التوطين والتقوية</td>
+            <td>
+              خطوط Cairo ذاتية الاستضافة، إصلاح الاعتماد على D1 transactions غير المدعومة، تقوية
+              checkout/الملاحة
+            </td>
+          </tr>
+          <tr>
+            <td>23–25 أغسطس</td>
+            <td>لوحة التحكم + الحسابات + نموذج 3D</td>
+            <td>
+              Better Auth admin plugin، /admin مؤمّن، إدارة الطلبات/المنتجات/التصنيفات + صور R2،
+              لوحة الإحصائيات، ملف الحساب + عناوين محفوظة، بداية blend lab ثلاثي الأبعاد (Threlte)
+            </td>
+          </tr>
+          <tr>
+            <td>26 أغسطس</td>
+            <td>SEO + العمليات + تحويل الخلط</td>
+            <td>
+              meta/OG/JSON-LD + sitemap + noindex + تطبيع FTS للعربية، فواتير/CSV/سجل تدقيق/توقيت
+              القاهرة/حماية KV، البريد عبر Cloudflare Email، استبدال Threlte بـ Phaser، إصلاح حادث
+              تصادم migrations
+            </td>
+          </tr>
+          <tr>
+            <td>27 أغسطس</td>
+            <td>اكتمال الميزات (عدا الدفع)</td>
+            <td>
+              تحليلات PostHog، كتالوج 192 منتجاً + مبدّل الأقسام، فوائد خلط يحرّرها المالك + دمج عدة
+              علب، توسيع تغطية E2E/unit
+            </td>
+          </tr>
+          <tr>
+            <td>28–29 أغسطس</td>
+            <td>تبسيط الخلط + الرئيسية</td>
+            <td>
+              استبدال Phaser بـ mix UI خفيف، تقسيم المتجر (عسل / معدات)، إعادة تصميم الرئيسية بسيّدة
+              وقرص شمع التأسيس
+            </td>
+          </tr>
+          <tr>
+            <td>30–31 أغسطس</td>
+            <td>التفاعلية والأداء</td>
+            <td>
+              rollback تفاؤلي للسلة + skeletons + ملاحظات الإضافة، CDN cache headers لصفحات
+              الكتالوج، محرك صوت Web Audio + reduced-motion
+            </td>
+          </tr>
+          <tr>
+            <td>1 سبتمبر</td>
+            <td>الرئيسية النهائية + إصلاحات إنتاج</td>
+            <td>
+              إصلاح 500 المتقطع وترجمات مكسورة، إزالة تكرار cache-control (السبب الجذري لـ 500)،
+              اقتصار الرئيسية على hero/benefits/why، مكوّن CinematicStory
+            </td>
+          </tr>
+        </table>
+
+        <h3>ثغرات وحوادث اكتُشفت وكيف سُدّت</h3>
+        <table>
+          <tr>
+            <th>الحادثة / الثغرة</th>
+            <th>الأثر</th>
+            <th>الحل الجذري</th>
+          </tr>
+          <tr>
+            <td>
+              تكرار ضبط <code>cache-control</code> في <code>+layout.server.ts</code> و
+              <code>+page.server.ts</code>
+            </td>
+            <td>خطأ سيرفر 500 في الإنتاج («cache-control header is already set»)</td>
+            <td>
+              إزالة الضبط المكرر من <code>+page.server.ts</code> (commit <code>5159927</code>)
+            </td>
+          </tr>
+          <tr>
+            <td>أخطاء load في سيرفر المتجر + مفاتيح ترجمة مفقودة</td>
+            <td>500 متقطع + نصوص مكسورة في الواجهة</td>
+            <td>فحص وإصلاح شامل للمسارات (commit <code>03cbbb3</code>)</td>
+          </tr>
+          <tr>
+            <td>D1 لا يدعم SQL transactions (متوافرة في libsql المحلي فقط)</td>
+            <td>فشل إنشاء الطلبات عند الاختبار على D1</td>
+            <td>
+              إعادة بناء خدمة الطلبات بدون transactions + تقوية checkout/الملاحة (commit
+              <code>7131d98</code>)
+            </td>
+          </tr>
+          <tr>
+            <td>تصادم ترحيلات D1 (ملف <code>0008</code> مكرر)</td>
+            <td>فشل تطبيق migrations في النشر المشترك</td>
+            <td>
+              ترحيل إضافي <code>0009</code> (additive) + جعل CI migrations-only مع replay guard +
+              توثيق معمارية الناشر الواحد (commits <code>b923335</code>, <code>00ffd4e</code>,
+              <code>742b818</code>)
+            </td>
+          </tr>
+          <tr>
+            <td>تذبذب E2E في CI</td>
+            <td>اختبارات تفشل عشوائياً (حالة D1 تتسرّب بين runs + ناقص DATABASE_URL)</td>
+            <td>
+              عزل حالة Miniflare D1 لكل run + ضبط DATABASE_URL و Playwright عبر pnpm exec + ربط port
+              4173
+            </td>
+          </tr>
+          <tr>
+            <td>حمولة ثقيلة لمختبر الخلط</td>
+            <td>نموذج 3D (Threlte) ثم Phaser (~200KB+ gzipped) يثقّلان صفحة /blends على الجوال</td>
+            <td>
+              استبدال Phaser بـ mix UI خفيف (DOM) مع محرك صوت Web Audio + reduced-motion + sr-only
+              action bar (commit <code>adba0f4</code>)
+            </td>
+          </tr>
+          <tr>
+            <td><code>dev</code> hydration معطّل في <code>vp dev</code></td>
+            <td>
+              السلة والدفع لا يعملان محلياً؛ ضرورة <code>build &amp;&amp; preview</code> لكل شيء
+              تفاعلي
+            </td>
+            <td>
+              <span class="badge badge-warn">ما زالت مفتوحة</span> — إصلاح Blocking في Phase 0 من
+              الخطة
+            </td>
+          </tr>
+        </table>
+
+        <h3>ثغرات من فئة N+1 وأداء الاستعلامات التي أُغلقت</h3>
+        <p>
+          خلاصة الجودة الأعمق: ثغرات شكل الاستعلام (N+1) والتخصيصات المتكررة التي اكتُشفت إما في
+          مراجعة أمنية (post-audit) أو في اختبارات الأداء، ثم أُصلحت على المستوى الجذري وليس
+          كمسكنات.
+        </p>
+        <table>
+          <tr>
+            <th>الثغرة (فئة N+1)</th>
+            <th>الأثر</th>
+            <th>الحل الجذري</th>
+          </tr>
+          <tr>
+            <td>
+              إنشاء الطلب بكتابات متسلسلة + اعتماد على <code>db.transaction</code> (D1 يرفض SQL
+              BEGIN)
+            </td>
+            <td>
+              N عمليات كتابة منفصلة (الطلب + الأصناف + خصم المخزون) لكل طلب، والطلبات تفشل على D1
+            </td>
+            <td>
+              كتلة <code>db.batch([...])</code> واحدة (معاملة ضمنية) تُدرج الطلب + الأصناف + الخصم
+              في جولة واحدة، مع فحص affected rows بعد الإدراج وتكرار تعويضي عند تصارع المخزون
+              (commits <code>6749196</code>, <code>7131d98</code>) —
+              <code>src/lib/server/orders.ts:133,234</code>
+            </td>
+          </tr>
+          <tr>
+            <td>تحميل المتغيرات والصور بالتبعية في قوائم الكتالوج</td>
+            <td>طلبات DB متتالية لكل منتج (N+1) مع 192 منتجاً، ونتائج ضخمة بدون إسقاط أعمدة</td>
+            <td>
+              تحميل متوازٍ عبر <code>Promise.all([variants, images, categorySlugs])</code> في كل
+              مسارات المتجر + list-path projection (جلب الأعمدة المطلوبة فقط) — commit
+              <code>6749196</code> — <code>src/lib/server/store.ts:348</code>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              فحص رقع الخلط كل إطار <code>tick()</code> (<code>.every(closure)</code> + تخصيص كائنات
+              بكل فريم)
+            </td>
+            <td>N مقارنات مغلّفة وضغط GC مستمر في حلقة الرسوم — ثقيل على الجوال</td>
+            <td>
+              حلقة مفهرسة <code>for</code> على <code>ADDITIVE_KEYS</code> + رفع
+              <code>dosedColors</code> خارج الفريم + كاش <code>MixSnapshot</code> (commits
+              <code>dab7ab5</code>, <code>52298b6</code>)
+            </td>
+          </tr>
+          <tr>
+            <td>استعلامات غير مقيدة (lowStock بلا حدّ، البحث بلا سقف)</td>
+            <td>نتائج unbounded من لوحة التحكم + استعلامات FTS باهظة</td>
+            <td>
+              <code>LIMIT(50)</code> للمخزون المنخفض + سقف 40 حرفاً للبحث + FTS ids ≤ 64 +
+              <code>clampLimit(MAX_LIST_LIMIT=200)</code> — commit <code>6749196</code> —
+              <code>src/lib/server/admin/stats.ts:200</code>
+            </td>
+          </tr>
+        </table>
+
+        <h3>الثغرات المفتوحة (حسب الخطة المكتوبة 2026-09-02)</h3>
+        <ul>
+          <li>
+            <strong>Dev hydration:</strong> إصلاح Blocking أولاً (Phase 0) — بدون قرار مالك، مجرد
+            إصلاح.
+          </li>
+          <li>
+            <strong>الدفع الحقيقي:</strong> Paymob (كروت + محافظ مصرية) مع إزالة دائمة لمفهوم الدفع
+            عند الاستلام (Phase 1).
+          </li>
+          <li>
+            <strong>تصلّب البريد:</strong> نمط outbox بدلاً من fire-and-forget + تنبيهات admin +
+            استرجاع كلمة المرور وربطه (Phase 2).
+          </li>
+          <li>
+            <strong>المبيعات والتشغيل:</strong> شحن حسب المحافظات، مخزون (archive/منخفض/نفاذ)،
+            كوبونات، مراجعات بإشراف admin (Phase 3).
+          </li>
+          <li>
+            <strong>الأداء والبنية:</strong> تحسين الصور (تحويل/AVIF/srcset) + إدارة multiple admins
+            من اللوحة (Phase 4).
+          </li>
+          <li>
+            تفاصيل كل مرحلة ومعايير قبولها في
+            <code>docs/plan-2026-09-02-priority-overhaul.md</code>.
+          </li>
+        </ul>
+      </div>
+
+      <!-- Summary -->
+      <div class="card" style="background: var(--honey-bg); border-color: var(--honey-light)">
+        <h2 style="border-color: var(--honey)">ملخص</h2>
+        <p>
+          مشروع <strong>مملكة النحل</strong> هو متجر إلكتروني عربي متكامل مبني بأحدث تقنيات الويب
+          (Svelte 5, SvelteKit 2, Tailwind v4, Cloudflare). يتميز بتجربة مستخدم سلسة، أمان جيد،
+          وبنية نظيفة. ي يعمل مجاناً بالكامل على Cloudflare Free tier.
+        </p>
+        <p style="margin-top: 0.75rem">
+          <strong>نقاط القوة الرئيسية:</strong> التكلفة ($0)، الأمان، الدعم اللغوي، مختبر الخلط
+          التفاعلي، بنية نظيفة.
+        </p>
+        <p style="margin-top: 0.5rem">
+          <strong>نقاط الضعف الرئيسية:</strong> لا دفع حقيقي، dev hydration محدود، قابلية التوسع
+          محدودة على Free tier، ارتباط قوي بـ Cloudflare.
+        </p>
+      </div>
+
+      <p style="text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 2rem">
+        وثيقة مُنشأة تلقائياً &mdash; آخر تحديث: سبتمبر 2026 &mdash; Admin Email:
+        zeyadsleem1@gmail.com ✅
+      </p>
+    </div>
+  </body>
+</html>
