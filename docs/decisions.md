@@ -1337,3 +1337,34 @@ overhaul.
 bounded fix. Admin CRUD, search, permissions, and upload UX become
 first-class, test-covered surfaces. No code beyond planning was changed this
 session.
+
+## 2026-09-02: Governorate shipping + durable email outbox (storefront)
+
+**Context:** The storefront charged a single flat shipping fee and sent
+confirmation/status emails by direct best-effort send. The owner-approved
+2026-09-02 priority overhaul slotted "Paymob payment + governorate shipping +
+email service outbox" as a todo; internal decision 2026-09-02:
+**gov shipping + durable outbox NOW (no external secrets), Paymob code-gated
+behind `PAYMOB_*` env vars for a later pass** (no webhook/ledger/checkout yet).
+
+**Decision:**
+
+- **Governorate shipping** (`src/lib/shipping.ts`, shared client/server): 7
+  zones (cairo/giza/alexandria/delta/canal/upper/remote) at 45/45/55/55/65/85/100
+  EGP, free delivery at/above `FREE_SHIPPING_THRESHOLD` = 600 EGP, default zone
+  `cairo`. Money kept as integer piasters (×100) throughout.
+- Read the zone on the checkout form (`name="governorate"`), revalidate as an
+  enum in `checkout-schema`, compute `computeShipping(subtotal, governorate)`
+  in `cart.computeTotals`, and persist `store_order.governorate` +
+  `store_order.shipping_cost` (migration `drizzle/0015`).
+- **Durable email outbox**: the schema-only `store_notification` table doubles
+  as a `pending` queue. New `enqueueEmail` + `flushOutbox` in
+  `src/lib/server/email.ts` persist `{html,text}` JSON in `body`, mark rows
+  `sent`/`failed`, and drain best-effort. Order confirmation, order status
+  updates, and admin notifications all go through the outbox.
+- **Admin notification**: `ADMIN_NOTIFY_EMAILS` (comma-separated ENV) receives a
+  new-order digest (customer + order items + totals + tracking) when present.
+- Minor: `USER_ROLES`/role helpers moved to client-safe `src/lib/admin-roles.ts`
+  (re-exported by `$lib/server/admin/roles.ts`) to fix a pre-existing
+  build-blocking leak guard that refused importing server `roles.ts` into the
+  browser on the admin users page.

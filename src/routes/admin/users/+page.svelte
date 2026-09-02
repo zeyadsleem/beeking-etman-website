@@ -2,7 +2,7 @@
   import { enhance } from "$app/forms";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
-  import { USER_ROLES } from "$lib/server/admin/roles";
+  import { USER_ROLES } from "$lib/admin-roles";
 import { formatDate, t } from "$lib/i18n/messages";
 import type { ActionData, PageData } from "./$types";
 

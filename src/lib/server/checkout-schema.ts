@@ -1,4 +1,5 @@
 import { t, type Lang } from "$lib/i18n/messages";
+import { GOVERNORATES, type GovernorateCode } from "$lib/shipping";
 import { z } from "zod";
 
 export function createCheckoutSchema(lang: Lang = "ar") {
@@ -12,6 +13,12 @@ export function createCheckoutSchema(lang: Lang = "ar") {
       .regex(/^(\+?20|0)?1[0-9]{9}$/, t(lang, "schema.phone")),
     city: z.string().trim().min(2, t(lang, "schema.city")),
     address: z.string().trim().min(5, t(lang, "schema.address")),
+    governorate: z.enum(
+      GOVERNORATES.map((z) => z.code) as [GovernorateCode, ...GovernorateCode[]],
+      {
+        message: t(lang, "schema.governorate"),
+      },
+    ),
   });
 }
 

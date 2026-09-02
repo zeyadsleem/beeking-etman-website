@@ -1,6 +1,7 @@
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { computeTotals } from "$lib/cart";
+import { DEFAULT_GOVERNORATE, type GovernorateCode } from "$lib/shipping";
 import type { CartEntry, CartItem } from "$lib/cart";
 import { isBlendEntry, isBlendItem } from "$lib/cart";
 import { t, type Lang } from "$lib/i18n/messages";
@@ -14,6 +15,7 @@ export interface Customer {
   phone: string;
   address: string;
   city: string;
+  governorate?: GovernorateCode;
 }
 
 export type CreateOrderResult =
@@ -197,7 +199,8 @@ export async function createOrder(
     return { ok: true, orderId: existing.id, orderNumber: existing.number, total: existing.total };
   }
 
-  const totals = computeTotals(items);
+  const governorate = customer.governorate ?? DEFAULT_GOVERNORATE;
+  const totals = computeTotals(items, governorate);
   let lastConflict = false;
 
   for (let attempt = 0; attempt < MAX_ORDER_ATTEMPTS; attempt++) {
@@ -241,6 +244,8 @@ export async function createOrder(
           phone: customer.phone,
           address: customer.address,
           city: customer.city,
+          governorate,
+          shippingCost: totals.shipping,
           total: totals.total,
           status: "paid",
           userId: userId ?? null,

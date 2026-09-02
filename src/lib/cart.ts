@@ -1,4 +1,5 @@
 import type { AdditiveKey, JarSize } from "./blends";
+import { DEFAULT_GOVERNORATE, computeShipping, type GovernorateCode } from "./shipping";
 
 export interface CartLine {
   variantId: string;
@@ -125,10 +126,17 @@ export interface CartTotals {
 export const SHIPPING_COST = 60_00;
 export const FREE_SHIPPING_THRESHOLD = 600_00;
 
-export function computeTotals(items: CartItem[]): CartTotals {
+export interface CartTotalsInput {
+  governorate?: GovernorateCode;
+}
+
+export function computeTotals(
+  items: CartItem[],
+  governorate: GovernorateCode = DEFAULT_GOVERNORATE,
+): CartTotals {
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + lineTotal(item), 0);
-  const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shipping = computeShipping(subtotal, governorate);
   return { itemCount, subtotal, shipping, total: subtotal + shipping };
 }
 

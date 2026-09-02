@@ -104,6 +104,8 @@ export const order = sqliteTable(
     phone: text("phone").notNull(),
     address: text("address").notNull(),
     city: text("city").notNull(),
+    governorate: text("governorate").notNull().default("cairo"),
+    shippingCost: integer("shipping_cost").notNull().default(0),
     total: integer("total").notNull(),
     status: text("status").notNull().default("paid"),
     userId: text("user_id"),

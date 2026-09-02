@@ -13,8 +13,8 @@ import {
   lineTotal,
   removeById,
   removeItem,
-  SHIPPING_COST,
 } from "./cart";
+import { computeShipping, DEFAULT_GOVERNORATE } from "./shipping";
 import type { BlendCartItem, CartItem } from "./cart";
 
 const product = {
@@ -82,8 +82,8 @@ describe("computeTotals", () => {
   });
   it("applies shipping below the threshold", () => {
     const totals = computeTotals([item({ ...product, price: 300_00 }, 1)]);
-    expect(totals.shipping).toBe(SHIPPING_COST);
-    expect(totals.total).toBe(300_00 + SHIPPING_COST);
+    expect(totals.shipping).toBe(computeShipping(300_00, DEFAULT_GOVERNORATE));
+    expect(totals.total).toBe(300_00 + computeShipping(300_00, DEFAULT_GOVERNORATE));
   });
   it("free shipping at and above the threshold", () => {
     expect(computeTotals([item({ ...product, price: FREE_SHIPPING_THRESHOLD }, 1)]).shipping).toBe(

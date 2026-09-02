@@ -3,6 +3,7 @@
   import { clearCart } from "$lib/cart-store.svelte";
   import { formatEGP } from "$lib/currency";
   import { isBlendItem, itemId, lineTotal } from "$lib/cart";
+  import { computeShipping, GOVERNORATE_ORDER } from "$lib/shipping";
   import { trackBeginCheckout } from "$lib/analytics-events";
   import Button from "$lib/components/Button.svelte";
   import CartTotals from "$lib/components/CartTotals.svelte";
@@ -34,6 +35,17 @@
   let phone = $state(value("phone"));
   let address = $state(value("address"));
   let city = $state(value("city"));
+  let governorate = $state(
+    (data.governorates.some((g) => g === form?.values?.governorate)
+      ? form.values.governorate
+      : undefined) ?? data.defaultGovernorate,
+  );
+
+  const liveTotals = $derived({
+    ...data.totals,
+    shipping: computeShipping(data.totals.subtotal, governorate),
+    total: data.totals.subtotal + computeShipping(data.totals.subtotal, governorate),
+  });
 
   const selectedSaved = $derived(
     savedChoice === "new" ? null : (data.savedAddresses.find((a) => a.id === savedChoice) ?? null),
@@ -141,6 +153,15 @@
       </label>
     </div>
     <label class="field-label">
+      {t(lang, "checkout.governorate")}
+      <select name="governorate" bind:value={governorate} class="field mt-1" data-testid="governorate">
+        {#each data.governorates as code (code)}
+          <option value={code}>{t(lang, `shipping.zone.${code}`)}</option>
+        {/each}
+      </select>
+      {#if error("governorate")}<span class="field-error">{error("governorate")}</span>{/if}
+    </label>
+    <label class="field-label">
       {t(lang, "checkout.address")}
       <input name="address" bind:value={address} autocomplete="street-address" class="field mt-1" />
       {#if error("address")}<span class="field-error">{error("address")}</span>{/if}
@@ -197,7 +218,7 @@
         </li>
       {/each}
     </ul>
-    <CartTotals totals={data.totals} {lang} />
+    <CartTotals totals={liveTotals} {lang} />
     <p class="mt-4 text-xs text-cocoa-400">{t(lang, "checkout.agree")}</p>
   </aside>
 </div>

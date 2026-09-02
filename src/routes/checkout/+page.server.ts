@@ -9,6 +9,7 @@ import { createOrder } from "$lib/server/orders";
 import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
 import { resolveCartItems } from "$lib/server/store";
 import { computeTotals } from "$lib/cart";
+import { GOVERNORATE_ORDER, DEFAULT_GOVERNORATE } from "$lib/shipping";
 import { t } from "$lib/i18n/messages";
 import { getLang } from "$lib/server/lang";
 import { sendOrderConfirmation } from "$lib/server/email";
@@ -37,6 +38,8 @@ export const load: PageServerLoad = async (event) => {
     items,
     missingVariantIds: missing,
     totals: computeTotals(items),
+    governorates: GOVERNORATE_ORDER,
+    defaultGovernorate: DEFAULT_GOVERNORATE,
     savedAddresses,
     isLoggedIn: Boolean(event.locals.user),
   };
@@ -76,6 +79,7 @@ export const actions: Actions = {
         phone: parsed.data.phone,
         address: parsed.data.address,
         city: parsed.data.city,
+        governorate: parsed.data.governorate,
       },
       parsed.data.nonce,
       locals.user?.id,

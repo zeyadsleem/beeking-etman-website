@@ -7,7 +7,7 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 import { createOrder, isNonceConflict } from "./orders";
-import { SHIPPING_COST } from "$lib/cart";
+import { computeShipping, DEFAULT_GOVERNORATE } from "$lib/shipping";
 import { isBusyError } from "$lib/server/sqlite";
 import type { Customer } from "./orders";
 
@@ -51,7 +51,7 @@ async function buildDb() {
       id TEXT PRIMARY KEY NOT NULL, number TEXT NOT NULL UNIQUE,
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
-      address TEXT NOT NULL, city TEXT NOT NULL, total INTEGER NOT NULL,
+      address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   await db.run(`
@@ -517,7 +517,9 @@ describe("createOrder", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.total).toBe(380_00 + 2 * 85_00 + SHIPPING_COST);
+    expect(result.total).toBe(
+      380_00 + 2 * 85_00 + computeShipping(380_00 + 2 * 85_00, DEFAULT_GOVERNORATE),
+    );
 
     const baseStock = await db
       .select()

@@ -81,7 +81,7 @@ async function buildDb() {
       id TEXT PRIMARY KEY NOT NULL, number TEXT NOT NULL UNIQUE,
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
-      address TEXT NOT NULL, city TEXT NOT NULL, total INTEGER NOT NULL,
+      address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   await db.run(`

@@ -8,6 +8,7 @@
  */
 
 import { eq } from "drizzle-orm";
+import { or, isNull } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { env } from "$env/dynamic/private";
 import * as schema from "$lib/server/db/schema";
@@ -48,6 +49,74 @@ export async function sendEmail(
     html: params.html,
     text: params.text,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Durable email outbox (store_notification table)
+// ---------------------------------------------------------------------------
+
+interface OutboxEmail {
+  recipient: string;
+  subject: string;
+  html: string;
+  text: string;
+}
+
+/**
+ * Persist an email in the durable outbox (`store_notification`) as a
+ * `pending` row so a transient failure never loses the message. Drain with
+ * `flushOutbox`. The body stores a JSON payload `{html,text}`.
+ */
+export async function enqueueEmail(
+  db: LibSQLDatabase<typeof schema>,
+  email: OutboxEmail,
+  type = "order",
+): Promise<void> {
+  await db.insert(schema.notification).values({
+    type,
+    channel: "email",
+    recipient: email.recipient,
+    subject: email.subject,
+    body: JSON.stringify({ html: email.html, text: email.text }),
+    status: "pending",
+  });
+}
+
+/**
+ * Attempt to send every pending row in the outbox. Marks each row `sent`
+ * (with `sentAt`) on success, or `failed` if the send throws. Best-effort:
+ * individual failures never abort the rest of the queue.
+ */
+export async function flushOutbox(
+  platform: Readonly<App.Platform> | undefined,
+  db: LibSQLDatabase<typeof schema>,
+): Promise<void> {
+  const pending = await db
+    .select()
+    .from(schema.notification)
+    .where(or(eq(schema.notification.status, "pending"), isNull(schema.notification.status)));
+
+  for (const row of pending) {
+    try {
+      const payload = JSON.parse(row.body) as { html?: string; text?: string };
+      await sendEmail(platform, {
+        to: row.recipient,
+        subject: row.subject,
+        html: payload.html ?? "",
+        text: payload.text ?? "",
+      });
+      await db
+        .update(schema.notification)
+        .set({ status: "sent", sentAt: Date.now() })
+        .where(eq(schema.notification.id, row.id));
+    } catch (e) {
+      console.error("[email] outbox send failed", row.id, e);
+      await db
+        .update(schema.notification)
+        .set({ status: "failed" })
+        .where(eq(schema.notification.id, row.id));
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -127,6 +196,10 @@ export async function sendOrderConfirmation(
       number: schema.order.number,
       email: schema.order.email,
       name: schema.order.name,
+      phone: schema.order.phone,
+      city: schema.order.city,
+      governorate: schema.order.governorate,
+      address: schema.order.address,
       total: schema.order.total,
       createdAt: schema.order.createdAt,
     })
@@ -159,7 +232,163 @@ export async function sendOrderConfirmation(
   const html = buildOrderConfirmationHtml(row, items, trackingUrl);
   const text = buildOrderConfirmationText(row, items, trackingUrl);
 
-  await sendEmail(platform, { to: row.email, subject, html, text });
+  await enqueueEmail(db, { recipient: row.email, subject, html, text });
+
+  await enqueueAdminNotification(db, row, items, trackingUrl);
+
+  await flushOutbox(platform, db);
+}
+
+/**
+ * Enqueue a new-order notification to every address in ADMIN_NOTIFY_EMAILS
+ * (comma-separated). No-ops when the env var is unset/empty.
+ */
+async function enqueueAdminNotification(
+  db: LibSQLDatabase<typeof schema>,
+  order: {
+    id: string;
+    number: string;
+    email: string;
+    name: string;
+    phone?: string | null;
+    city?: string | null;
+    governorate?: string | null;
+    address?: string | null;
+    total: number;
+  },
+  items: OrderConfirmationItem[],
+  trackingUrl: string,
+): Promise<void> {
+  const recipients = (env.ADMIN_NOTIFY_EMAILS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (recipients.length === 0) return;
+
+  const subject = localized(
+    `طلب جديد ${order.number} — ${order.name}`,
+    `New order ${order.number} — ${order.name}`,
+    "ar",
+  );
+  const html = buildAdminNotificationHtml(order, items, trackingUrl);
+  const text = buildAdminNotificationText(order, items, trackingUrl);
+
+  for (const recipient of recipients) {
+    await enqueueEmail(db, { recipient, subject, html, text }, "admin");
+  }
+}
+
+function buildAdminNotificationHtml(
+  order: {
+    number: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+    city?: string | null;
+    governorate?: string | null;
+    address?: string | null;
+    total: number;
+  },
+  items: OrderConfirmationItem[],
+  trackingUrl: string,
+): string {
+  const itemRows = items
+    .map(
+      (item) => `<tr>
+<td style="padding:10px 0;border-bottom:1px solid ${BRAND.border};">
+  <span style="font-weight:600;">${escapeHtml(item.productName)}</span>
+  ${item.variantName ? `<span style="color:${BRAND.muted};margin-right:8px;">(${escapeHtml(item.variantName)})</span>` : ""}
+</td>
+<td style="padding:10px 0;border-bottom:1px solid ${BRAND.border};text-align:center;">×${item.quantity}</td>
+<td style="padding:10px 0;border-bottom:1px solid ${BRAND.border};text-align:left;">${formatPrice(item.unitPrice * item.quantity)}</td>
+</tr>`,
+    )
+    .join("\n");
+
+  return wrapHtml(
+    localized("طلب جديد", "New order", "ar"),
+    `${headerRow()}
+<tr>
+<td style="padding:32px;">
+  <h2 style="margin:0 0 8px;color:${BRAND.amberDark};font-size:20px;">
+    ${escapeHtml(order.number)} — ${escapeHtml(order.name)}
+  </h2>
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 24px;">
+    <tr>
+      <td style="padding:8px 12px;background-color:${BRAND.amberLight};border-radius:4px;font-weight:600;">${escapeHtml(localized("البريد", "Email", "ar"))}</td>
+      <td style="padding:8px 12px;text-align:left;">${escapeHtml(order.email)}</td>
+    </tr>
+    ${order.phone ? `<tr><td style="padding:8px 12px;font-weight:600;">${escapeHtml(localized("الهاتف", "Phone", "ar"))}</td><td style="padding:8px 12px;text-align:left;">${escapeHtml(order.phone)}</td></tr>` : ""}
+    ${order.governorate ? `<tr><td style="padding:8px 12px;font-weight:600;">${escapeHtml(localized("المحافظة", "Governorate", "ar"))}</td><td style="padding:8px 12px;text-align:left;">${escapeHtml(order.governorate)}</td></tr>` : ""}
+    ${order.city ? `<tr><td style="padding:8px 12px;font-weight:600;">${escapeHtml(localized("المدينة", "City", "ar"))}</td><td style="padding:8px 12px;text-align:left;">${escapeHtml(order.city)}</td></tr>` : ""}
+    ${order.address ? `<tr><td style="padding:8px 12px;font-weight:600;">${escapeHtml(localized("العنوان", "Address", "ar"))}</td><td style="padding:8px 12px;text-align:left;">${escapeHtml(order.address)}</td></tr>` : ""}
+  </table>
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+    <thead>
+      <tr style="border-bottom:2px solid ${BRAND.amber};">
+        <th style="padding:8px 0;text-align:right;font-size:13px;color:${BRAND.muted};">${escapeHtml(localized("المنتج", "Product", "ar"))}</th>
+        <th style="padding:8px 0;text-align:center;font-size:13px;color:${BRAND.muted};">${escapeHtml(localized("الكمية", "Qty", "ar"))}</th>
+        <th style="padding:8px 0;text-align:left;font-size:13px;color:${BRAND.muted};">${escapeHtml(localized("السعر", "Price", "ar"))}</th>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="padding:12px 0;border-top:2px solid ${BRAND.amber};font-weight:700;font-size:17px;">${escapeHtml(localized("الإجمالي", "Total", "ar"))}</td>
+      <td style="padding:12px 0;border-top:2px solid ${BRAND.amber};text-align:left;font-weight:700;font-size:17px;color:${BRAND.amberDark};">${formatPrice(order.total)}</td>
+    </tr>
+  </table>
+
+  <p style="margin:24px 0 0;text-align:center;">
+    <a href="${trackingUrl}" style="display:inline-block;background-color:${BRAND.amber};color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:6px;font-weight:600;">
+      ${escapeHtml(localized("فتح الطلب", "Open order", "ar"))}
+    </a>
+  </p>
+</td>
+</tr>`,
+  );
+}
+
+function buildAdminNotificationText(
+  order: {
+    number: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+    city?: string | null;
+    governorate?: string | null;
+    address?: string | null;
+    total: number;
+  },
+  items: OrderConfirmationItem[],
+  trackingUrl: string,
+): string {
+  const lines = [
+    `${order.number} — ${order.name}`,
+    "",
+    `${localized("البريد", "Email", "ar")}: ${order.email}`,
+  ];
+  if (order.phone) lines.push(`${localized("الهاتف", "Phone", "ar")}: ${order.phone}`);
+  if (order.governorate)
+    lines.push(`${localized("المحافظة", "Governorate", "ar")}: ${order.governorate}`);
+  if (order.city) lines.push(`${localized("المدينة", "City", "ar")}: ${order.city}`);
+  if (order.address) lines.push(`${localized("العنوان", "Address", "ar")}: ${order.address}`);
+  lines.push(
+    "",
+    localized("المنتجات:", "Products:", "ar"),
+    ...items.map(
+      (i) =>
+        `  ${i.productName}${i.variantName ? ` (${i.variantName})` : ""} ×${i.quantity} — ${formatPrice(i.unitPrice * i.quantity)}`,
+    ),
+    "",
+    `${localized("الإجمالي", "Total", "ar")}: ${formatPrice(order.total)}`,
+    "",
+    trackingUrl,
+  );
+  return lines.join("\n");
 }
 
 function buildOrderConfirmationHtml(
@@ -326,7 +555,8 @@ export async function sendOrderStatusUpdate(
   const html = buildStatusUpdateHtml(row, newStatus, statusLabel, trackingUrl);
   const text = buildStatusUpdateText(row, newStatus, statusLabel, trackingUrl);
 
-  await sendEmail(platform, { to: row.email, subject, html, text });
+  await enqueueEmail(db, { recipient: row.email, subject, html, text });
+  await flushOutbox(platform, db);
 }
 
 function buildStatusUpdateHtml(
