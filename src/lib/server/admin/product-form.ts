@@ -20,6 +20,7 @@ import {
   type VariantInput,
 } from "./products";
 import { saveProductImage } from "./upload";
+import { setCoverUrl } from "./product-images";
 
 /** Sanity cap only: 10M EGP is far above any honey jar. */
 const MAX_PRICE_QIRSH = 1_000_000_000;
@@ -162,10 +163,9 @@ export async function applyProductForm(
   if (!written.ok) return { ok: false, reason: written.reason };
 
   if (coverUrl !== "") {
-    await db
-      .update(schema.product)
-      .set({ image: coverUrl })
-      .where(eq(schema.product.id, written.id));
+    // Cover resolution → setCoverUrl: it also mirrors a single-variant image
+    // so the storefront card/gallery reflect the cover immediately (D1).
+    await setCoverUrl(db, written.id, coverUrl);
   }
 
   return { ok: true, id: written.id };

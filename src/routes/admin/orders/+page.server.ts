@@ -17,9 +17,10 @@ const pageParam = z.coerce
 export const load: PageServerLoad = async (event) => {
   const statusParam = event.url.searchParams.get("status");
   const status = statusParam === null ? undefined : parseOrderStatus(statusParam);
+  const q = event.url.searchParams.get("q")?.trim() || undefined;
   const lang = getLang(event);
   const requestedPage = pageParam.parse(event.url.searchParams.get("page"));
-  const listAt = (p: number) => listOrders(db, { status: status ?? undefined, page: p });
+  const listAt = (p: number) => listOrders(db, { status: status ?? undefined, query: q, page: p });
 
   let { items, total } = await listAt(requestedPage);
   let page = requestedPage;
@@ -33,5 +34,5 @@ export const load: PageServerLoad = async (event) => {
   }
   // `pageSize` feeds the view's next-page visibility check without importing
   // the server module into client code.
-  return { items, total, page, pageSize: ORDERS_PAGE_SIZE, status: status ?? null, lang };
+  return { items, total, page, pageSize: ORDERS_PAGE_SIZE, status: status ?? null, q, lang };
 };

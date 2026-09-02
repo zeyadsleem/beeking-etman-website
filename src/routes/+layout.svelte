@@ -1,5 +1,6 @@
 <script lang="ts">
   import { afterNavigate, beforeNavigate, onNavigate } from "$app/navigation";
+  import { page } from "$app/state";
   import { getDir, t } from "$lib/i18n/messages";
   import { initPostHog, setPersonProperties, getPostHog } from "$lib/analytics";
   import { posthogKey } from "$lib/site";
@@ -12,6 +13,10 @@
   import type { LayoutData } from "./$types";
 
   let { children, data }: { children: import("svelte").Snippet; data: LayoutData } = $props();
+
+  const isAdminRoute = $derived(
+    page.url.pathname === "/admin" || page.url.pathname.startsWith("/admin/"),
+  );
 
   $effect(() => {
     document.documentElement.lang = data.lang;
@@ -98,13 +103,17 @@
   <title>{t(data.lang, "brand.tagline")}</title>
 </svelte:head>
 
-<div class="flex min-h-screen flex-col overflow-x-clip">
+<div class="{isAdminRoute ? 'min-h-screen' : 'flex min-h-screen flex-col overflow-x-clip'}">
   <TopProgressBar />
-  <Header user={data.user} lang={data.lang} />
-  <main class="mx-auto w-full max-w-7xl flex-1 px-4">
+  {#if isAdminRoute}
     {@render children()}
-  </main>
-  <Footer lang={data.lang} />
+  {:else}
+    <Header user={data.user} lang={data.lang} />
+    <main class="mx-auto w-full max-w-7xl flex-1 px-4">
+      {@render children()}
+    </main>
+    <Footer lang={data.lang} />
+  {/if}
   <CartDrawer lang={data.lang} />
   <ScrollToTop lang={data.lang} />
 </div>

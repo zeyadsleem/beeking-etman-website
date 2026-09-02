@@ -39,7 +39,7 @@ test("clicking department tab updates URL to the selected department", async ({ 
   await waitForApp(page);
 
   // Default department is honey (no dept param).
-  const equipmentTab = page.getByRole("radio", { name: "أدوات النحالين" });
+  const equipmentTab = page.getByRole("radio", { name: "متجر أدوات النحالين" });
   await expect(equipmentTab).toBeVisible();
   await equipmentTab.click();
 
@@ -63,7 +63,7 @@ test("switching department resets category filter", async ({ page }) => {
   await expect(page).toHaveURL(/category=sidr/);
 
   // Switch to equipment — category param should be cleared.
-  const equipmentTab = page.getByRole("radio", { name: "أدوات النحالين" });
+  const equipmentTab = page.getByRole("radio", { name: "متجر أدوات النحالين" });
   await expect(equipmentTab).toBeVisible();
   await equipmentTab.click();
 

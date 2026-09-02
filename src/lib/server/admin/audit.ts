@@ -1,8 +1,8 @@
-import { desc, eq, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, or, sql, type SQL } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 
-export type AuditTargetType = "order" | "product" | "category";
+export type AuditTargetType = "order" | "product" | "category" | "user" | "warehouse";
 
 export interface AuditLogEntry {
   id: string;
@@ -49,13 +49,33 @@ export const AUDIT_PAGE_SIZE = 20;
 
 export async function listAuditLogs(
   db: LibSQLDatabase<typeof schema>,
-  opts?: { limit?: number; offset?: number; targetType?: AuditTargetType },
+  opts?: {
+    limit?: number;
+    offset?: number;
+    targetType?: AuditTargetType;
+    query?: string;
+  },
 ): Promise<{ items: AuditLogEntry[]; total: number }> {
   const limit = opts?.limit ?? AUDIT_PAGE_SIZE;
   const offset = opts?.offset ?? 0;
-  const where: SQL | undefined = opts?.targetType
-    ? eq(schema.adminAudit.targetType, opts.targetType)
-    : undefined;
+  const conditions: SQL[] = [];
+  if (opts?.targetType) {
+    conditions.push(eq(schema.adminAudit.targetType, opts.targetType));
+  }
+  // Same LIKE-escaping contract as the products/orders/categories filters:
+  // user-supplied % _ \ are matched literally.
+  const needle = opts?.query?.trim() ?? "";
+  if (needle !== "") {
+    const pattern = `%${needle.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+    conditions.push(
+      or(
+        sql`${schema.adminAudit.action} LIKE ${pattern} ESCAPE '\\'`,
+        sql`${schema.adminAudit.targetType} LIKE ${pattern} ESCAPE '\\'`,
+        sql`${schema.adminAudit.targetId} LIKE ${pattern} ESCAPE '\\'`,
+      )!,
+    );
+  }
+  const where: SQL | undefined = conditions.length ? and(...conditions) : undefined;
 
   const rows = await db
     .select()

@@ -3,6 +3,7 @@ import {
   index,
   integer,
   primaryKey,
+  real,
   sqliteTable,
   text,
   uniqueIndex,
@@ -198,5 +199,233 @@ export const blendBenefit = sqliteTable("store_blend_benefit", {
     .notNull()
     .$defaultFn(() => Date.now()),
 });
+
+// --- Inventory: batches / raw stock / packaging (self-bottle from bulk) ---
+
+export const warehouse = sqliteTable("store_warehouse", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  // "bulk" (raw honey barrels) | "fulfillment" (market-ready units)
+  type: text("type").notNull(),
+  name: text("name").notNull(),
+  nameEn: text("name_en").notNull().default(""),
+  isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+});
+
+export const batch = sqliteTable(
+  "store_batch",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    batchNumber: text("batch_number").notNull().unique(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => product.id),
+    seasonName: text("season_name").notNull(),
+    seasonNameEn: text("season_name_en").notNull().default(""),
+    apiarySource: text("apiary_source").notNull().default(""),
+    harvestDate: integer("harvest_date").notNull(),
+    expiryDate: integer("expiry_date").notNull(),
+    labCertUrl: text("lab_cert_url"),
+    qrCode: text("qr_code"),
+    initialQuantityKg: real("initial_quantity_kg").notNull(),
+    quantityKg: real("quantity_kg").notNull(),
+    notes: text("notes"),
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index("store_batch_productId_idx").on(table.productId),
+    index("store_batch_expiry_idx").on(table.expiryDate),
+  ],
+);
+
+export const packagingMaterial = sqliteTable("store_packaging_material", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  nameEn: text("name_en").notNull().default(""),
+  sku: text("sku"),
+  unitLabel: text("unit_label").notNull().default(""),
+  stockQuantity: integer("stock_quantity").notNull().default(0),
+  reorderPoint: integer("reorder_point").notNull().default(0),
+  costPerUnit: integer("cost_per_unit").notNull().default(0),
+});
+
+export const stockConversion = sqliteTable(
+  "store_stock_conversion",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    batchId: text("batch_id")
+      .notNull()
+      .references(() => batch.id),
+    variantId: text("variant_id")
+      .notNull()
+      .references(() => productVariant.id),
+    rawKgsUsed: real("raw_kgs_used").notNull(),
+    unitsProduced: integer("units_produced").notNull(),
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [index("store_stock_conversion_batchId_idx").on(table.batchId)],
+);
+
+export const stockMovement = sqliteTable(
+  "store_stock_movement",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    // "purchase" | "conversion" | "sale" | "transfer" | "waste" | "damage" | "adjustment"
+    type: text("type").notNull(),
+    itemType: text("item_type").notNull().default("variant"), // variant | batch | material
+    itemId: text("item_id").notNull(),
+    warehouseId: text("warehouse_id").references(() => warehouse.id),
+    quantity: integer("quantity").notNull(),
+    refId: text("ref_id"),
+    notes: text("notes"),
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index("store_stock_movement_itemType_itemId_idx").on(table.itemType, table.itemId),
+    index("store_stock_movement_createdAt_idx").on(table.createdAt),
+  ],
+);
+
+export const transfer = sqliteTable(
+  "store_transfer",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    fromWarehouseId: text("from_warehouse_id")
+      .notNull()
+      .references(() => warehouse.id),
+    toWarehouseId: text("to_warehouse_id")
+      .notNull()
+      .references(() => warehouse.id),
+    status: text("status").notNull().default("pending"), // pending | outbound | completed | cancelled
+    notes: text("notes"),
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    completedAt: integer("completed_at"),
+  },
+  (table) => [
+    index("store_transfer_status_idx").on(table.status),
+    index("store_transfer_fromWarehouseId_idx").on(table.fromWarehouseId),
+  ],
+);
+
+export const transferItem = sqliteTable(
+  "store_transfer_item",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    transferId: text("transfer_id")
+      .notNull()
+      .references(() => transfer.id),
+    itemType: text("item_type").notNull().default("variant"),
+    itemId: text("item_id").notNull(),
+    quantity: integer("quantity").notNull(),
+  },
+  (table) => [index("store_transfer_item_transferId_idx").on(table.transferId)],
+);
+
+// --- Returns & refunds (with damage reasons) ---
+
+export const returnRecord = sqliteTable(
+  "store_return",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => order.id),
+    status: text("status").notNull().default("requested"), // requested | approved | refunded | rejected
+    reason: text("reason").notNull(),
+    damageType: text("damage_type"),
+    refundAmount: integer("refund_amount").notNull().default(0),
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [index("store_return_orderId_idx").on(table.orderId)],
+);
+
+// --- CRM: reviews & coupons ---
+
+export const review = sqliteTable(
+  "store_review",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    productId: text("product_id")
+      .notNull()
+      .references(() => product.id),
+    userId: text("user_id"),
+    rating: integer("rating").notNull(),
+    comment: text("comment"),
+    status: text("status").notNull().default("pending"), // pending | approved | rejected
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [index("store_review_productId_idx").on(table.productId)],
+);
+
+export const coupon = sqliteTable("store_coupon", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  code: text("code").notNull().unique(),
+  // "percent" | "fixed"
+  type: text("type").notNull().default("percent"),
+  value: integer("value").notNull(),
+  minSpend: integer("min_spend").notNull().default(0),
+  maxUses: integer("max_uses"),
+  usedCount: integer("used_count").notNull().default(0),
+  validFrom: integer("valid_from"),
+  validUntil: integer("valid_until"),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at")
+    .notNull()
+    .$defaultFn(() => Date.now()),
+});
+
+// --- Notifications (email / Slack / Telegram) ---
+
+export const notification = sqliteTable(
+  "store_notification",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    // "low_stock" | "expiry" | "raw_presesason" | "order" | "reorder" ...
+    type: text("type").notNull(),
+    channel: text("channel").notNull().default("email"), // email | slack | telegram
+    recipient: text("recipient").notNull(),
+    subject: text("subject").notNull(),
+    body: text("body").notNull(),
+    status: text("status").notNull().default("pending"), // pending | sent | failed
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    sentAt: integer("sent_at"),
+  },
+  (table) => [index("store_notification_type_idx").on(table.type)],
+);
 
 export * from "./auth.schema";

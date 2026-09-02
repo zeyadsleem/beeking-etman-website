@@ -10,6 +10,7 @@ import { logAdminAction } from "$lib/server/admin/audit";
 import { t } from "$lib/i18n/messages";
 import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
+import { isAdminRole } from "$lib/server/admin/roles";
 import { sendOrderStatusUpdate } from "$lib/server/email";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -29,7 +30,7 @@ export const actions: Actions = {
   update: async (event) => {
     // Defense-in-depth: the /admin layout guard only covers page loads, not
     // POSTs, so every mutating action re-checks the role server-side.
-    if (event.locals.user?.role !== "admin")
+    if (!isAdminRole(event.locals.user?.role))
       return fail(403, { message: t(getLang(event), "errors.unexpected") });
 
     // Form fields are untrusted boundary input: coerce and re-validate both.

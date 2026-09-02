@@ -34,11 +34,11 @@
     </p>
     <p class="flex flex-col items-center gap-1.5 text-xs font-semibold text-cocoa-700 sm:flex-row sm:justify-center sm:gap-2 sm:text-sm">
       <svg class="h-5 w-5 shrink-0 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="1.8" />
-        <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.8" />
-        <path d="M6 12h.01M18 12h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.8" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        <circle cx="12" cy="16" r="1.5" fill="currentColor" />
       </svg>
-      {t(lang, "home.benefitCod")}
+      {t(lang, "home.benefitSecurePayment")}
     </p>
     <p class="flex flex-col items-center gap-1.5 text-xs font-semibold text-cocoa-700 sm:flex-row sm:justify-center sm:gap-2 sm:text-sm">
       <svg class="h-5 w-5 shrink-0 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">

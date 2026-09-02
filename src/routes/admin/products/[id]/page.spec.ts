@@ -42,6 +42,8 @@ function currentDb(): LibSQLDatabase<typeof schema> {
 async function buildDb(): Promise<void> {
   client ??= createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
+  await db.run(`DROP TABLE IF EXISTS store_admin_audit`);
+  await db.run(`DROP TABLE IF EXISTS store_stock_movement`);
   await db.run(`DROP TABLE IF EXISTS store_product_image`);
   await db.run(`DROP TABLE IF EXISTS store_product_variant`);
   await db.run(`DROP TABLE IF EXISTS store_product`);
@@ -75,6 +77,13 @@ async function buildDb(): Promise<void> {
     CREATE TABLE store_product_image (
       id TEXT PRIMARY KEY NOT NULL, product_id TEXT NOT NULL,
       url TEXT NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0
+    )`);
+  await db.run(`
+    CREATE TABLE store_admin_audit (
+      id TEXT PRIMARY KEY NOT NULL, admin_user_id TEXT,
+      action TEXT NOT NULL, target_type TEXT NOT NULL,
+      target_id TEXT NOT NULL, details TEXT,
+      created_at INTEGER NOT NULL
     )`);
   testDb = db;
   state.database = db;
@@ -147,6 +156,17 @@ async function seedVariant(
       .returning({ id: schema.productVariant.id })
   )[0];
   if (!row) throw new Error("seedVariant insert returned no row");
+  return row.id;
+}
+
+async function seedGalleryImage(productId: string, url: string, sortOrder = 0): Promise<string> {
+  const row = (
+    await currentDb()
+      .insert(schema.productImage)
+      .values({ id: crypto.randomUUID(), productId, url, sortOrder })
+      .returning({ id: schema.productImage.id })
+  )[0];
+  if (!row) throw new Error("seedGalleryImage insert returned no row");
   return row.id;
 }
 
@@ -228,6 +248,9 @@ let details: ActionFn;
 let uploadImage: ActionFn;
 let variantSave: ActionFn;
 let variantDelete: ActionFn;
+let galleryAdd: ActionFn;
+let galleryDelete: ActionFn;
+let galleryReorder: ActionFn;
 
 beforeAll(async () => {
   const module = await import("./+page.server");
@@ -237,6 +260,9 @@ beforeAll(async () => {
   uploadImage = actions.uploadImage;
   variantSave = actions.variantSave;
   variantDelete = actions.variantDelete;
+  galleryAdd = actions.galleryAdd;
+  galleryDelete = actions.galleryDelete;
+  galleryReorder = actions.galleryReorder;
 });
 
 afterAll(() => {
@@ -502,9 +528,10 @@ describe("admin edit product uploadImage action", () => {
     expect(result.message).toBe(t("ar", "errors.unexpected"));
   });
 
-  it("updates only the cover image and reports uploaded", async () => {
+  it("writes the cover and syncs the lone variant image, reporting uploaded", async () => {
     const categoryId = await seedCategory();
     const id = await seedProduct(categoryId);
+    const variantId = await seedVariant(id);
     const ns = makeNamespace();
 
     const result = await uploadImage(
@@ -521,8 +548,51 @@ describe("admin edit product uploadImage action", () => {
       .from(schema.product)
       .where(eq(schema.product.id, id));
     const call = ns.calls[0];
-    expect(row?.image).toBe(`/media/${call?.key}`);
+    const url = `/media/${call?.key}`;
+    expect(url).toMatch(/^\/media\/products\/[0-9a-f-]{36}\.png$/);
+    expect(row?.image).toBe(url);
     expect(row?.description).toBe("وصف أصلي"); // details untouched by this action
+    const [variant] = await currentDb()
+      .select({ image: schema.productVariant.image })
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, variantId));
+    expect(variant?.image).toBe(url); // single variant follows the cover (D1)
+  });
+
+  it("leaves the sole variant image alone when several variants exist", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+    const firstVariant = await seedVariant(id, { image: "https://example.com/first.jpg" });
+    await seedVariant(id, { name: "1 كيلو", image: "https://example.com/second.jpg" });
+    const ns = makeNamespace();
+
+    await uploadImage(
+      fakeEvent(id, {
+        role: "admin",
+        files: { image: pngFile() },
+        platform: { env: { MEDIA: ns } },
+      }),
+    );
+
+    const [variant] = await currentDb()
+      .select({ image: schema.productVariant.image })
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, firstVariant));
+    expect(variant?.image).toBe("https://example.com/first.jpg");
+  });
+
+  it("returns 404 for a product that no longer exists", async () => {
+    const id = crypto.randomUUID();
+    const result = failureOf(
+      await uploadImage(
+        fakeEvent(id, {
+          role: "admin",
+          files: { image: pngFile() },
+          platform: { env: { MEDIA: makeNamespace() } },
+        }),
+      ),
+    );
+    expect(result.status).toBe(404);
   });
 
   it.each([
@@ -774,5 +844,278 @@ describe("admin edit product variantDelete action", () => {
     );
 
     expect(result.status).toBe(400);
+  });
+});
+
+describe("admin edit product galleryAdd action", () => {
+  it("rejects guests with 403", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+
+    const result = failureOf(
+      await galleryAdd(fakeEvent(id, { fields: { imageUrl: "https://example.com/g.jpg" } })),
+    );
+
+    expect(result.status).toBe(403);
+  });
+
+  it("inserts a gallery image from a pasted https url", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+
+    const result = await galleryAdd(
+      fakeEvent(id, { fields: { imageUrl: "https://example.com/g1.jpg" }, role: "admin" }),
+    );
+
+    expect(result).toEqual({
+      galleryAdded: t("ar", "admin.products.galleryImageAdded"),
+    });
+    const rows = await currentDb()
+      .select()
+      .from(schema.productImage)
+      .where(eq(schema.productImage.productId, id));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.url).toBe("https://example.com/g1.jpg");
+    expect(rows[0]?.sortOrder).toBe(0);
+  });
+
+  it("inserts a gallery image from a file upload", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+    const ns = makeNamespace();
+
+    const result = await galleryAdd(
+      fakeEvent(id, {
+        files: { image: pngFile("g.png") },
+        platform: { env: { MEDIA: ns } },
+        role: "admin",
+      }),
+    );
+
+    expect(result).toEqual({
+      galleryAdded: t("ar", "admin.products.galleryImageAdded"),
+    });
+    const rows = await currentDb()
+      .select()
+      .from(schema.productImage)
+      .where(eq(schema.productImage.productId, id));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.url).toMatch(/^\/media\/products\//);
+    expect(ns.calls).toHaveLength(1);
+  });
+
+  it("falls back to error 400 when neither file nor url is provided", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+
+    const result = failureOf(await galleryAdd(fakeEvent(id, { role: "admin" })));
+
+    expect(result.status).toBe(400);
+  });
+
+  it("rejects a malformed url with 400", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+
+    const result = failureOf(
+      await galleryAdd(fakeEvent(id, { fields: { imageUrl: "not-a-url" }, role: "admin" })),
+    );
+
+    expect(result.status).toBe(400);
+  });
+
+  it("returns 404 when product does not exist", async () => {
+    const id = crypto.randomUUID();
+    const result = failureOf(
+      await galleryAdd(
+        fakeEvent(id, {
+          fields: { imageUrl: "https://example.com/g.jpg" },
+          role: "admin",
+        }),
+      ),
+    );
+
+    expect(result.status).toBe(404);
+  });
+
+  it("appends images with increasing sortOrder", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+
+    await galleryAdd(
+      fakeEvent(id, { fields: { imageUrl: "https://example.com/first.jpg" }, role: "admin" }),
+    );
+    await galleryAdd(
+      fakeEvent(id, { fields: { imageUrl: "https://example.com/second.jpg" }, role: "admin" }),
+    );
+
+    const rows = await currentDb()
+      .select({ url: schema.productImage.url, sortOrder: schema.productImage.sortOrder })
+      .from(schema.productImage)
+      .where(eq(schema.productImage.productId, id));
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.sortOrder).toBe(0);
+    expect(rows[1]?.sortOrder).toBe(1);
+  });
+});
+
+describe("admin edit product galleryDelete action", () => {
+  it("rejects guests with 403", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+    const imageId = await seedGalleryImage(id, "https://example.com/g.jpg");
+
+    const result = failureOf(
+      await galleryDelete(fakeEvent(id, { fields: { imageId }, role: undefined })),
+    );
+
+    expect(result.status).toBe(403);
+  });
+
+  it("removes a gallery image and reports deleted", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+    const imageId = await seedGalleryImage(id, "https://example.com/g.jpg");
+
+    const result = await galleryDelete(fakeEvent(id, { fields: { imageId }, role: "admin" }));
+
+    expect(result).toEqual({
+      galleryRemoved: t("ar", "admin.products.galleryImageRemoved"),
+    });
+    const rows = await currentDb()
+      .select()
+      .from(schema.productImage)
+      .where(eq(schema.productImage.id, imageId));
+    expect(rows).toHaveLength(0);
+  });
+
+  it("returns 404 when image does not exist", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+
+    const result = failureOf(
+      await galleryDelete(
+        fakeEvent(id, { fields: { imageId: crypto.randomUUID() }, role: "admin" }),
+      ),
+    );
+
+    expect(result.status).toBe(404);
+  });
+
+  it("fails 400 on a blank imageId", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+
+    const result = failureOf(
+      await galleryDelete(fakeEvent(id, { fields: { imageId: "" }, role: "admin" })),
+    );
+
+    expect(result.status).toBe(400);
+  });
+
+  it("does not delete a gallery image belonging to a different product", async () => {
+    const categoryId = await seedCategory();
+    const idA = await seedProduct(categoryId);
+    const idB = await seedProduct(categoryId);
+    const imageId = await seedGalleryImage(idB, "https://example.com/g.jpg");
+
+    const result = failureOf(
+      await galleryDelete(fakeEvent(idA, { fields: { imageId }, role: "admin" })),
+    );
+
+    expect(result.status).toBe(404);
+    const rows = await currentDb()
+      .select()
+      .from(schema.productImage)
+      .where(eq(schema.productImage.id, imageId));
+    expect(rows).toHaveLength(1);
+  });
+});
+
+describe("admin edit product galleryReorder action", () => {
+  it("rejects guests with 403", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+    const a = await seedGalleryImage(id, "https://example.com/a.jpg", 0);
+    const b = await seedGalleryImage(id, "https://example.com/b.jpg", 1);
+
+    const result = failureOf(
+      await galleryReorder(fakeEvent(id, { fields: { order: `${b},${a}` } })),
+    );
+
+    expect(result.status).toBe(403);
+  });
+
+  it("reorders images and reports saved", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+    const a = await seedGalleryImage(id, "https://example.com/a.jpg", 0);
+    const b = await seedGalleryImage(id, "https://example.com/b.jpg", 1);
+    const c = await seedGalleryImage(id, "https://example.com/c.jpg", 2);
+
+    const result = await galleryReorder(
+      fakeEvent(id, { fields: { order: `${c},${a},${b}` }, role: "admin" }),
+    );
+
+    expect(result).toEqual({
+      galleryOrdered: t("ar", "admin.products.galleryOrderSaved"),
+    });
+    const rows = await currentDb()
+      .select({ id: schema.productImage.id, sortOrder: schema.productImage.sortOrder })
+      .from(schema.productImage)
+      .where(eq(schema.productImage.productId, id))
+      .orderBy(schema.productImage.sortOrder);
+    expect(rows.map((r) => r.id)).toEqual([c, a, b]);
+    expect(rows.map((r) => r.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it("returns 400 when the id set does not match", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+    const a = await seedGalleryImage(id, "https://example.com/a.jpg", 0);
+
+    const result = failureOf(
+      await galleryReorder(fakeEvent(id, { fields: { order: a }, role: "admin" })),
+    );
+
+    expect(result.status).toBe(400);
+    const rows = await currentDb()
+      .select({ sortOrder: schema.productImage.sortOrder })
+      .from(schema.productImage)
+      .where(eq(schema.productImage.productId, id));
+    expect(rows.map((r) => r.sortOrder)).toEqual([0, 1]);
+  });
+
+  it("returns 400 on an empty order string", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+
+    const result = failureOf(
+      await galleryReorder(fakeEvent(id, { fields: { order: "" }, role: "admin" })),
+    );
+
+    expect(result.status).toBe(400);
+  });
+
+  it("is a no-op when the order is already correct", async () => {
+    const categoryId = await seedCategory();
+    const id = await seedProduct(categoryId);
+    const a = await seedGalleryImage(id, "https://example.com/a.jpg", 0);
+    const b = await seedGalleryImage(id, "https://example.com/b.jpg", 1);
+
+    const result = await galleryReorder(
+      fakeEvent(id, { fields: { order: `${a},${b}` }, role: "admin" }),
+    );
+
+    expect(result).toEqual({
+      galleryOrdered: t("ar", "admin.products.galleryOrderSaved"),
+    });
+    const rows = await currentDb()
+      .select({ id: schema.productImage.id, sortOrder: schema.productImage.sortOrder })
+      .from(schema.productImage)
+      .where(eq(schema.productImage.productId, id))
+      .orderBy(schema.productImage.sortOrder);
+    expect(rows.map((r) => r.id)).toEqual([a, b]);
+    expect(rows.map((r) => r.sortOrder)).toEqual([0, 1]);
   });
 });

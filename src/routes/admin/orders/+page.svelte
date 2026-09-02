@@ -12,11 +12,19 @@
   const lang = $derived(data.lang);
 
   function filterHref(status: OrderStatus): string {
-    return `/admin/orders?status=${status}`;
+    const params = new URLSearchParams();
+    if (data.q) params.set("q", data.q);
+    params.set("status", status);
+    return `/admin/orders?${params.toString()}`;
+  }
+
+  function allHref(): string {
+    return data.q ? `/admin/orders?q=${encodeURIComponent(data.q)}` : "/admin/orders";
   }
 
   function pageHref(page: number): string {
     const params = new URLSearchParams();
+    if (data.q) params.set("q", data.q);
     if (data.status) params.set("status", data.status);
     if (page > 1) params.set("page", String(page));
     const query = params.toString();
@@ -41,7 +49,7 @@
 
   <nav class="mt-6 flex flex-wrap gap-2" aria-label={t(lang, "admin.orders.filterAria")}>
     <a
-      href="/admin/orders"
+      href={allHref()}
       class="chip {data.status === null ? 'chip-active' : ''}"
       aria-current={data.status === null ? "true" : undefined}
     >
@@ -57,6 +65,27 @@
       </a>
     {/each}
   </nav>
+
+  <form
+    method="GET"
+    action="/admin/orders"
+    role="search"
+    class="mt-6 flex max-w-md items-center gap-2"
+  >
+    <input
+      type="search"
+      name="q"
+      value={data.q}
+      placeholder={t(lang, "admin.orders.searchPlaceholder")}
+      aria-label={t(lang, "admin.orders.searchPlaceholder")}
+      class="w-full rounded-xl border border-cocoa-200 bg-white px-3 py-2 text-sm text-cocoa-900 outline-none focus:border-honey-500"
+    />
+    <Button type="submit" variant="outline">{t(lang, "products.searchSubmit")}</Button>
+  </form>
+
+  <p class="mt-4 text-sm text-cocoa-500" role="status">
+    {t(lang, "admin.searchResultCount", { count: String(data.total) })}
+  </p>
 
   {#if data.items.length === 0}
     <div class="empty-state">

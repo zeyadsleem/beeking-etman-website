@@ -226,9 +226,15 @@ importers:
       '@libsql/client':
         specifier: ^0.17.3
         version: 0.17.4
+      '@lucide/svelte':
+        specifier: ^1.38.0
+        version: 1.38.0(svelte@5.56.8)
       bits-ui:
         specifier: ^2.18.1
         version: 2.18.1(@internationalized/date@3.12.3)(@sveltejs/kit@2.70.2(@sveltejs/vite-plugin-svelte@7.3.0(@voidzero-dev/vite-plus-core@0.2.9(@types/node@24.13.3)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.23.12)(typescript@6.0.3))(svelte@5.56.8))(@voidzero-dev/vite-plus-core@0.2.9(@types/node@24.13.3)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.23.12)(typescript@6.0.3))(svelte@5.56.8)(typescript@6.0.3))(svelte@5.56.8)
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       cookie:
         specifier: ^1.1.1
         version: 1.1.1
@@ -238,6 +244,9 @@ importers:
       posthog-js:
         specifier: ^1.419.4
         version: 1.419.4
+      tailwind-merge:
+        specifier: ^3.6.0
+        version: 3.6.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -1060,6 +1069,11 @@ packages:
     resolution: {integrity: sha512-4/0CvEdhi6+KjMxMaVbFM2n2Z44escBRoEYpR+gZg64DdetzGnYm8mcNLcoySaDJZNaBd6wz5DNdgRmcI4hXcg==}
     cpu: [x64]
     os: [win32]
+
+  '@lucide/svelte@1.38.0':
+    resolution: {integrity: sha512-x7pHfNAqArsjCbxgMxWoGEM25AXY1vl7P9ooGvY/DxbzNGK6vrfsFFoSw4yyv1ajfHY2jGBgi7lbSExya15ABA==}
+    peerDependencies:
+      svelte: ^5
 
   '@mrleebo/prisma-ast@0.16.0':
     resolution: {integrity: sha512-a9ELYNIflEQP38tSu6gnUgSAWgXjuhMvC52868K5sWgyRmYsjiJMWTUmm8iy7hZT5EN2ZKVydMTFP2q3/+6ccg==}
@@ -2806,6 +2820,9 @@ packages:
   tabbable@6.5.0:
     resolution: {integrity: sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA==}
 
+  tailwind-merge@3.6.0:
+    resolution: {integrity: sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w==}
+
   tailwindcss@4.3.3:
     resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
 
@@ -3670,6 +3687,10 @@ snapshots:
 
   '@libsql/win32-x64-msvc@0.5.29':
     optional: true
+
+  '@lucide/svelte@1.38.0(svelte@5.56.8)':
+    dependencies:
+      svelte: 5.56.8
 
   '@mrleebo/prisma-ast@0.16.0':
     dependencies:
@@ -5034,6 +5055,8 @@ snapshots:
       - '@typescript-eslint/types'
 
   tabbable@6.5.0: {}
+
+  tailwind-merge@3.6.0: {}
 
   tailwindcss@4.3.3: {}
 

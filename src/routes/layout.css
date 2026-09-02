@@ -113,6 +113,34 @@
   --color-cream: #f6f1e6;
   --color-cream-deep: #efe7d6;
 
+  /* ---------- shadcn-svelte semantic tokens ----------
+     Mapped onto the brand cocoa/honey/clay palette so shadcn-style
+     components (bg-background, text-foreground, bg-primary, ...) render
+     with the same artisanal warm tones as the rest of the storefront. */
+  --background: var(--color-paper);
+  --foreground: var(--color-cocoa-900);
+  --card: var(--color-parchment);
+  --card-foreground: var(--color-cocoa-900);
+  --popover: var(--color-parchment);
+  --popover-foreground: var(--color-cocoa-900);
+  --primary: var(--color-ink-950);
+  --primary-foreground: var(--color-parchment);
+  --secondary: var(--color-cocoa-100);
+  --secondary-foreground: var(--color-cocoa-900);
+  --muted: var(--color-cocoa-100);
+  --muted-foreground: var(--color-cocoa-500);
+  --accent: var(--color-honey-50);
+  --accent-foreground: var(--color-honey-800);
+  --destructive: var(--color-clay-600);
+  --destructive-foreground: var(--color-parchment);
+  --border: var(--color-cocoa-200);
+  --input: var(--color-cocoa-200);
+  --ring: var(--color-honey-600);
+
+  /* Components override container radius so admin panels read as one
+     family: the same soft 2xl radius as the existing .paper-panel. */
+  --radius: 1rem;
+
   --shadow-warm-sm: 0 1px 2px rgb(28 25 20 / 0.06);
   --shadow-warm: 0 8px 24px -12px rgb(28 25 20 / 0.14);
   --shadow-warm-lg: 0 20px 48px -20px rgb(28 25 20 / 0.18);

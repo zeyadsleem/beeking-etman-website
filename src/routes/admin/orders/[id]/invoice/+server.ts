@@ -2,10 +2,11 @@ import { error } from "@sveltejs/kit";
 import { getOrderWithItems } from "$lib/server/admin/orders";
 import { generateInvoiceHtml } from "$lib/server/invoice";
 import { db } from "$lib/server/db";
+import { isAdminRole } from "$lib/server/admin/roles";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async (event) => {
-  if (event.locals.user?.role !== "admin") error(403, "Forbidden");
+  if (!isAdminRole(event.locals.user?.role)) error(403, "Forbidden");
 
   const detail = await getOrderWithItems(db, event.params.id);
   if (!detail) error(404, "Order not found");

@@ -93,6 +93,10 @@
     </div>
   </div>
 
+  <p class="mt-4 text-sm text-cocoa-500" role="status">
+    {t(lang, "admin.searchResultCount", { count: String(data.total) })}
+  </p>
+
   {#if data.items.length === 0}
     <div class="empty-state">
       <p class="text-lg font-semibold text-cocoa-600">{t(lang, "admin.products.empty")}</p>

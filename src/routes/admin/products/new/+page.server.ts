@@ -2,6 +2,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import { listCategoriesWithCounts } from "$lib/server/admin/categories";
 import { applyProductForm, productFormFailure } from "$lib/server/admin/product-form";
 import { logAdminAction } from "$lib/server/admin/audit";
+import { isAdminRole } from "$lib/server/admin/roles";
 import { localized, t } from "$lib/i18n/messages";
 import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
@@ -25,7 +26,7 @@ export const actions: Actions = {
     const lang = getLang(event);
     // Defense-in-depth: the /admin layout guard only covers page loads, not
     // POSTs, so every mutating action re-checks the role server-side.
-    if (event.locals.user?.role !== "admin")
+    if (!isAdminRole(event.locals.user?.role))
       return fail(403, { message: t(lang, "errors.unexpected") });
 
     // Parse → upload → create → persist image lives in the shared pipeline so

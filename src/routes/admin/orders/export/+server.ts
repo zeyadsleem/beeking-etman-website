@@ -4,6 +4,7 @@ import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
 import { parseOrderStatus } from "$lib/server/admin/orders";
+import { isAdminRole } from "$lib/server/admin/roles";
 
 const CAIRO_TZ = "Africa/Cairo";
 
@@ -30,7 +31,7 @@ function csvEscape(value: string): string {
 }
 
 export const GET: RequestHandler = async (event) => {
-  if (event.locals.user?.role !== "admin") error(403, "Forbidden");
+  if (!isAdminRole(event.locals.user?.role)) error(403, "Forbidden");
 
   const url = new URL(event.url);
   const statusParam = url.searchParams.get("status");

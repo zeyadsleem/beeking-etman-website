@@ -5,7 +5,7 @@ Ordered work items with status. The original storefront shipped under
 under `docs/superpowers/plans/2026-08-14-mamlakat-alnahl.md` (spec
 `docs/superpowers/specs/2026-08-14-mamlakat-alnahl-design.md`).
 
-## Roadmap (2026-08-25)
+## Roadmap (2026-08-25) — SUPERSEDED ORDERING 2026-09-02
 
 Owner-approved reordering after the full store-completeness audit (2026-08-25):
 polish + SEO of what already exists comes first, PostHog analytics lands early,
@@ -14,6 +14,15 @@ the catalog expands into TWO storefronts (honey retail + beekeeping supplies,
 `docs/catalog/pricing-list-2026-08-25.md`), and the real payment gateway moves
 to LAST by explicit owner decision. Work phases strictly top to bottom; each
 phase keeps its own spec → plan → implementation cycle.
+
+> **2026-09-02:** This ordering is **superseded** for the items below by the
+> owner-approved priority overhaul — see `docs/plan-2026-09-02-priority-overhaul.md`
+> and the `docs/decisions.md` entry of the same date. Payments move from LAST to
+> a critical priority (Phase 1 of the new plan), COD is removed permanently,
+> email is hardened, and dev hydration is a blocking Phase 0. The phases below
+> remain valid as the components of the new plan's Phase 5 reconciliation; the
+> two-storefront expansion and remaining items are re-slotted relative to the
+> new priority phases there.
 
 ### Phase 1 — SEO & polish of what exists (top priority) — SHIPPED 2026-08-26
 
@@ -78,17 +87,29 @@ Order confirmation + status-change emails (Cloudflare Email Service or
 Resend), password reset via Better Auth SMTP (reset is currently impossible),
 and a Cron Trigger skeleton reserved for abandoned-cart recovery.
 
+> **2026-09-02:** Absorbed into `docs/plan-2026-09-02-priority-overhaul.md`
+> Phase 2 (critical). Decided: **keep Cloudflare Email Service + harden it** —
+> durable outbox + retry Cron, admin new-order/payment notifications, Better Auth
+> password reset. NOT moving to Resend/SendGrid unless a real deliverability
+> failure is proven in production.
+
 ### Phase 5 — Operations hardening
 
 Invoice PDF (basic), admin CSV export, Cairo-timezone reporting buckets (the
 dashboard's UTC day bucketing splits the business day), admin audit log,
 KV media guardrails (cache headers + usage alerts against free-tier caps).
 
-### Phase 6 — Real payment gateway (LAST — owner decision 2026-08-25)
+### Phase 6 — Real payment gateway — SUPERSEDED 2026-09-02 (see new Phase 1)
 
-Paymob/Fawry evaluation for EGP, COD toggle, separate `paymentStatus` vs
+~~Paymob/Fawry evaluation for EGP, COD toggle, separate `paymentStatus` vs
 `fulfillmentStatus`, idempotent webhook handling, refund policy. Revisit
-stock-decrement semantics (at-order vs at-payment) during spec.
+stock-decrement semantics (at-order vs at-payment) during spec.~~
+
+Superseded by `docs/plan-2026-09-02-priority-overhaul.md` Phase 1: **Paymob
+committed** (cards + Egyptian wallets), **COD removed permanently** (no toggle),
+the `paymentStatus`/`fulfillmentStatus` split and idempotent HMAC webhooks and
+refunds are specified there, and the stock-decrement at-order-vs-at-payment
+decision is reopened there. No separate evaluation needed.
 
 ### Superseded
 
@@ -373,6 +394,23 @@ audit (security review: 0 blockers; code review majors fixed):
       indexes, UNIQUE(product_id, name) after dedup; dead `task` table gone.
 - [x] Account orders paginated server-side (12/page).
 - [x] `minPasswordLength: 8`; better-auth ^1.7.1; audit-clean deps.
+
+## Admin operations upgrade (2026-09-02) — PLAN APPROVED-PENDING
+
+Owner asked for a complete documented plan for admin operations after a
+product-image change failed to reflect on the storefront: image preview +
+drag-drop, search across all admin sections, full edit/update of every element,
+complete permissions, and confirmation + tests that everything works. Full plan:
+`docs/plan-2026-09-02-admin-ops.md` (Parts 1-4, Phases A-F, decision points
+D1-D4). ADR: `docs/decisions.md` 2026-09-02 entry. Ticket breakout lives in the
+plan's Part 4; open items are moved here when the owner approves the phases.
+
+Root cause (locked): admin image upload writes only the deprecated
+`store_product.image` column while the storefront renders `variant.image` +
+`store_product_image` gallery — see plan §1.1.
+
+Phase order: A image repair+gallery → B upload UX → C global search →
+D full CRUD (+`/admin/users`) → E permissions → F confirmation & tests.
 
 ## Done: free-tier image cutover (2026-08-21)
 

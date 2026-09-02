@@ -67,7 +67,7 @@ export interface AdminCategoryRow {
 
 export async function listCategoriesWithCounts(
   db: LibSQLDatabase<typeof schema>,
-  opts?: { department?: string },
+  opts?: { department?: string; query?: string },
 ): Promise<AdminCategoryRow[]> {
   const conditions: SQL[] = [];
   if (opts?.department) {
@@ -75,6 +75,18 @@ export async function listCategoriesWithCounts(
       or(
         eq(schema.category.department, opts.department),
         sql`${schema.category.department} IS NULL`,
+      )!,
+    );
+  }
+  // Same LIKE-escaping contract as the products/orders filters: user-supplied
+  // % _ \ are matched literally.
+  const needle = opts?.query?.trim() ?? "";
+  if (needle !== "") {
+    const pattern = `%${needle.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+    conditions.push(
+      or(
+        sql`${schema.category.name} LIKE ${pattern} ESCAPE '\\'`,
+        sql`${schema.category.nameEn} LIKE ${pattern} ESCAPE '\\'`,
       )!,
     );
   }
@@ -105,6 +117,7 @@ export interface CategoryWriteInput {
   name: string;
   nameEn: string;
   slug: string;
+  department?: "honey" | "equipment";
 }
 
 export async function upsertCategory(
@@ -122,7 +135,14 @@ export async function upsertCategory(
     .get();
   if (clash && clash.id !== input.id) return { ok: false, reason: "slug_taken" };
 
-  const values = { name: input.name, nameEn: input.nameEn, slug: input.slug };
+  // Only carry an explicit department so existing rows are never blanked by a
+  // form that omits it; inserts without one keep the schema default.
+  const values = {
+    name: input.name,
+    nameEn: input.nameEn,
+    slug: input.slug,
+    ...(input.department !== undefined ? { department: input.department } : {}),
+  };
 
   if (input.id !== undefined) {
     const updated = await db

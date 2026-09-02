@@ -1012,6 +1012,27 @@ async function seed(): Promise<void> {
     await db.delete(schema.product).where(inArray(schema.product.id, staleProductIds));
   }
 
+  // ── Default warehouses ───────────────────────────────────────────────
+  // The inventory system runs against fixed warehouses. Bulk raw honey lives
+  // in "bulk", finished/shippable jars in "fulfillment" (the default).
+  await db
+    .insert(schema.warehouse)
+    .values([
+      {
+        type: "bulk",
+        name: "مخزن الحبوب الخام",
+        nameEn: "Bulk Raw Store",
+        isDefault: false,
+      },
+      {
+        type: "fulfillment",
+        name: "مخزن التجهيز والشحن",
+        nameEn: "Fulfillment Store",
+        isDefault: true,
+      },
+    ])
+    .onConflictDoNothing();
+
   // ── Stats ────────────────────────────────────────────────────────────
   const catCount = await db.select({ n: sql<number>`count(*)` }).from(schema.category);
   const prodCount = await db.select({ n: sql<number>`count(*)` }).from(schema.product);

@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 import { affectedRowCount } from "$lib/server/orders";
@@ -91,16 +91,34 @@ function toAdminOrderRow(row: {
 
 export async function listOrders(
   db: LibSQLDatabase<typeof schema>,
-  opts?: { status?: OrderStatus; page?: number },
+  opts?: { status?: OrderStatus; page?: number; query?: string },
 ): Promise<{ items: AdminOrderRow[]; total: number }> {
   const page = Math.max(1, Math.trunc(opts?.page ?? 1));
-  const statusFilter = opts?.status ? eq(schema.order.status, opts.status) : undefined;
+  const conditions: SQL[] = [];
+  if (opts?.status) {
+    conditions.push(eq(schema.order.status, opts.status));
+  }
+  // Same LIKE-escaping contract as the products/categories/audit filters:
+  // user-supplied % _ \ are matched literally.
+  const needle = opts?.query?.trim() ?? "";
+  if (needle !== "") {
+    const pattern = `%${needle.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+    conditions.push(
+      or(
+        sql`${schema.order.number} LIKE ${pattern} ESCAPE '\\'`,
+        sql`${schema.order.email} LIKE ${pattern} ESCAPE '\\'`,
+        sql`${schema.order.name} LIKE ${pattern} ESCAPE '\\'`,
+        sql`${schema.order.phone} LIKE ${pattern} ESCAPE '\\'`,
+      )!,
+    );
+  }
+  const where = conditions.length ? and(...conditions) : undefined;
 
   // Secondary id ordering keeps pagination deterministic when createdAt ties.
   const rows = await db
     .select(orderColumns)
     .from(schema.order)
-    .where(statusFilter)
+    .where(where)
     .orderBy(desc(schema.order.createdAt), desc(schema.order.id))
     .limit(ORDERS_PAGE_SIZE)
     .offset((page - 1) * ORDERS_PAGE_SIZE);
@@ -108,7 +126,7 @@ export async function listOrders(
   const totalRows = await db
     .select({ total: sql<number>`count(*)` })
     .from(schema.order)
-    .where(statusFilter);
+    .where(where);
 
   return {
     items: rows.map(toAdminOrderRow),

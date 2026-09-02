@@ -1249,3 +1249,91 @@ Doses are unlimited while stock stays real. Each jar orders as a single
 adjustable cart line and blend totals are correct at any quantity. Verified:
 `vp check` 0 errors; 26 server + 7 client blend tests pass; tests assert text
 and behaviour only, so the visual changes are safe.
+
+## 2026-09-02: Priority overhaul — Paymob, no COD, hardened CF email, plan-first
+
+**Context:** The owner re-prioritized the 2026-08-25 roadmap in a single Arabic
+brief: real payment gateway moved from "LAST by owner decision" to a critical
+priority, COD removed everywhere, transactional email made reliable with admin
+notifications, plus shipping-by-governorate, inventory, coupons, reviews,
+image optimization, Phaser lazy-loading, and multi-admin. The brief asked for a
+documented, buildable, decision-gated plan before execution. The full plan
+lives at `docs/plan-2026-09-02-priority-overhaul.md`.
+
+**Decision:**
+
+- **Destination this session = produce the plan**, not execute it. Execution
+  proceeds phase-by-phase from that document, each with its own spec → plan →
+  implementation cycle and quality gate.
+- **Paymob is the payment gateway.** Cards + Egyptian wallets (Vodafone Cash,
+  Orange Cash, etc.) via Paymob's REST API. HMAC-validated, idempotent webhooks
+  keyed on `transaction.id` + `order.id` with a `payments_transaction` ledger;
+  a new `payment_status` vs `fulfillment_status` split (currently a single
+  `store_order.status` defaulting to `paid`); server-side amount
+  computation only; refund support.
+- **COD is removed entirely and permanently** from every part of the site —
+  UI, i18n, order model, email copy, tests. NO cash-on-delivery option at any
+  stage. Until Paymob is live, checkout simulates payment but articulates no
+  COD path.
+- **Transactional email stays on Cloudflare Email Service** but is hardened
+  from fire-and-forget to an **outbox pattern** (durable `emails_outbox` table
+  flushed by a Cron Trigger with backoff + dead-letter), plus a new admin
+  new-order/payment-confirmation notification loop and Better Auth password
+  reset via SMTP.
+- **Dev hydration is a blocking repair** and goes first: `vp dev` must serve
+  functioning client-side JS so cart/checkout work locally without a
+  `build && preview`.
+- Operations (governorate shipping using the existing `weight_grams`, archive
+  via the existing `published` flag, low-stock + out-of-stock, coupons, reviews
+  with admin moderation), performance (Cloudflare Images or resize-on-upload,
+  Phaser dynamic-import lazy load on `/blends`, multi-admin from the existing
+  `user.role` replacing the single `ADMIN_EMAIL` bootstrap) all follow in phase
+  order.
+
+**Consequences:** The previously-decided "payment last" ordering is overturned;
+payments are now gated only on owner Paymob onboarding. The two-storefront
+expansion and remaining 2026-08-25 roadmap items are re-slotted relative to
+these new priority phases in the plan. No code beyond planning was changed this
+session.
+
+## 2026-09-02: Admin operations upgrade plan-first
+
+**Context:** The owner filed a bug-by-demo: changing a product image in the
+admin panel did not update the storefront. They asked for a complete documented
+plan for admin operations covering image preview + drag-drop, search across all
+admin sections, full edit/update of every element, complete permissions, and a
+confirmation/test gate. The full plan lives at
+`docs/plan-2026-09-02-admin-ops.md`; its root-cause diagnosis and phase gating
+(destination = produce the plan, not execute) mirror the 2026-09-02 priority
+overhaul.
+
+**Decision:**
+
+- **Root cause (locked):** the admin image upload writes only the deprecated
+  legacy `store_product.image` column (`admin/products/[id]/+page.server.ts`,
+  `product-form.ts`) while the storefront renders `variant.image` and the
+  `store_product_image` gallery table — two stores the admin never writes.
+  KV `immutable` caching is NOT the cause (fresh UUID keys per upload).
+- **Fix direction:** a single shared cover-resolution helper writes the new
+  image to variant.image + gallery + legacy cover; admin gains a real gallery
+  manager (add/remove/reorder/replace) on the product edit page.
+- **Delivery order (Phases A-F):** A image repair + gallery → B upload UX
+  (preview + drag-drop via a shared `ImageUpload.svelte`, client validation
+  mirroring the server 5MB/jpg/png/webp) → C global admin search (orders,
+  categories+dept, audit, users; products gains sku) → D full CRUD including a
+  new `/admin/users` page (promote/demote/ban from existing `user.role`) and
+  surfacing of `published`/`costPrice`/`weightGrams`/`sku` → E permissions
+  (role constant + `isAdmin`, close load-guard gaps, granular roles deferred —
+  infra only) → F a confirmation & test gate, including an e2e that edits a
+  product image via drag-drop and asserts the storefront card + gallery show the
+  new URL.
+- **KV image GC:** no hard delete this cycle (immutable cache + permanent
+  URLs); replaced/orphaned blobs surface as GC candidates in `/admin/media`.
+- **Multi-admin (this plan) folds into the priority-overhaul Phase 4.3.**
+  Shipping-address edit and payment semantics stay out of this plan (owned by
+  the sales-ops/paymob phases).
+
+**Consequences:** The reported image bug has a confirmed root cause and a
+bounded fix. Admin CRUD, search, permissions, and upload UX become
+first-class, test-covered surfaces. No code beyond planning was changed this
+session.

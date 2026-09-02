@@ -3,6 +3,7 @@ import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { deleteProduct, listAdminProducts, PRODUCTS_PAGE_SIZE } from "$lib/server/admin/products";
 import { logAdminAction } from "$lib/server/admin/audit";
+import { isAdminRole } from "$lib/server/admin/roles";
 import { t } from "$lib/i18n/messages";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
@@ -80,7 +81,7 @@ export const actions: Actions = {
     const lang = getLang(event);
     // Defense-in-depth: the /admin layout guard only covers page loads, not
     // POSTs, so every mutating action re-checks the role server-side.
-    if (event.locals.user?.role !== "admin")
+    if (!isAdminRole(event.locals.user?.role))
       return fail(403, { message: t(lang, "errors.unexpected") });
 
     const form = await event.request.formData();
