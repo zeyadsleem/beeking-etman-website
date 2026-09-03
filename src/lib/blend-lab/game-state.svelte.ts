@@ -1,18 +1,22 @@
 import { getContext, setContext } from "svelte";
 import {
   ADDITIVE_KEYS,
+  BLEND_GOALS,
+  presetDoses,
   zeroDoses,
   type AdditiveKey,
   type BaseHoneyOption,
+  type BlendGoal,
+  type BlendGoalId,
   type JarSize,
 } from "$lib/blends";
 
 const CONTEXT_KEY = "blendsGame";
 
-export type BlendStep = "honey" | "additives" | "mix";
+export type BlendStep = "goal" | "honey" | "additives" | "mix";
 
 /** Steps in order; used for the gated wizard progress indicator. */
-export const BLEND_STEPS: readonly BlendStep[] = ["honey", "additives", "mix"];
+export const BLEND_STEPS: readonly BlendStep[] = ["goal", "honey", "additives", "mix"];
 
 /**
  * Gated wizard state for the blend experience. The customer moves through
@@ -21,12 +25,26 @@ export const BLEND_STEPS: readonly BlendStep[] = ["honey", "additives", "mix"];
  * step must satisfy its own condition before `next()` is allowed.
  */
 export class BlendsGame {
-  step = $state<BlendStep>("honey");
+  step = $state<BlendStep>("goal");
+  goalId = $state<BlendGoalId | null>(null);
   honeyId = $state<BaseHoneyOption["id"] | null>(null);
   jarSize = $state<JarSize>("full");
   doses = $state<Record<AdditiveKey, number>>(zeroDoses());
   mixProgress = $state(0);
   quantity = $state(1);
+
+  get goal(): BlendGoal | undefined {
+    return this.goalId ? BLEND_GOALS.find((g) => g.id === this.goalId) : undefined;
+  }
+
+  /** The additives recommended for the active goal (empty when none chosen). */
+  get recommendedAdditives(): AdditiveKey[] {
+    return this.goal?.recommended ?? [];
+  }
+
+  isRecommended(key: AdditiveKey): boolean {
+    return this.recommendedAdditives.includes(key);
+  }
 
   get hasHoney(): boolean {
     return this.honeyId !== null;
@@ -44,10 +62,13 @@ export class BlendsGame {
     return this.honeyId !== null;
   }
 
-  /** Each step is gated: honey requires a selection, additives require at
-   * least one dose, mix requires the mix gesture to complete. */
+  /** Each step is gated: goal requires a selection, honey requires a selection,
+   * additives require at least one dose, mix requires the mix gesture to
+   * complete. */
   get canNext(): boolean {
     switch (this.step) {
+      case "goal":
+        return this.goalId !== null;
       case "honey":
         return this.honeyId !== null;
       case "additives":
@@ -58,11 +79,17 @@ export class BlendsGame {
   }
 
   get canBack(): boolean {
-    return this.step !== "honey";
+    return this.step !== "goal";
   }
 
   get isMixDone(): boolean {
     return this.mixProgress >= 1;
+  }
+
+  selectGoal(id: BlendGoalId | null): void {
+    this.goalId = id;
+    const goal = id ? BLEND_GOALS.find((g) => g.id === id) : undefined;
+    this.doses = goal ? presetDoses(goal, this.jarSize) : zeroDoses();
   }
 
   selectHoney(id: BaseHoneyOption["id"] | null): void {
@@ -71,6 +98,11 @@ export class BlendsGame {
 
   setJarSize(size: JarSize): void {
     this.jarSize = size;
+    // Re-apply the goal's recommended doses so the composition matches the jar.
+    if (this.goalId) {
+      const goal = BLEND_GOALS.find((g) => g.id === this.goalId);
+      if (goal) this.doses = presetDoses(goal, size);
+    }
   }
 
   addDose(key: AdditiveKey, n: number = 1): void {
@@ -108,7 +140,8 @@ export class BlendsGame {
   }
 
   reset(): void {
-    this.step = "honey";
+    this.step = "goal";
+    this.goalId = null;
     this.honeyId = null;
     this.doses = zeroDoses();
     this.mixProgress = 0;

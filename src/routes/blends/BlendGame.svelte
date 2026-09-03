@@ -3,6 +3,7 @@
   import { BlendsGame, BLEND_STEPS, provideBlendsGame } from "$lib/blend-lab/game-state.svelte";
   import OrderPanel from "$lib/blend-lab/ui/OrderPanel.svelte";
   import MixStep from "$lib/blend-lab/ui/MixStep.svelte";
+  import GoalStep from "$lib/blend-lab/ui/GoalStep.svelte";
   import {
     ADDITIVE_KEYS,
     ADDITIVE_LABELS,
@@ -88,18 +89,22 @@
   let dragging = $state<AdditiveKey | null>(null);
 
   const stepLabel = (step: (typeof BLEND_STEPS)[number]): string =>
-    step === "honey"
-      ? t(data.lang, "blends.game.step.select")
-      : step === "additives"
-        ? t(data.lang, "blends.game.step.ingredients")
-        : t(data.lang, "blends.game.step.mix");
+    step === "goal"
+      ? t(data.lang, "blends.game.step.goal")
+      : step === "honey"
+        ? t(data.lang, "blends.game.step.select")
+        : step === "additives"
+          ? t(data.lang, "blends.game.step.ingredients")
+          : t(data.lang, "blends.game.step.mix");
 
   const gateHint = $derived(
-    game.step === "honey"
-      ? t(data.lang, "blends.gate.honey")
-      : game.step === "additives"
-        ? t(data.lang, "blends.gate.additives")
-        : t(data.lang, "blends.gate.mix"),
+    game.step === "goal"
+      ? t(data.lang, "blends.game.goal.hint")
+      : game.step === "honey"
+        ? t(data.lang, "blends.gate.honey")
+        : game.step === "additives"
+          ? t(data.lang, "blends.gate.additives")
+          : t(data.lang, "blends.gate.mix"),
   );
 </script>
 
@@ -157,6 +162,13 @@
   </header>
 
   <main class="mx-auto max-w-5xl space-y-8 px-4 py-6">
+    <!-- STEP 0: choose a goal -->
+    {#if game.step === "goal"}
+      <section aria-label={t(data.lang, "blends.game.step.goal")}>
+        <GoalStep lang={data.lang} />
+      </section>
+    {/if}
+
     <!-- STEP 1: choose base honey -->
     {#if game.step === "honey"}
       <section>
@@ -316,7 +328,14 @@
 
       <!-- ingredient shelf -->
       <section>
-        <h2 class="headline mb-3 text-lg font-bold text-cocoa-900">{t(data.lang, "blends.section.additives")}</h2>
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="headline text-lg font-bold text-cocoa-900">{t(data.lang, "blends.section.additives")}</h2>
+          {#if game.recommendedAdditives.length > 0}
+            <span class="chip !m-0 bg-honey-500 text-cocoa-950" data-testid="rec-hint">
+              {t(data.lang, "blends.game.rec.hint")}
+            </span>
+          {/if}
+        </div>
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {#each ADDITIVE_KEYS as key (key)}
             {@const entry = additiveMap.get(key)}
@@ -341,6 +360,14 @@
                     loading="lazy"
                     draggable="false"
                   />
+                  {#if game.isRecommended(key)}
+                    <span
+                      class="absolute start-2 top-2 rounded-full bg-honey-500 px-2 py-0.5 text-[10px] font-extrabold text-cocoa-950 shadow-sm"
+                      data-testid={`rec-badge-${key}`}
+                    >
+                      {t(data.lang, "blends.game.rec.badge")}
+                    </span>
+                  {/if}
                   {#if selectedDoses.some((d) => d.key === key)}
                     <span
                       class="absolute end-2 top-2 rounded-full px-2 py-0.5 text-xs font-bold"

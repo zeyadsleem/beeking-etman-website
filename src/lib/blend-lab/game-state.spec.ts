@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vite-plus/test";
-import { ADDITIVE_KEYS, zeroDoses } from "$lib/blends";
+import { ADDITIVE_KEYS, BLEND_GOALS, zeroDoses, DOSE_FOR } from "$lib/blends";
 import { BlendsGame } from "./game-state.svelte";
+
+function presetFor(goalId: (typeof BLEND_GOALS)[number]["id"], jarSize: "half" | "full") {
+  const goal = BLEND_GOALS.find((g) => g.id === goalId)!;
+  const doses = zeroDoses();
+  for (const key of goal.recommended) doses[key] = DOSE_FOR[key][jarSize];
+  return doses;
+}
 
 describe("BlendsGame configurator", () => {
   it("starts empty with a full jar and quantity 1", () => {
     const g = new BlendsGame();
+    expect(g.goalId).toBeNull();
     expect(g.honeyId).toBeNull();
     expect(g.jarSize).toBe("full");
     expect(g.doses).toEqual(zeroDoses());
@@ -23,7 +31,27 @@ describe("BlendsGame configurator", () => {
     expect(g.isCompositionValid).toBe(true);
   });
 
-  it("setJarSize switches between half and full without touching doses", () => {
+  it("selectGoal applies the goal's recommended preset doses and exposes them", () => {
+    const g = new BlendsGame();
+    expect(g.recommendedAdditives).toEqual([]);
+    expect(g.isRecommended("royalJelly")).toBe(false);
+    g.selectGoal("vitality");
+    expect(g.goalId).toBe("vitality");
+    expect(g.recommendedAdditives).toEqual(["royalJelly", "ginseng", "palmPollen"]);
+    expect(g.isRecommended("royalJelly")).toBe(true);
+    expect(g.isRecommended("propolis")).toBe(false);
+    expect(g.doses).toEqual(presetFor("vitality", "full"));
+  });
+
+  it("clearing a goal resets doses to zero", () => {
+    const g = new BlendsGame();
+    g.selectGoal("vitality");
+    g.selectGoal(null);
+    expect(g.goalId).toBeNull();
+    expect(g.doses).toEqual(zeroDoses());
+  });
+
+  it("setJarSize keeps doses when no goal is active", () => {
     const g = new BlendsGame();
     g.selectHoney("sidr");
     g.addDose("royalJelly", 2);
@@ -33,6 +61,18 @@ describe("BlendsGame configurator", () => {
     g.setJarSize("full");
     expect(g.jarSize).toBe("full");
     expect(g.doses).toEqual(before);
+  });
+
+  it("setJarSize re-applies the goal's recommended doses", () => {
+    const g = new BlendsGame();
+    g.selectGoal("immunity");
+    const fullDoses = { ...g.doses };
+    g.setJarSize("half");
+    expect(g.jarSize).toBe("half");
+    expect(g.doses).toEqual(presetFor("immunity", "half"));
+    g.setJarSize("full");
+    expect(g.doses).toEqual(presetFor("immunity", "full"));
+    expect(g.doses).toEqual(fullDoses);
   });
 
   it("addDose accumulates without a cap and removeDose clamps at zero", () => {
@@ -69,16 +109,15 @@ describe("BlendsGame configurator", () => {
     expect(g.quantity).toBe(3);
   });
 
-  it("reset clears the honey, doses, mix progress and quantity but keeps the jar size", () => {
+  it("reset clears the goal, honey, doses, mix progress and quantity but keeps the jar size", () => {
     const g = new BlendsGame();
+    g.selectGoal("energy");
     g.selectHoney("sidr");
     g.setJarSize("half");
-    g.addDose("royalJelly", 2);
     g.recordStir(0.5);
-    g.next();
     g.setQuantity(4, 10);
     g.reset();
-    expect(g.step).toBe("honey");
+    expect(g.goalId).toBeNull();
     expect(g.honeyId).toBeNull();
     expect(g.jarSize).toBe("half");
     expect(g.doses).toEqual(zeroDoses());
@@ -92,44 +131,55 @@ describe("BlendsGame configurator", () => {
   });
 
   describe("gated step flow", () => {
-    it("starts on honey and cannot back from it", () => {
+    it("starts on goal and cannot back from it", () => {
       const g = new BlendsGame();
-      expect(g.step).toBe("honey");
+      expect(g.step).toBe("goal");
       expect(g.canBack).toBe(false);
-      // next is blocked until a honey is chosen
       g.next();
-      expect(g.step).toBe("honey");
+      expect(g.step).toBe("goal");
+      expect(g.canNext).toBe(false);
     });
 
-    it("advances honey -> additives only after a honey is selected", () => {
+    it("advances goal -> honey only after a goal is selected", () => {
       const g = new BlendsGame();
+      g.selectGoal("immunity");
+      expect(g.canNext).toBe(true);
+      g.next();
+      expect(g.step).toBe("honey");
+      expect(g.canBack).toBe(true);
+    });
+
+    it("does not advance past honey until a honey is selected", () => {
+      const g = new BlendsGame();
+      g.selectGoal("immunity");
+      g.next();
+      g.next();
+      expect(g.step).toBe("honey");
       g.selectHoney("clover");
       expect(g.canNext).toBe(true);
       g.next();
       expect(g.step).toBe("additives");
-      expect(g.canBack).toBe(true);
     });
 
-    it("advances additives -> mix only after at least one dose", () => {
+    it("advances additives -> mix once there is at least one dose", () => {
       const g = new BlendsGame();
+      g.selectGoal("immunity");
+      g.next();
       g.selectHoney("clover");
       g.next();
-      // no doses yet -> blocked
-      g.next();
-      expect(g.step).toBe("additives");
-      g.addDose("royalJelly");
+      expect(g.canNext).toBe(true);
       g.next();
       expect(g.step).toBe("mix");
     });
 
     it("mix requires completing the stir (mixProgress reaches 1)", () => {
       const g = new BlendsGame();
+      g.selectGoal("immunity");
+      g.next();
       g.selectHoney("clover");
       g.next();
-      g.addDose("royalJelly");
       g.next();
       expect(g.step).toBe("mix");
-      // not done yet -> cannot advance (and mix is the last step anyway)
       expect(g.isMixDone).toBe(false);
       expect(g.canNext).toBe(false);
       g.recordStir(0.6);
@@ -137,7 +187,6 @@ describe("BlendsGame configurator", () => {
       g.recordStir(0.4);
       expect(g.isMixDone).toBe(true);
       expect(g.canNext).toBe(true);
-      // mix is the final step; next() stays put
       g.next();
       expect(g.step).toBe("mix");
     });
@@ -155,19 +204,23 @@ describe("BlendsGame configurator", () => {
 
     it("back() returns to the previous step without resetting choices", () => {
       const g = new BlendsGame();
+      g.selectGoal("energy");
+      g.next();
       g.selectHoney("clover");
       g.next();
-      g.addDose("royalJelly");
       g.next();
       expect(g.step).toBe("mix");
       g.back();
       expect(g.step).toBe("additives");
-      expect(g.doses.royalJelly).toBe(1);
+      expect(g.doses.ginseng).toBeGreaterThan(0);
       g.back();
       expect(g.step).toBe("honey");
       expect(g.honeyId).toBe("clover");
       g.back();
-      expect(g.step).toBe("honey");
+      expect(g.step).toBe("goal");
+      expect(g.goalId).toBe("energy");
+      g.back();
+      expect(g.step).toBe("goal");
     });
   });
 });
