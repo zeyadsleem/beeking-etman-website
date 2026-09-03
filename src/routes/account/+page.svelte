@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LogOut from "@lucide/svelte/icons/log-out";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { t } from "$lib/i18n/messages";
@@ -40,13 +41,19 @@
 
   <section class="mt-6 rounded-2xl border border-cocoa-200 bg-parchment p-6">
     <h2 class="text-xl font-bold text-cocoa-800">{t(lang, "account.name")}</h2>
-    <form method="POST" action="?/updateName" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+    <form method="POST" action="?/updateName" class="mt-5 max-w-md">
+      <label class="field-label" for="account-name">{t(lang, "account.name")}</label>
       <input
-        class="w-full rounded-xl border border-cocoa-300 bg-white px-4 py-2.5"
+        id="account-name"
+        class="field mt-2"
         name="name" required minlength="2" maxlength="80" bind:value={name}
         aria-label={t(lang, "account.name")}
       />
-      <Button type="submit" variant="primary">{t(lang, "account.saveName")}</Button>
+      <div class="mt-3">
+        <Button type="submit" variant="primary" class="whitespace-nowrap">
+          {t(lang, "account.saveName")}
+        </Button>
+      </div>
     </form>
     {#if data.user.email !== undefined}
       <p class="mt-4 text-sm text-cocoa-600">
@@ -54,11 +61,22 @@
         <span class="block text-xs">{t(lang, "account.emailReadonly")}</span>
       </p>
     {/if}
-    {#if form?.nameSaved}<p class="mt-2 text-sm font-semibold text-honey-700">{t(lang, "account.nameSaved")}</p>{/if}
-    {#if form?.nameError}<p role="alert" class="mt-2 text-sm font-semibold text-red-700">{form.nameError}</p>{/if}
+    {#if form?.nameSaved}
+      <p class="mt-3 text-sm font-semibold text-honey-700">{t(lang, "account.nameSaved")}</p>
+    {/if}
+    {#if form?.nameError}
+      <p role="alert" class="mt-3 text-sm font-semibold text-red-700">{form.nameError}</p>
+    {/if}
   </section>
 
   <form method="POST" action="?/signOut" class="mt-8 mb-16">
-    <Button type="submit" variant="ghost">{t(lang, "account.signOut")}</Button>
+    <Button
+      type="submit"
+      variant="outline"
+      class="border-clay-300 text-clay-700 hover:border-clay-500 hover:bg-clay-50 hover:text-clay-900 dark:hover:bg-clay-950"
+    >
+      <LogOut class="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+      <span class="whitespace-nowrap">{t(lang, "account.signOut")}</span>
+    </Button>
   </form>
 </div>
