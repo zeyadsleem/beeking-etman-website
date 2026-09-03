@@ -10,6 +10,7 @@ import {
 import { t } from "$lib/i18n/messages";
 import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
+import type { UserRole } from "$lib/server/admin/roles";
 import type { Actions, PageServerLoad } from "./$types";
 
 const MAX_SAFE_INTEGER = 2 ** 53 - 1;
@@ -19,13 +20,23 @@ const pageParam = z.coerce
   .catch(1)
   .transform((value) => Math.min(Math.max(1, Math.trunc(value)), MAX_SAFE_INTEGER));
 
-const roleParam = z.enum(USER_ROLES);
+// Strict enum used by the setRole action, where a role must be present and
+// valid. The load falls back to "all roles" for absent/invalid values.
+const roleSchema = z.enum(USER_ROLES);
+
+function parseRoleFilter(raw: string | null): UserRole | null {
+  const parsed = roleSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
 
 export const load: PageServerLoad = async (event) => {
   const lang = getLang(event);
   const query = event.url.searchParams.get("q")?.trim() ?? "";
+  // Invalid role values fall back to "all roles" rather than rejecting the page.
+  const role = parseRoleFilter(event.url.searchParams.get("role"));
   const requestedPage = pageParam.parse(event.url.searchParams.get("page"));
-  const listAt = (p: number) => listUsers(db, { query: query === "" ? undefined : query, page: p });
+  const listAt = (p: number) =>
+    listUsers(db, { query: query === "" ? undefined : query, role, page: p });
 
   let { items, total } = await listAt(requestedPage);
   let page = requestedPage;
@@ -40,6 +51,7 @@ export const load: PageServerLoad = async (event) => {
     page,
     pageSize: USERS_PAGE_SIZE,
     query,
+    role: role ?? null,
     lang,
     canManage: isRoleManager(event.locals.user?.role),
   };
@@ -56,7 +68,7 @@ export const actions: Actions = {
     const form = await event.request.formData();
     const rawId = form.get("userId");
     const id = typeof rawId === "string" ? rawId.trim() : "";
-    const role = roleParam.safeParse(form.get("role"));
+    const role = roleSchema.safeParse(form.get("role"));
 
     if (id === "") return fail(400, { message: t(lang, "errors.unexpected") });
     if (!role.success) return fail(400, { message: t(lang, "admin.users.invalidRole") });

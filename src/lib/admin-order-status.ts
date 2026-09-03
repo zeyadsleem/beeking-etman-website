@@ -23,3 +23,12 @@ export const ADMIN_ORDER_STATUS_BADGE_CLASS: Record<OrderStatus, string> = {
   delivered: "bg-olive-100 text-olive-800",
   cancelled: "bg-clay-100 text-clay-800",
 };
+
+// Solid fills for the proportional status bar so segments read independently
+// of the soft badge tints above them.
+export const ADMIN_ORDER_STATUS_BAR_CLASS: Record<OrderStatus, string> = {
+  paid: "bg-honey-500",
+  shipped: "bg-cocoa-400",
+  delivered: "bg-olive-500",
+  cancelled: "bg-clay-500",
+};

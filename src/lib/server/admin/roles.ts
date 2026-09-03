@@ -46,10 +46,11 @@ function rowToUser(row: typeof schema.user.$inferSelect): AdminUserRow {
 
 export async function listUsers(
   db: LibSQLDatabase<typeof schema>,
-  opts?: { page?: number; query?: string },
+  opts?: { page?: number; query?: string; role?: UserRole | null },
 ): Promise<{ items: AdminUserRow[]; total: number }> {
   const page = Math.max(1, Math.trunc(opts?.page ?? 1));
   const needle = opts?.query?.trim() ?? "";
+  const role = opts?.role ?? null;
   const conditions: SQL[] = [];
   if (needle !== "") {
     const pattern = `%${needle.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
@@ -59,6 +60,9 @@ export async function listUsers(
         sql`${schema.user.name} LIKE ${pattern} ESCAPE '\\'`,
       )!,
     );
+  }
+  if (role !== null) {
+    conditions.push(eq(schema.user.role, role));
   }
   const where: SQL | undefined = conditions.length ? and(...conditions) : undefined;
 

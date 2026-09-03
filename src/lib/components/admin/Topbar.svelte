@@ -2,7 +2,6 @@
   import { page } from "$app/state";
   import LogOut from "@lucide/svelte/icons/log-out";
   import Menu from "@lucide/svelte/icons/menu";
-  import Logo from "$lib/components/Logo.svelte";
   import Button from "$lib/components/Button.svelte";
   import { t, type Lang, type MessageKey } from "$lib/i18n/messages";
 
@@ -51,7 +50,6 @@
   </button>
 
   <div class="flex min-w-0 items-center gap-2 text-sm">
-    <Logo alt={t(lang, "admin.shell.adminArea")} class="h-5 w-5 shrink-0" />
     <span class="truncate font-semibold text-cocoa-800">{crumb}</span>
   </div>
 

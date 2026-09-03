@@ -24,13 +24,26 @@
     }[tone],
   );
 
+  const toneBar = $derived(
+    {
+      honey: "bg-honey-500",
+      clay: "bg-clay-500",
+      olive: "bg-olive-500",
+      cocoa: "bg-cocoa-400",
+    }[tone],
+  );
+
   const Icon = $derived(icon);
 </script>
 
 <div
   class="group relative overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment p-5 shadow-warm-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-warm"
 >
-  <div class="flex items-start justify-between gap-3">
+  <span
+    class={`absolute inset-y-2 start-0 w-1 rounded-full ${toneBar}`}
+    aria-hidden="true"
+  ></span>
+  <div class="flex items-start justify-between gap-3 ps-2">
     <div class="min-w-0">
       <p class="truncate text-xs font-semibold tracking-wide text-cocoa-400">{label}</p>
       <p class="mt-1.5 truncate text-2xl font-extrabold text-cocoa-900" data-testid={valueTestId}>{value}</p>

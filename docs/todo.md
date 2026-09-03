@@ -1,9 +1,6 @@
 # Todo
 
-Ordered work items with status. The original storefront shipped under
-`docs/superpowers/plans/2026-08-12-honey-store.md`; the مملكة النحل redesign ran
-under `docs/superpowers/plans/2026-08-14-mamlakat-alnahl.md` (spec
-`docs/superpowers/specs/2026-08-14-mamlakat-alnahl-design.md`).
+Ordered work items with status.
 
 ## Roadmap (2026-08-25) — SUPERSEDED ORDERING 2026-09-02
 
@@ -167,7 +164,7 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 
 ## Shipped
 
-### Honey storefront (`2026-08-12-honey-store.md`)
+### Honey storefront
 
 - [x] Task 1 — Schema, auth tables, seed, DB scripts (`94bc959`)
 - [x] Task 2 — Currency + cart + checkout helpers (`e2b038d`)
@@ -183,7 +180,7 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] Task 10 — Auth pages + account orders (`22dd284`)
 - [x] Task 11 — E2E tests, docs, quality gate
 
-### مملكة النحل redesign (`2026-08-14-mamlakat-alnahl.md`)
+### مملكة النحل redesign
 
 - [x] Task 1 — Variant schema migration (`2003fe9`)
 - [x] Task 2 — Variant-keyed cart core, cookie, store (`421c7c9`)
@@ -270,7 +267,7 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] Unit + e2e coverage: cart/cookie/store/orders blend tests; `blends.e2e.ts`
       composes a blend end-to-end (goal → honey → mix → success → cart).
 
-### Customer account area (`2026-08-22-customer-account.md`)
+### Customer account area
 
 - [x] Task 1 — `store_address` table + migration 0007, no-FK per spec (`93e21f2`)
 - [x] Task 2 — Address service: 10-address cap, single default with atomic
@@ -281,12 +278,11 @@ redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
 - [x] Task 6 — Checkout saved-address picker + optional save-after-order (`69cac95`)
 - [x] Task 7 — E2E journey incl. IDOR negative; clean-run webServer chain (`e97fe7b`)
 
-### Blends game engine migration (`2026-08-25-blends-phaser-game`)
+### Blends game engine migration
 
 - [x] Threlte/Three.js 3D lab replaced by a single Phaser 3 game for every
       device (`Phaser.AUTO`: WebGL with automatic Canvas fallback) — no more
-      `?force2d` wizard fork; spec `docs/superpowers/specs/
-2026-08-25-blends-phaser-game-design.md`.
+      `?force2d` wizard fork.
 - [x] Procedural art only (Graphics + canvas textures); Threlte scene,
       fallback wizard, WebGL probe, and `static/hdr/studio.hdr` deleted;
       three/@threlte deps removed.

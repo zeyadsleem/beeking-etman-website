@@ -1,15 +1,18 @@
 <script lang="ts">
   import {
     ADMIN_ORDER_STATUS_BADGE_CLASS,
+    ADMIN_ORDER_STATUS_BAR_CLASS,
     ADMIN_ORDER_STATUS_LABEL_KEY,
     STATUS_ORDER,
   } from "$lib/admin-order-status";
   import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
+  import CalendarDays from "@lucide/svelte/icons/calendar-days";
   import CircleDollarSign from "@lucide/svelte/icons/circle-dollar-sign";
   import PackageSearch from "@lucide/svelte/icons/package-search";
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import Trophy from "@lucide/svelte/icons/trophy";
   import Users from "@lucide/svelte/icons/users";
   import PageHeader from "$lib/components/admin/PageHeader.svelte";
   import StatCard from "$lib/components/admin/StatCard.svelte";
@@ -24,6 +27,11 @@
   let { data }: { data: Pick<PageData, "stats" | "lang"> } = $props();
   const lang = $derived(data.lang);
   const stats = $derived(data.stats);
+
+  // Stock is low when a variant holds at most this many units; must mirror
+  // LOW_STOCK_THRESHOLD in $lib/server/admin/stats.ts (kept inline because
+  // that module pulls drizzle into the client bundle).
+  const lowStockThreshold = 5;
 
   // dailySeries days are Cairo calendar keys ("YYYY-MM-DD"); format them
   // using the browser locale so the display is always correct.
@@ -56,6 +64,11 @@
   );
 
   const lowStockCount = $derived(stats.lowStock.length);
+
+  // Total orders across all statuses, used to size the stacked status bar.
+  const statusTotal = $derived(
+    STATUS_ORDER.reduce((acc, status) => acc + (stats.kpis.byStatus[status] ?? 0), 0),
+  );
 </script>
 
 <svelte:head>
@@ -112,12 +125,31 @@
       </span>
     {/each}
   </div>
+  {#if statusTotal > 0}
+    <div
+      class="mt-5 flex h-2.5 w-full overflow-hidden rounded-full bg-cocoa-100"
+      role="img"
+      data-testid="status-stack-bar"
+    >
+      {#each STATUS_ORDER as status (status)}
+        {#if (stats.kpis.byStatus[status] ?? 0) > 0}
+          <span
+            data-testid={`status-stack-${status}`}
+            class="h-full transition-all duration-300 hover:opacity-80"
+            style="width: {((stats.kpis.byStatus[status] ?? 0) / statusTotal) * 100}%;"
+            class:bg={ADMIN_ORDER_STATUS_BAR_CLASS[status]}
+          ></span>
+        {/if}
+      {/each}
+    </div>
+  {/if}
 </section>
 
 <div class="mt-8 grid gap-6 lg:grid-cols-2">
   <section class="rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
     <div class="flex items-center justify-between border-b border-cocoa-100 px-5 py-4">
-      <h2 class="text-sm font-bold text-cocoa-700" data-testid="series-heading">
+      <h2 class="flex items-center gap-2 text-sm font-bold text-cocoa-700" data-testid="series-heading">
+        <CalendarDays class="h-4 w-4 text-honey-600" aria-hidden="true" />
         {t(lang, "admin.stats.last30Days")}
       </h2>
     </div>
@@ -130,18 +162,20 @@
         />
       </div>
     {:else}
-      <div class="overflow-x-auto">
+      <div class="max-h-[26rem] overflow-y-auto" data-testid="series-scroll">
         <table class="w-full text-sm" data-testid="series-table">
           <thead>
-            <tr class="text-xs font-semibold uppercase text-cocoa-400">
+            <tr class="sticky top-0 bg-parchment text-xs font-semibold uppercase text-cocoa-400">
               <th scope="col" class="px-5 py-3 text-start">{t(lang, "admin.stats.day")}</th>
               <th scope="col" class="px-5 py-3 text-start">{t(lang, "admin.stats.orders")}</th>
               <th scope="col" class="px-5 py-3 text-start">{t(lang, "admin.stats.revenue")}</th>
             </tr>
           </thead>
           <tbody>
-            {#each stats.dailySeries as entry (entry.day)}
-              <tr class="border-t border-cocoa-100 transition-colors hover:bg-cocoa-50/40">
+            {#each stats.dailySeries as entry, i (entry.day)}
+              <tr
+                class="border-t border-cocoa-100 transition-colors {i % 2 === 0 ? 'bg-parchment' : 'bg-cocoa-50/40'} hover:bg-honey-50/40"
+              >
                 <td class="px-5 py-2.5 text-cocoa-700">{formatDate(lang, seriesDay(entry.day))}</td>
                 <td class="px-5 py-2.5 text-cocoa-700">{entry.orders}</td>
                 <td class="px-5 py-2.5 font-medium text-cocoa-800">
@@ -157,7 +191,10 @@
 
   <section class="rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
     <div class="border-b border-cocoa-100 px-5 py-4">
-      <h2 class="text-sm font-bold text-cocoa-700">{t(lang, "admin.stats.topProducts")}</h2>
+      <h2 class="flex items-center gap-2 text-sm font-bold text-cocoa-700">
+        <Trophy class="h-4 w-4 text-honey-600" aria-hidden="true" />
+        {t(lang, "admin.stats.topProducts")}
+      </h2>
     </div>
     {#if stats.topProducts.length === 0}
       <div class="p-5">
@@ -171,15 +208,17 @@
       <div class="overflow-x-auto">
         <table class="w-full text-sm" data-testid="top-products-table">
           <thead>
-            <tr class="text-xs font-semibold uppercase text-cocoa-400">
+            <tr class="bg-parchment text-xs font-semibold uppercase text-cocoa-400">
               <th scope="col" class="px-5 py-3 text-start">{t(lang, "admin.products.name")}</th>
               <th scope="col" class="px-5 py-3 text-start">{t(lang, "admin.stats.quantity")}</th>
               <th scope="col" class="px-5 py-3 text-start">{t(lang, "admin.stats.revenue")}</th>
             </tr>
           </thead>
           <tbody>
-            {#each stats.topProducts as row (row.name)}
-              <tr class="border-t border-cocoa-100 transition-colors hover:bg-cocoa-50/40">
+            {#each stats.topProducts as row, i (row.name)}
+              <tr
+                class="border-t border-cocoa-100 transition-colors {i % 2 === 0 ? 'bg-parchment' : 'bg-cocoa-50/40'} hover:bg-honey-50/40"
+              >
                 <td class="px-5 py-2.5 font-medium text-cocoa-800">{row.name}</td>
                 <td class="px-5 py-2.5 text-cocoa-700">{row.quantity}</td>
                 <td class="px-5 py-2.5 font-medium text-cocoa-800">
@@ -218,21 +257,36 @@
   {:else}
     <ul class="divide-y divide-cocoa-100">
       {#each stats.lowStock as row (row.productId + ":" + row.variantName)}
-        <li>
+        <li class="relative">
+          <span class="absolute inset-y-2 start-0 w-1 rounded-full bg-clay-500" aria-hidden="true"></span>
           <a
             href={`/admin/products/${row.productId}`}
             data-testid="low-stock-link"
-            class="group flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-clay-50/40"
+            class="group flex items-center justify-between gap-4 ps-4 px-5 py-3.5 transition-colors hover:bg-clay-50/40"
           >
             <span class="flex min-w-0 items-center gap-3">
               <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-clay-50 text-clay-600">
                 <AlertTriangle class="h-4 w-4" aria-hidden="true" />
               </span>
-              <span class="truncate font-medium text-cocoa-800">
-                {row.productName} · {row.variantName}
+              <span class="min-w-0">
+                <span class="block truncate font-medium text-cocoa-800">
+                  {row.productName} · {row.variantName}
+                </span>
+                <span class="mt-1 flex max-w-[160px] items-center gap-2">
+                  <span
+                    class="h-1.5 w-full overflow-hidden rounded-full bg-cocoa-100"
+                    role="img"
+                    data-testid="low-stock-bar"
+                  >
+                    <span
+                      class="block h-full rounded-full bg-clay-500"
+                      style="width: {Math.max(4, Math.min(100, (row.stock / lowStockThreshold) * 100))}%;"
+                    ></span>
+                  </span>
+                </span>
               </span>
             </span>
-            <span class="flex items-center gap-2 text-sm">
+            <span class="flex shrink-0 items-center gap-2 text-sm">
               <span class="text-cocoa-500">{t(lang, "admin.stats.quantity")}:</span>
               <span class="rounded-full bg-clay-100 px-2 py-0.5 font-bold text-clay-700">
                 {row.stock}

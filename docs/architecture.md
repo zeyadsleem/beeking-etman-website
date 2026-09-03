@@ -1,8 +1,6 @@
 # Architecture
 
-Living description of the honey storefront system. Implementation plan and
-design spec: `docs/superpowers/plans/2026-08-12-honey-store.md` and
-`docs/superpowers/specs/2026-08-12-honey-store-design.md`.
+Living description of the honey storefront system.
 
 ## Stack
 

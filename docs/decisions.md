@@ -1058,9 +1058,7 @@ pooling latency tradeoff); no effort is spent on it now.
 separate DOM fallback wizard for no-WebGL devices (`?force2d=1`). Two parallel
 experiences doubled maintenance, the 3D path needed a 1.5 MB HDR asset and a
 heavy three.js dependency graph, and e2e coverage had to drive raw canvas pixel
-coordinates. A rebuild was specced
-(`docs/superpowers/specs/2026-08-25-blends-phaser-game-design.md`) and executed
-task-by-task on this branch.
+coordinates. A rebuild was executed task-by-task on this branch.
 
 **Decision:**
 
