@@ -58,9 +58,10 @@ jobs:
     name: Playwright E2E (chromium)
     needs: [test]
     runs-on: ubuntu-latest
-    # Full client + server suite + isolated miniflare D1 spin-up; well under
-    # 30 minutes on a healthy runner but with headroom for cold starts.
-    timeout-minutes: 30
+    # Full serialized suite ran ~17min locally; CI runners are slower and
+    # failed tests retried twice can chain, so budget generously and rely on
+    # the per-test timeout rather than the job timeout as the real guard.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

@@ -54,4 +54,5 @@ export default defineConfig({
   // interactions until the server (and a reload) return.
   timeout: 120_000,
   expect: { timeout: 10_000 },
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
 });
