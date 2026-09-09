@@ -24,7 +24,6 @@ vi.mock("$lib/server/db", () => ({
 }));
 
 const DB_FILE = "admin-dashboard-page-test.db";
-const DAY_MS = 86_400_000;
 
 let client: ReturnType<typeof createClient> | null = null;
 let testDb: LibSQLDatabase<typeof schema> | null = null;
@@ -193,9 +192,14 @@ async function seedItem(
   });
 }
 
-/** UTC date key of today (the day containing `nowMs`). */
-function utcDayKey(ms: number): string {
-  return new Date(Math.floor(ms / DAY_MS) * DAY_MS).toISOString().slice(0, 10);
+/**
+ * Cairo calendar key of today with the reference instant anchored at Cairo
+ * noon — ~12h from any Cairo day boundary, so a midnight crossing between
+ * the anchor and the loader under test cannot change the reference day.
+ */
+function cairoNoonAnchor(): string {
+  const refDay = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
+  return refDay;
 }
 
 function fakeEvent(url: string, cookies: Record<string, string> = {}): PageServerLoadEvent {
@@ -229,7 +233,6 @@ beforeEach(() => {
 
 describe("admin dashboard page load", () => {
   it("returns the stats shape the dashboard consumes", async () => {
-    const nowMs = Date.now();
     const db = currentDb();
 
     const sidr = await seedProduct(db, "sidr");
@@ -253,7 +256,7 @@ describe("admin dashboard page load", () => {
     });
     expect(data.stats.dailySeries).toHaveLength(30);
     expect(data.stats.dailySeries[29]).toEqual({
-      day: utcDayKey(nowMs),
+      day: cairoNoonAnchor(),
       revenue: 120_00,
       orders: 2,
     });

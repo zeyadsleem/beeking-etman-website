@@ -182,6 +182,17 @@ async function seedItem(
   });
 }
 
+/**
+ * Epoch ms for Cairo noon on the Cairo day containing wall-clock now.
+ * Anchoring ~12h away from any Cairo day boundary means a midnight crossing
+ * between this capture and the code under test cannot change the reference
+ * day, so the suite is deterministic regardless of when CI runs.
+ */
+function cairoNoonAnchor(): number {
+  const refDay = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
+  return Date.parse(`${refDay}T12:00:00+02:00`);
+}
+
 /** Cairo calendar key of the day `days` before the Cairo day containing `nowMs`. */
 function dayKeyDaysAgo(days: number, nowMs: number): string {
   // Compute Cairo midnight for the reference day, then subtract days.
@@ -296,7 +307,7 @@ describe("getDashboardStats — kpis", () => {
 
 describe("getDashboardStats — dailySeries", () => {
   it("buckets the last 30 Cairo days ascending with zero-filled gaps", async () => {
-    const nowMs = Date.now();
+    const nowMs = cairoNoonAnchor();
     const db = await buildDb();
 
     // Today: one paid order.
@@ -371,7 +382,7 @@ describe("getDashboardStats — dailySeries", () => {
   });
 
   it("keeps the series zeroed when there are no orders", async () => {
-    const nowMs = Date.now();
+    const nowMs = cairoNoonAnchor();
     const db = await buildDb();
 
     const stats: DashboardStats = await getDashboardStats(db);
