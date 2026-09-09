@@ -80,8 +80,12 @@ jobs:
       # pages dev also needs the adapter's intermediate .svelte-kit/output
       # dir, which cannot travel through the build artifact).
       - run: pnpm run test:e2e
-      - name: Upload Playwright report + traces on failure
-        if: failure()
+      # if: always() so a job-timeout cancel still uploads the report; the
+      # list reporter defers error details to end-of-run, which a timeout
+      # would otherwise swallow.
+      - name: Upload Playwright report + traces
+        if: always()
+
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
