@@ -53,7 +53,7 @@ export async function waitForApp(page: Page, timeout = 45_000): Promise<void> {
   };
   try {
     await hydrate();
-  } catch (error) {
+  } catch {
     const deadline = Date.now() + RESTART_WINDOW_MS;
     for (;;) {
       await page.waitForTimeout(RESTART_BACKOFF_MS);
@@ -79,7 +79,10 @@ function isServerRestartError(error: unknown): boolean {
 }
 
 const RESTART_BACKOFF_MS = 2_000;
-const RESTART_WINDOW_MS = 120_000;
+// Must stay below the per-test timeout (90s in playwright.config.ts) so a
+// restart recovery always resolves — success or genuine error — within one
+// attempt instead of being cut off by the test timeout.
+const RESTART_WINDOW_MS = 60_000;
 
 /**
  * Navigates, retrying while the wrangler preview webServer is down.

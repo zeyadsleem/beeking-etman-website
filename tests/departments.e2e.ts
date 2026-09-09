@@ -7,31 +7,25 @@ test("navigating to /products?dept=honey shows honey products", async ({ page })
   await page.goto("/products?dept=honey", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 
-  // Honey department is the default; at least one product card should render.
-  const productCards = page.locator('a[href^="/products/"]');
+  // Honey department products live under canonical /honey/<category>/<slug> paths.
+  const productCards = page.locator('a[href^="/honey/"]');
   await expect(productCards.first()).toBeVisible();
   const count = await productCards.count();
   expect(count).toBeGreaterThan(0);
 });
 
-test("navigating to /products?dept=equipment shows empty state or equipment products", async ({
-  page,
-}) => {
+test("navigating to /products?dept=equipment shows equipment products", async ({ page }) => {
   await page.goto("/products?dept=equipment", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 
-  // Equipment department has no seeded products; the page should still load
-  // without errors and either show products or the empty-state placeholder.
+  // Equipment department is seeded with catalog products.
   const heading = page.getByRole("heading", { level: 1 });
   await expect(heading).toBeVisible();
 
-  const productCards = page.locator('a[href^="/products/"]');
+  const productCards = page.locator('a[href^="/equipment/"]');
+  await expect(productCards.first()).toBeVisible();
   const productCount = await productCards.count();
-
-  // Either equipment products exist or an empty-state message is shown.
-  if (productCount === 0) {
-    await expect(page.getByText("لا توجد منتجات")).toBeVisible();
-  }
+  expect(productCount).toBeGreaterThan(0);
 });
 
 test("clicking department tab updates URL to the selected department", async ({ page }) => {

@@ -30,7 +30,9 @@ function sqlString(value: string | number | null): string {
 function toUpserts(table: string, columns: string[], rows: Row[]): string[] {
   const colList = columns.join(", ");
   const updates = columns
-    .filter((c) => c !== "id")
+    .filter(
+      (c) => c !== "id" && !(table === "store_product" && ["price", "stock", "image"].includes(c)),
+    )
     .map((c) => `${c} = excluded.${c}`)
     .join(", ");
   return rows.map((row) => {
@@ -52,7 +54,7 @@ async function main(): Promise<void> {
       "SELECT id, name, name_en, slug, department, parent_id FROM store_category ORDER BY parent_id IS NOT NULL, id",
     ),
     client.execute(
-      `SELECT id, name, name_en, slug, description, description_en, price, stock, image,
+      `SELECT id, name, name_en, slug, description, description_en, 0 AS price, 0 AS stock, '' AS image,
               category_id, featured, created_at, department, sku, published, cost_price,
               weight_grams FROM store_product`,
     ),
@@ -71,12 +73,12 @@ async function main(): Promise<void> {
   const staleDeletes = [
     imageIds !== null ? `DELETE FROM store_product_image WHERE id NOT IN (${imageIds});` : null,
     variantIds !== null
-      ? `DELETE FROM store_product_variant WHERE id NOT IN (${variantIds});`
+      ? `DELETE FROM store_product_variant WHERE id NOT IN (${variantIds}) AND NOT EXISTS (SELECT 1 FROM store_order_item WHERE variant_id = store_product_variant.id) AND NOT EXISTS (SELECT 1 FROM store_stock_conversion WHERE variant_id = store_product_variant.id);`
       : null,
     // Products referenced by an existing order are kept: deleting them would
     // violate the store_order_item foreign key and orphan customer history.
     prodIds !== null
-      ? `DELETE FROM store_product WHERE id NOT IN (${prodIds}) AND id NOT IN (SELECT DISTINCT product_id FROM store_order_item);`
+      ? `DELETE FROM store_product WHERE id NOT IN (${prodIds}) AND id NOT IN (SELECT DISTINCT product_id FROM store_order_item) AND id NOT IN (SELECT DISTINCT product_id FROM store_product_variant);`
       : null,
     `DELETE FROM store_category WHERE slug NOT IN (${catSlugs.join(", ")}) AND id NOT IN (SELECT DISTINCT category_id FROM store_product);`,
   ].filter((line): line is string => line !== null);
@@ -129,7 +131,7 @@ async function main(): Promise<void> {
       ["id", "product_id", "url", "sort_order"],
       images.rows as Row[],
     ),
-    `DELETE FROM store_product WHERE slug NOT IN (${prodSlugs.join(", ")}) AND id NOT IN (SELECT DISTINCT product_id FROM store_order_item);`,
+    `DELETE FROM store_product WHERE slug NOT IN (${prodSlugs.join(", ")}) AND id NOT IN (SELECT DISTINCT product_id FROM store_order_item) AND id NOT IN (SELECT DISTINCT product_id FROM store_product_variant);`,
     "",
   ];
 

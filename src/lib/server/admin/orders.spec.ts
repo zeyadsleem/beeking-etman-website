@@ -6,7 +6,7 @@ import { existsSync, unlinkSync } from "node:fs";
 // same guard as orders.spec.ts.
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
@@ -69,14 +69,48 @@ async function buildDb() {
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
       address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
+      status TEXT NOT NULL DEFAULT 'placed', payment_status TEXT NOT NULL DEFAULT 'simulated', stock_version TEXT NOT NULL DEFAULT 'legacy', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   await db.run(`
     CREATE TABLE store_order_item (
-      id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL, product_id TEXT NOT NULL,
+      id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL REFERENCES store_order(id),
+      product_id TEXT NOT NULL REFERENCES store_product(id),
+      variant_id TEXT REFERENCES store_product_variant(id),
       product_name TEXT NOT NULL, variant_name TEXT NOT NULL DEFAULT '',
-      quantity INTEGER NOT NULL, unit_price INTEGER NOT NULL
+      quantity INTEGER NOT NULL CHECK (quantity > 0), unit_price INTEGER NOT NULL CHECK (unit_price >= 0)
     )`);
+  await db.run(`
+    CREATE TRIGGER trg_order_item_reserve_stock
+    BEFORE INSERT ON store_order_item
+    WHEN (SELECT stock_version FROM store_order WHERE id = NEW.order_id) = 'atomic'
+    BEGIN
+      SELECT CASE
+        WHEN NEW.variant_id IS NULL THEN
+          RAISE(ABORT, 'MISSING_VARIANT_ID')
+      END;
+
+      UPDATE store_product_variant
+      SET stock = stock - NEW.quantity
+      WHERE id = NEW.variant_id AND stock >= NEW.quantity;
+
+      SELECT CASE
+        WHEN (SELECT changes()) = 0 THEN
+          RAISE(ABORT, 'OUT_OF_STOCK')
+      END;
+    END`);
+  await db.run(`
+    CREATE TRIGGER trg_order_status_cancel_restock
+    AFTER UPDATE OF status ON store_order
+    WHEN NEW.status = 'cancelled' AND OLD.status != 'cancelled' AND NEW.stock_version = 'atomic'
+    BEGIN
+      UPDATE store_product_variant
+      SET stock = stock + COALESCE((
+        SELECT SUM(quantity)
+        FROM store_order_item
+        WHERE order_id = NEW.id AND variant_id = store_product_variant.id
+      ), 0)
+      WHERE id IN (SELECT variant_id FROM store_order_item WHERE order_id = NEW.id AND variant_id IS NOT NULL);
+    END`);
   return db;
 }
 
@@ -126,9 +160,12 @@ async function seedProduct(
 
 let orderCounter = 0;
 
+// The DB column stores free text; legacy rows hold "paid".
+type StoredOrderStatus = OrderStatus | "paid";
+
 async function seedOrder(
   db: Awaited<ReturnType<typeof buildDb>>,
-  opts: { status?: OrderStatus; createdAt?: number } = {},
+  opts: { status?: StoredOrderStatus; createdAt?: number; stockVersion?: "legacy" | "atomic" } = {},
 ): Promise<string> {
   orderCounter += 1;
   const id = crypto.randomUUID();
@@ -141,7 +178,9 @@ async function seedOrder(
     address: "شارع 9",
     city: "القاهرة",
     total: 100_00,
-    status: opts.status ?? "paid",
+    status: opts.status ?? "placed",
+    paymentStatus: "simulated",
+    stockVersion: opts.stockVersion ?? "legacy",
     userId: null,
     createdAt: opts.createdAt ?? Date.now(),
   });
@@ -153,9 +192,20 @@ async function seedOrderItem(
   orderId: string,
   item: { productId: string; variantName: string; quantity: number },
 ): Promise<void> {
+  const variant = await db
+    .select({ id: schema.productVariant.id })
+    .from(schema.productVariant)
+    .where(
+      and(
+        eq(schema.productVariant.productId, item.productId),
+        eq(schema.productVariant.name, item.variantName),
+      ),
+    )
+    .get();
   await db.insert(schema.orderItem).values({
     orderId,
     productId: item.productId,
+    variantId: variant?.id ?? null,
     productName: "عسل سدر مصري",
     variantName: item.variantName,
     quantity: item.quantity,
@@ -179,7 +229,7 @@ afterAll(() => {
 
 describe("parseOrderStatus", () => {
   it("accepts the four lifecycle statuses", () => {
-    expect(parseOrderStatus("paid")).toBe("paid");
+    expect(parseOrderStatus("placed")).toBe("placed");
     expect(parseOrderStatus("shipped")).toBe("shipped");
     expect(parseOrderStatus("delivered")).toBe("delivered");
     expect(parseOrderStatus("cancelled")).toBe("cancelled");
@@ -190,11 +240,15 @@ describe("parseOrderStatus", () => {
     expect(parseOrderStatus("PAID")).toBeNull();
     expect(parseOrderStatus("")).toBeNull();
   });
+
+  it("maps legacy paid status to placed", () => {
+    expect(parseOrderStatus("paid")).toBe("placed");
+  });
 });
 
 describe("allowedTransitions", () => {
   it("returns exactly the forward-only matrix with terminal statuses empty", () => {
-    expect(allowedTransitions("paid")).toEqual(["shipped", "cancelled"]);
+    expect(allowedTransitions("placed")).toEqual(["shipped", "cancelled"]);
     expect(allowedTransitions("shipped")).toEqual(["delivered", "cancelled"]);
     expect(allowedTransitions("delivered")).toEqual([]);
     expect(allowedTransitions("cancelled")).toEqual([]);
@@ -231,7 +285,7 @@ describe("listOrders", () => {
 
   it("filters by status in both the page and the total count", async () => {
     const base = 1_700_000_000_000;
-    await seedOrder(db, { status: "paid", createdAt: base });
+    await seedOrder(db, { status: "placed", createdAt: base });
     const shippedA = await seedOrder(db, { status: "shipped", createdAt: base + 1_000 });
     const shippedB = await seedOrder(db, { status: "shipped", createdAt: base + 2_000 });
     await seedOrder(db, { status: "delivered", createdAt: base + 3_000 });
@@ -241,6 +295,17 @@ describe("listOrders", () => {
     expect(result.total).toBe(2);
     expect(result.items.map((o) => o.id)).toEqual([shippedB, shippedA]);
     expect(result.items.every((o) => o.status === "shipped")).toBe(true);
+  });
+
+  it("placed filter includes legacy paid rows", async () => {
+    const base = 1_700_000_000_000;
+    await seedOrder(db, { status: "placed", createdAt: base });
+    await seedOrder(db, { status: "paid", createdAt: base + 1_000 });
+    await seedOrder(db, { status: "shipped", createdAt: base + 2_000 });
+
+    const result = await listOrders(db, { status: "placed" });
+    expect(result.total).toBe(2);
+    expect(result.items.every((o) => o.status === "placed")).toBe(true);
   });
 
   it("maps full order fields onto AdminOrderRow", async () => {
@@ -255,7 +320,7 @@ describe("listOrders", () => {
       address: "شارع 9",
       city: "القاهرة",
       total: 100_00,
-      status: "paid",
+      status: "placed",
       createdAt: 1_700_000_000_000,
     });
   });
@@ -279,7 +344,7 @@ describe("getOrderWithItems", () => {
     const result = await getOrderWithItems(db, orderId);
     expect(result).not.toBeNull();
     if (!result) return;
-    expect(result.order).toMatchObject({ id: orderId, status: "paid", total: 100_00 });
+    expect(result.order).toMatchObject({ id: orderId, status: "placed", total: 100_00 });
     expect(result.items).toHaveLength(2);
     const byVariant = new Map(result.items.map((item) => [item.variantName, item]));
     expect(byVariant.get("250g")).toEqual({
@@ -304,7 +369,7 @@ describe("transitionOrderStatus", () => {
     db = await buildDb();
   });
 
-  it("transitions paid→shipped and persists", async () => {
+  it("transitions placed→shipped and persists", async () => {
     const orderId = await seedOrder(db);
     expect(await transitionOrderStatus(db, orderId, "shipped")).toEqual({ ok: true });
     const row = await db
@@ -326,7 +391,7 @@ describe("transitionOrderStatus", () => {
     expect(row?.status).toBe("delivered");
   });
 
-  it("rejects paid→delivered as invalid_transition", async () => {
+  it("rejects placed→delivered as invalid_transition", async () => {
     const orderId = await seedOrder(db);
     expect(await transitionOrderStatus(db, orderId, "delivered")).toEqual({
       ok: false,
@@ -356,7 +421,28 @@ describe("transitionOrderStatus", () => {
     });
   });
 
-  it("cancelling a paid order restores stock through the (productId, variantName) lookup", async () => {
+  it("does not cancel legacy orders with unresolved inventory snapshots", async () => {
+    const productId = await seedProduct(db, [{ name: "250g", stock: 2 }]);
+    const orderId = await seedOrder(db);
+    await db.insert(schema.orderItem).values({
+      orderId,
+      productId,
+      variantId: null,
+      productName: "Honey",
+      variantName: "Old size",
+      quantity: 1,
+      unitPrice: 10000,
+    });
+    expect(await transitionOrderStatus(db, orderId, "cancelled")).toEqual({
+      ok: false,
+      reason: "inventory_reconciliation_required",
+    });
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, orderId)).get();
+    expect(order?.status).toBe("placed");
+    expect((await variantStocks(db)).get("250g")).toBe(2);
+  });
+
+  it("cancelling a placed order restores stock through the variant_id snapshot", async () => {
     const productId = await seedProduct(db, [
       { name: "250g", stock: 0 },
       { name: "1kg", stock: 3 },
@@ -394,23 +480,18 @@ describe("transitionOrderStatus", () => {
 
   it("rejects a stale cancel that lost a concurrent race without restoring stock", async () => {
     const productId = await seedProduct(db, [
-      { name: "250g", stock: 0 },
+      { name: "250g", stock: 4 },
       { name: "1kg", stock: 3 },
     ]);
-    const orderId = await seedOrder(db);
+    const orderId = await seedOrder(db, { stockVersion: "atomic" });
     await seedOrderItem(db, orderId, { productId, variantName: "250g", quantity: 4 });
     await seedOrderItem(db, orderId, { productId, variantName: "1kg", quantity: 2 });
     // A concurrent admin cancels the order between our read and our guarded
-    // flip, completing their own restock; by the time our flip runs its WHERE
-    // clause matches nothing.
+    // flip; the atomic status flip fires the restock trigger, and by the time
+    // our flip runs its WHERE clause matches nothing.
     const originalBatch = db.batch.bind(db);
     vi.spyOn(db, "batch").mockImplementationOnce(async (statements) => {
       await db.run(sql`UPDATE store_order SET status = 'cancelled' WHERE id = ${orderId}`);
-      await db.run(
-        sql`UPDATE store_product_variant SET stock = stock + quantity
-            FROM (SELECT product_id, variant_name, quantity FROM store_order_item WHERE order_id = ${orderId}) AS item
-            WHERE store_product_variant.product_id = item.product_id AND store_product_variant.name = item.variant_name`,
-      );
       return originalBatch(statements);
     });
 
@@ -422,7 +503,7 @@ describe("transitionOrderStatus", () => {
     // The winner restocked exactly once; the loser restored nothing.
     const stocks = await variantStocks(db);
     expect(stocks.get("250g")).toBe(4);
-    expect(stocks.get("1kg")).toBe(5);
+    expect(stocks.get("1kg")).toBe(3);
     const row = await db
       .select({ status: schema.order.status })
       .from(schema.order)
@@ -431,23 +512,162 @@ describe("transitionOrderStatus", () => {
     expect(row?.status).toBe("cancelled");
   });
 
-  it("skips restock for a missing variant but still cancels and restocks the rest", async () => {
-    const warnSpy = vi.spyOn(console, "warn");
-    try {
-      const productId = await seedProduct(db, [{ name: "1kg", stock: 3 }]);
-      const orderId = await seedOrder(db);
-      await seedOrderItem(db, orderId, { productId, variantName: "gone", quantity: 7 });
-      await seedOrderItem(db, orderId, { productId, variantName: "1kg", quantity: 2 });
+  it("restocks after cancellation even when the variant name is renamed", async () => {
+    const productId = await seedProduct(db, [{ name: "250g", stock: 0 }]);
+    const orderId = await seedOrder(db);
+    await seedOrderItem(db, orderId, { productId, variantName: "250g", quantity: 4 });
+    await db
+      .update(schema.productVariant)
+      .set({ name: "250 جرام" })
+      .where(
+        and(eq(schema.productVariant.productId, productId), eq(schema.productVariant.name, "250g")),
+      );
 
-      expect(await transitionOrderStatus(db, orderId, "cancelled")).toEqual({ ok: true });
+    expect(await transitionOrderStatus(db, orderId, "cancelled")).toEqual({ ok: true });
 
-      const stocks = await variantStocks(db);
-      expect(stocks.get("1kg")).toBe(5);
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(warnSpy.mock.calls[0]?.[0]).toBe("[transitionOrderStatus] restock skipped");
-      expect(warnSpy.mock.calls[0]?.[1]).toEqual({ productId, variantName: "gone" });
-    } finally {
-      warnSpy.mockRestore();
-    }
+    const stocks = await variantStocks(db);
+    expect(stocks.get("250 جرام")).toBe(4);
+  });
+
+  it("restocks after cancellation when the stored snapshot uses the English variant name", async () => {
+    const productId = await seedProduct(db, [{ name: "1kg", stock: 1 }]);
+    const variant = await db
+      .select({ id: schema.productVariant.id, name: schema.productVariant.name })
+      .from(schema.productVariant)
+      .where(
+        and(eq(schema.productVariant.productId, productId), eq(schema.productVariant.name, "1kg")),
+      )
+      .get();
+    const orderId = await seedOrder(db);
+    await db.insert(schema.orderItem).values({
+      orderId,
+      productId,
+      variantId: variant?.id,
+      productName: "عسل سدر مصري",
+      variantName: "1 Kilogram",
+      quantity: 1,
+      unitPrice: 100_00,
+    });
+
+    expect(await transitionOrderStatus(db, orderId, "cancelled")).toEqual({ ok: true });
+
+    const stocks = await variantStocks(db);
+    expect(stocks.get("1kg")).toBe(2);
+  });
+
+  it("restocks blend additive units after cancellation using their variant_id snapshots", async () => {
+    const honeyProductId = await seedProduct(db, [{ name: "500g", stock: 0 }]);
+    const additiveProductId = await seedProduct(db, [{ name: "5g", stock: 0 }]);
+    const honeyVariant = await db
+      .select({ id: schema.productVariant.id })
+      .from(schema.productVariant)
+      .where(
+        and(
+          eq(schema.productVariant.productId, honeyProductId),
+          eq(schema.productVariant.name, "500g"),
+        ),
+      )
+      .get();
+    const additiveVariant = await db
+      .select({ id: schema.productVariant.id })
+      .from(schema.productVariant)
+      .where(
+        and(
+          eq(schema.productVariant.productId, additiveProductId),
+          eq(schema.productVariant.name, "5g"),
+        ),
+      )
+      .get();
+    const orderId = await seedOrder(db);
+    await db.insert(schema.orderItem).values({
+      orderId,
+      productId: honeyProductId,
+      variantId: honeyVariant?.id,
+      productName: "عسل سدر مصري",
+      variantName: "500 جرام",
+      quantity: 1,
+      unitPrice: 100_00,
+    });
+    await db.insert(schema.orderItem).values({
+      orderId,
+      productId: additiveProductId,
+      variantId: additiveVariant?.id,
+      productName: "غذاء ملكات",
+      variantName: "",
+      quantity: 2,
+      unitPrice: 50_00,
+    });
+
+    expect(await transitionOrderStatus(db, orderId, "cancelled")).toEqual({ ok: true });
+
+    const stocks = await variantStocks(db);
+    expect(stocks.get("500g")).toBe(1);
+    expect(stocks.get("5g")).toBe(2);
+  });
+
+  it("cancelling an atomic order restocks through the trigger", async () => {
+    const productId = await seedProduct(db, [
+      { name: "250g", stock: 4 },
+      { name: "1kg", stock: 3 },
+    ]);
+    const orderId = await seedOrder(db, { stockVersion: "atomic" });
+    await seedOrderItem(db, orderId, { productId, variantName: "250g", quantity: 4 });
+    await seedOrderItem(db, orderId, { productId, variantName: "1kg", quantity: 2 });
+
+    expect(await transitionOrderStatus(db, orderId, "cancelled")).toEqual({ ok: true });
+
+    const stocks = await variantStocks(db);
+    expect(stocks.get("250g")).toBe(4);
+    expect(stocks.get("1kg")).toBe(3);
+  });
+
+  it("legacy orders do not trigger stock reservation on direct item insert", async () => {
+    const productId = await seedProduct(db, [{ name: "250g", stock: 4 }]);
+    const orderId = await seedOrder(db, { stockVersion: "legacy" });
+    const variant = await db
+      .select({ id: schema.productVariant.id })
+      .from(schema.productVariant)
+      .where(
+        and(eq(schema.productVariant.productId, productId), eq(schema.productVariant.name, "250g")),
+      )
+      .get();
+
+    await db.insert(schema.orderItem).values({
+      orderId,
+      productId,
+      variantId: variant?.id,
+      productName: "عسل سدر مصري",
+      variantName: "250g",
+      quantity: 4,
+      unitPrice: 100_00,
+    });
+
+    const stocks = await variantStocks(db);
+    expect(stocks.get("250g")).toBe(4);
+  });
+
+  it("atomic orders reserve stock on direct item insert", async () => {
+    const productId = await seedProduct(db, [{ name: "250g", stock: 4 }]);
+    const orderId = await seedOrder(db, { stockVersion: "atomic" });
+    const variant = await db
+      .select({ id: schema.productVariant.id })
+      .from(schema.productVariant)
+      .where(
+        and(eq(schema.productVariant.productId, productId), eq(schema.productVariant.name, "250g")),
+      )
+      .get();
+
+    await db.insert(schema.orderItem).values({
+      orderId,
+      productId,
+      variantId: variant?.id,
+      productName: "عسل سدر مصري",
+      variantName: "250g",
+      quantity: 4,
+      unitPrice: 100_00,
+    });
+
+    const stocks = await variantStocks(db);
+    expect(stocks.get("250g")).toBe(0);
   });
 });

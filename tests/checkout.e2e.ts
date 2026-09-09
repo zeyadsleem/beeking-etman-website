@@ -8,7 +8,7 @@ test.use({ locale: "ar-EG" });
  * Waits for the cart cookie POST to complete before navigating.
  */
 async function goToCheckout(page: import("@playwright/test").Page): Promise<void> {
-  await page.goto("/products/sidr-honey-1kg", { waitUntil: "domcontentloaded" });
+  await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   await page.waitForResponse(
@@ -47,11 +47,13 @@ test("checkout rejects invalid phone number format", async ({ page }) => {
 test("checkout rejects invalid email format", async ({ page }) => {
   await goToCheckout(page);
 
-  await page.getByLabel("الاسم بالكامل").fill("أحمد تجريبي");
+  await page.getByLabel("الاسم بالكامل").fill("أحمد محمد تجريبي");
   await page.getByLabel("البريد الإلكتروني").fill("not-an-email");
   await page.getByLabel("رقم الهاتف").fill("01012345678");
   await page.getByLabel("المدينة").fill("القاهرة");
   await page.getByLabel("العنوان بالتفصيل").fill("شارع تجريبي");
+
+  await page.locator('input[name="email"]').evaluate((el) => el.setAttribute("type", "text"));
 
   await page.getByRole("button", { name: "تأكيد الطلب" }).click();
 

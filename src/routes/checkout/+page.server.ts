@@ -3,6 +3,7 @@ import { env } from "$env/dynamic/private";
 import { db } from "$lib/server/db";
 import { clearCartCookie, getCartSecret, readCartCookie } from "$lib/server/cart-cookie";
 import { getOrderAccessSecret, setOrderAccessCookie } from "$lib/server/order-access";
+import { issueCheckoutNonce, verifyCheckoutNonce } from "$lib/server/checkout-nonce";
 import { createCheckoutSchema, formatZodErrors } from "$lib/server/checkout-schema";
 import { createAddress, listAddressSummaries } from "$lib/server/addresses";
 import { createOrder } from "$lib/server/orders";
@@ -24,7 +25,7 @@ export type CheckoutFail = {
 
 export const load: PageServerLoad = async (event) => {
   const lang = getLang(event);
-  const nonce = crypto.randomUUID();
+  event.setHeaders({ "cache-control": "private, no-store" });
   const lines = readCartCookie(event.cookies, getCartSecret(env));
   if (lines.length === 0) redirect(302, "/cart");
   const { items, missing } = await resolveCartItems(db, lines, lang);
@@ -34,7 +35,7 @@ export const load: PageServerLoad = async (event) => {
     savedAddresses = await listAddressSummaries(db, event.locals.user.id);
   }
   return {
-    nonce,
+    nonce: await issueCheckoutNonce(event.cookies, getOrderAccessSecret(env)),
     items,
     missingVariantIds: missing,
     totals: computeTotals(items),
@@ -64,12 +65,15 @@ export const actions: Actions = {
       } satisfies CheckoutFail);
     }
 
-    const lines = readCartCookie(cookies, getCartSecret(env));
-    if (lines.length === 0) {
-      const errors: Record<string, string> = { cart: t(lang, "checkout.cartEmpty") };
-      return fail(400, { errors, values: form } satisfies CheckoutFail);
+    if (!(await verifyCheckoutNonce(cookies, parsed.data.nonce, getOrderAccessSecret(env)))) {
+      const errors: Record<string, string> = { cart: t(lang, "schema.nonce") };
+      return fail(403, {
+        errors,
+        values: form,
+      } satisfies CheckoutFail);
     }
 
+    const lines = readCartCookie(cookies, getCartSecret(env));
     const result = await createOrder(
       db,
       lines,
@@ -87,11 +91,16 @@ export const actions: Actions = {
     );
 
     if (!result.ok) {
-      const errors: Record<string, string> = { cart: result.message };
+      const errors: Record<string, string> = {
+        cart: lines.length === 0 ? t(lang, "checkout.cartEmpty") : result.message,
+      };
       return fail(409, { errors, values: form } satisfies CheckoutFail);
     }
 
     await setOrderAccessCookie(cookies, result.orderId, getOrderAccessSecret(env));
+    if (result.outcome === "replayed") {
+      redirect(303, `/checkout/success/${result.orderId}?replayed=1`);
+    }
     clearCartCookie(cookies);
     if (locals.user && form.saveAddress === "on") {
       // Best-effort only: a thrown DB error here must never surface as a

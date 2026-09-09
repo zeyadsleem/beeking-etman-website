@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
@@ -38,7 +38,11 @@ export const GET: RequestHandler = async (event) => {
   const statusFilter = statusParam ? parseOrderStatus(statusParam) : null;
   if (statusParam && !statusFilter) error(400, "Invalid status");
 
-  const where = statusFilter ? eq(schema.order.status, statusFilter) : undefined;
+  const where = statusFilter
+    ? statusFilter === "placed"
+      ? inArray(schema.order.status, ["placed", "paid"])
+      : eq(schema.order.status, statusFilter)
+    : undefined;
 
   // Fetch all matching orders (admin volume — small table)
   const orders = await db
@@ -83,7 +87,7 @@ export const GET: RequestHandler = async (event) => {
   ];
 
   const statusLabels: Record<string, string> = {
-    paid: "مدفوع",
+    placed: "تم الطلب",
     shipped: "تم الشحن",
     delivered: "تم التسليم",
     cancelled: "ملغي",

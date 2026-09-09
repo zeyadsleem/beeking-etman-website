@@ -45,7 +45,13 @@ BlendCartItem`, so a composed blend rides the cart as one line
   `SQLITE_BUSY_RETRIES`, `sleep`.
 - `src/lib/server/checkout-schema.ts` — zod schema factory
   `createCheckoutSchema(lang)` (nonce, name, email, Egyptian phone, city,
-  address, mock card fields with a past-date expiry check); messages via i18n.
+  governorate, address); messages via i18n. Card fields are deliberately
+  absent — payment is simulated out of PCI scope.
+- `src/lib/server/checkout-nonce.ts` — per-checkout nonce proof cookies
+  (`honey_checkout_<nonce>`): the load action issues a signed, expiring
+  HttpOnly cookie bound to each nonce, and the submit action refuses any
+  nonce the caller cannot prove. Keeps the count bounded (8) and makes a
+  copied guest nonce worthless to a third party.
 - `src/lib/server/env.ts` — production boot validation of `BETTER_AUTH_SECRET`
   and `ORDER_ACCESS_SECRET` (both length ≥ 32), `ORIGIN`, and well-formedness
   of the optional var `ADMIN_EMAIL` (plausible email); imported first by
@@ -55,11 +61,19 @@ BlendCartItem`, so a composed blend rides the cart as one line
   (`newest`/`price-asc`/`price-desc` via a `MIN(price)` variant subquery), and
   paged listing (`listProductsPage` → `{ products, total, page, pageSize,
 totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
-- `src/lib/server/orders.ts` — transactional order service with mock payment
-  (`createOrder`, `generateOrderNumber` → `HNY-######`); idempotent per nonce;
-  retries order-number collisions with a fresh number; messages localized per
-  `lang`. Expands each blend line into base-honey + additive order units
-  (per-variant stock decrement, per-unit `store_order_item` rows).
+- `src/lib/server/orders.ts` — transactional order service (`createOrder`,
+  `generateOrderNumber` → `HNY-######`); idempotent per nonce (proof-cookie
+  verified at the route, ownership-checked on replay); retries order-number
+  collisions with a fresh number; messages localized per `lang`. Expands each
+  blend line into base-honey + additive order units (per-variant
+  `store_order_item` rows with a `variant_id` snapshot). Stock reservation and
+  cancel-restock live in the `0016` database triggers, gated per order on
+  `stock_version`: new orders write `stock_version = 'atomic'` and rely on the
+  triggers (`OUT_OF_STOCK` aborts the whole insert batch); legacy orders keep
+  `stock_version = 'legacy'` and are restocked by guarded service SQL, so
+  overlapping old/new app versions never double-adjust stock. New orders are
+  `status = 'placed'`, `payment_status = 'simulated'`; legacy `paid` rows map
+  to `placed` for display via `parseOrderStatus`.
 - `src/lib/server/addresses.ts` — per-user saved-address service
   (`addressSchema(lang)` + `listAddresses`/`listAddressSummaries`/
   `getDefaultAddress`/`createAddress`/`updateAddress`/`setDefaultAddress`/
@@ -84,7 +98,17 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   (saved-address CRUD), `/account/orders` + `/account/orders/[id]`
   (ownership-gated detail), `/media/[...key]` (product
   images served from the MEDIA KV namespace), `/api/cart`, `/api/health`,
-  `/api/lang`.
+  `/api/lang`, `/api/rpc/[...rest]` (oRPC endpoint — see "oRPC boundary"
+  below).
+- oRPC boundary: search suggestions are a contract-first oRPC procedure
+  (`src/lib/features/search/`: `contract.ts` (zod input 2–100 chars, typed
+  output, `TOO_MANY_REQUESTS` error), `router.ts` (rate-limited
+  implementation reusing the store queries), `client.ts` (typed
+  `ContractRouterClient`)), mounted request-scoped at
+  `src/routes/api/rpc/[...rest]/+server.ts` via `RPCHandler`. The storefront
+  `SearchSuggestions` component consumes the typed client. This is the
+  template for future contract-first capabilities; SvelteKit server actions
+  remain the transport for form flows where they are simpler.
 
 ## Data model
 
@@ -96,10 +120,16 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
 - `store_product_fts` — FTS5 virtual table mirroring product name/description,
   kept in sync by triggers, searched with `MATCH` prefix tokens.
 - `store_order` — orders (number, nullable unique nonce, customer fields,
-  total in qirsh, status, nullable `user_id`, created-at). `nonce` makes
-  creation idempotent per checkout attempt.
-- `store_order_item` — line items (order ref, product ref, name, `variant_name`,
-  quantity, unit price in qirsh).
+  governorate, persisted `shipping_cost` and total in qirsh, `status`
+  (lifecycle vocabulary in `src/lib/admin-order-status.ts`), `payment_status`
+  (`simulated` until a real gateway lands), `stock_version`
+  (`atomic`/`legacy` — gates which component owns stock adjustment), nullable
+  `user_id`, created-at). `nonce` makes creation idempotent per checkout
+  attempt; the nonce is provable only by the checkout session that received it.
+- `store_order_item` — line items (order ref, product ref, `variant_id`
+  snapshot with an FK, name, `variant_name`, quantity > 0, unit price ≥ 0 in
+  qirsh). The `variant_id` snapshot makes cancellation restock and inventory
+  reconciliation name-independent.
 - `store_address` — saved shipping addresses per user (`user_id` not null with
   an index, deliberately **no FK** — mirrors `store_order.user_id`; deletion of
   auth users never blocks), label, recipient name, phone, city, address
@@ -132,13 +162,20 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   cookie cart lines in the active language so client-side cart names refresh.
   `formatEGP(amount, lang)` in `src/lib/currency.ts` formats prices with
   `ar-EG` (Arabic-Indic digits) or `en-US` (Western digits + `EGP`).
-- Checkout resolves cart lines to variant items via `resolveCartItems`, then
-  runs in a Drizzle transaction: re-reads variant stock, decrements with a
-  stock guard, inserts order + items (with `variant_name`), mocks payment
-  (`status = "paid"`). A failed payment leaves the cart intact. Order creation
-  is idempotent per nonce: `createOrder` pre-checks the nonce and re-checks on
-  a UNIQUE violation, so a replayed submit returns the existing order instead
-  of duplicating it.
+- Checkout resolves cart lines to variant items via
+  `loadVariantSnapshots`/`validateCart` (server re-prices from the DB), then
+  inserts order + items in one Drizzle batch; the `0016` triggers decrement
+  variant stock inside that batch and abort it entirely on any shortage, so
+  stock can never go negative and a failed checkout leaves no partial state.
+  New orders are `status = "placed"`, `payment_status = "simulated"` — no
+  order is ever marked genuinely paid until a real gateway exists. Order
+  creation is idempotent per nonce: `createOrder` pre-checks the nonce and
+  re-checks on a UNIQUE violation, so a replayed submit returns the existing
+  order instead of duplicating it; replays re-mint the access cookie but skip
+  cart-clearing, address saving, and the confirmation email.
+- The submit action verifies a signed, expiring nonce-proof cookie before
+  calling the order service, so a nonce observed by a third party (logs,
+  shared screen) cannot create or replay an order.
 - Checkout failure never echoes card data; success page is `private, no-store`.
 - Auth rate limiting is DB-backed (`store_rate_limit`, fixed window); the
   limiter guards both the login/register form actions and Better Auth's JSON
@@ -160,8 +197,14 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   variants and image upload, and category CRUD.
 - Services live under `src/lib/server/admin/`: `bootstrap` (`ADMIN_EMAIL`
   promotion of the matching sign-in email), `categories`, `orders` (lifecycle
-  transition table + flip-first conditional update + restock), `products`,
-  `product-form`, `stats`, `upload` (magic-byte image validation → Workers KV).
+  transition table + flip-first conditional update; restock is either the
+  atomic trigger or guarded legacy SQL keyed on `stock_version`), `products`,
+  `product-form`, `inventory` (warehouses, batches, conversions, transfers),
+  `stats`, `upload` (magic-byte image validation → Workers KV). Order-status
+  vocabulary and allowed transitions have a single browser-safe source in
+  `src/lib/admin-order-status.ts`, shared by customer pages, admin UI, and the
+  server. Invoices render the stored `shipping_cost` snapshot, never today's
+  shipping policy.
 - Media: a Workers KV namespace is bound as `MEDIA` in `wrangler.jsonc`;
   uploads are stored at `products/<uuid>.<ext>` and persisted as RELATIVE
   `/media/products/<uuid>.<ext>` urls. The serving route
@@ -184,9 +227,16 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
 - Migrations applied via `wrangler d1 migrations apply beeking` (remote) or
   `--local` (dev). Seed via `wrangler d1 execute beeking --file=d1-seed.sql`.
 - Compatibility flags: `nodejs_als` (required) + `nodejs_compat` (HMAC crypto).
-- CI (`.github/workflows/ci.yml`) runs check + unit + build, then gated e2e
-  against `wrangler pages dev`. Deploy job uses `cloudflare/wrangler-action@v3`
-  to push to Pages on merge to `main`.
+- CI (`.github/workflows/ci.yml`) is the single production deploy owner: the
+  `test` job runs check + unit + migration replay + build and uploads the
+  Cloudflare build artifact; the `e2e` job downloads that exact artifact and
+  runs Playwright against it (no rebuild drift); `migrate-production` applies
+  remote D1 migrations only after both pass; `deploy-production` deploys the
+  downloaded build to Pages. Both production jobs gate on the `production`
+  GitHub environment (required reviewers) and run only on pushes to `main`.
+  Concurrency is keyed per ref, so PRs never queue behind or cancel a
+  production deploy. `docs/production-runbook.md` covers the external setup
+  (disable the Pages Git integration, secrets, reviewers) and rollback.
 - Production boot validates `BETTER_AUTH_SECRET` and `ORDER_ACCESS_SECRET`
   (length ≥ 32), `ORIGIN`, and the shape of the optional `ADMIN_EMAIL` via
   `src/lib/server/env.ts`; dev stays lenient.

@@ -46,7 +46,7 @@ async function buildDb(): Promise<void> {
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
       address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
+      status TEXT NOT NULL DEFAULT 'placed', payment_status TEXT NOT NULL DEFAULT 'simulated', stock_version TEXT NOT NULL DEFAULT 'legacy', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   testDb = db;
   state.database = db;
@@ -74,7 +74,8 @@ async function seedOrder(
     address: "شارع 9",
     city: "القاهرة",
     total: 100_00,
-    status: opts.status ?? "paid",
+    status: opts.status ?? "placed",
+    paymentStatus: "simulated",
     userId: null,
     createdAt: opts.createdAt ?? Date.now(),
   });
@@ -167,7 +168,7 @@ describe("admin orders page load", () => {
   it("filters by a valid status in items and total", async () => {
     const base = 1_700_000_000_000;
     const db = currentDb();
-    await seedOrder(db, { status: "paid", createdAt: base });
+    await seedOrder(db, { status: "placed", createdAt: base });
     await seedOrder(db, { status: "shipped", createdAt: base + 1_000 });
     await seedOrder(db, { status: "delivered", createdAt: base + 2_000 });
 
@@ -181,7 +182,7 @@ describe("admin orders page load", () => {
   it("degrades an unknown status to the unfiltered list with status null", async () => {
     const base = 1_700_000_000_000;
     const db = currentDb();
-    await seedOrder(db, { status: "paid", createdAt: base });
+    await seedOrder(db, { status: "placed", createdAt: base });
     await seedOrder(db, { status: "cancelled", createdAt: base + 1_000 });
 
     const data = await load(fakeEvent("http://localhost/admin/orders?status=bogus"));

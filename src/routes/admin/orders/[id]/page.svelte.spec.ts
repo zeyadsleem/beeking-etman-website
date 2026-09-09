@@ -6,7 +6,7 @@ import type { AdminOrderItemRow, AdminOrderRow, OrderStatus } from "$lib/server/
 import type { ActionData } from "./$types";
 import OrderDetailPage from "./+page.svelte";
 
-const order: AdminOrderRow = {
+const order: AdminOrderRow & { shippingCost: number } = {
   id: "order-1",
   number: "HNY-000001",
   email: "a@example.com",
@@ -15,7 +15,8 @@ const order: AdminOrderRow = {
   address: "شارع 9",
   city: "القاهرة",
   total: 100_00,
-  status: "paid",
+  shippingCost: 0,
+  status: "placed",
   createdAt: Date.parse("2026-08-23T10:00:00Z"),
 };
 
@@ -32,7 +33,7 @@ const items: AdminOrderItemRow[] = [
 
 function detailData(transitions: readonly OrderStatus[]): {
   data: {
-    order: AdminOrderRow;
+    order: AdminOrderRow & { shippingCost: number };
     items: AdminOrderItemRow[];
     transitions: readonly OrderStatus[];
     lang: "ar";

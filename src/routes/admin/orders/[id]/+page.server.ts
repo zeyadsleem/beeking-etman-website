@@ -50,6 +50,14 @@ export const actions: Actions = {
     }
     if (!result.ok) {
       if (result.reason === "not_found") error(404, t(getLang(event), "order.notFound"));
+      if (result.reason === "inventory_reconciliation_required") {
+        return fail(409, {
+          message:
+            getLang(event) === "ar"
+              ? "يجب ربط أصناف هذا الطلب القديم بالمخزون قبل إلغائه. تواصل مع مسؤول النظام لمراجعة الأصناف."
+              : "This legacy order needs its inventory items reconciled before cancellation. Contact the system administrator.",
+        });
+      }
       return fail(409, { message: t(getLang(event), "admin.order.invalidTransition") });
     }
 

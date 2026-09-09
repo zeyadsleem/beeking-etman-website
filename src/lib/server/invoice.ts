@@ -1,4 +1,3 @@
-import { SHIPPING_COST, FREE_SHIPPING_THRESHOLD } from "$lib/cart";
 import { formatEGP } from "$lib/currency";
 
 interface InvoiceOrder {
@@ -10,6 +9,7 @@ interface InvoiceOrder {
   address: string;
   city: string;
   total: number;
+  shippingCost: number;
   status: string;
 }
 
@@ -30,8 +30,8 @@ function cairoDateTime(ms: number): string {
 
 function statusLabel(status: string): string {
   switch (status) {
-    case "paid":
-      return "مدفوع";
+    case "placed":
+      return "تم الطلب";
     case "shipped":
       return "تم الشحن";
     case "delivered":
@@ -53,7 +53,7 @@ function escHtml(s: string): string {
 
 export function generateInvoiceHtml(order: InvoiceOrder, items: InvoiceItem[]): string {
   const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shipping = order.shippingCost;
   const shippingLabel = shipping === 0 ? "مجاني ✓" : formatEGP(shipping);
 
   const itemRows = items
@@ -95,7 +95,7 @@ export function generateInvoiceHtml(order: InvoiceOrder, items: InvoiceItem[]): 
     .totals tr td:last-child { text-align: end; font-weight: 600; }
     .totals .grand { border-top: 2px solid #2c2417; font-size: 18px; font-weight: 800; }
     .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
-    .status-paid { background: #d4edda; color: #155724; }
+    .status-placed { background: #d4edda; color: #155724; }
     .status-shipped { background: #cce5ff; color: #004085; }
     .status-delivered { background: #e8f5e9; color: #2e7d32; }
     .status-cancelled { background: #f8d7da; color: #721c24; }

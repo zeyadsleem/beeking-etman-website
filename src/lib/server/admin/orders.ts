@@ -1,30 +1,17 @@
 import { and, desc, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
+import {
+  allowedTransitions,
+  ORDER_STATUSES,
+  parseOrderStatus,
+  type OrderStatus,
+} from "$lib/admin-order-status";
 import { affectedRowCount } from "$lib/server/orders";
 import { retryOnBusy } from "$lib/server/sqlite";
 
-export const ORDER_STATUSES = ["paid", "shipped", "delivered", "cancelled"] as const;
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
-
-// Forward-only lifecycle: paid → shipped → delivered; cancelling is allowed
-// from any non-terminal state. `delivered` and `cancelled` are terminal.
-const TRANSITIONS: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = {
-  paid: ["shipped", "cancelled"],
-  shipped: ["delivered", "cancelled"],
-  delivered: [],
-  cancelled: [],
-};
-
-const STATUS_SET: ReadonlySet<string> = new Set(ORDER_STATUSES);
-
-export function parseOrderStatus(value: string): OrderStatus | null {
-  return STATUS_SET.has(value) ? (value as OrderStatus) : null;
-}
-
-export function allowedTransitions(status: OrderStatus): readonly OrderStatus[] {
-  return TRANSITIONS[status];
-}
+export { allowedTransitions, ORDER_STATUSES, parseOrderStatus };
+export type { OrderStatus };
 
 export interface AdminOrderRow {
   id: string;
@@ -50,8 +37,6 @@ export interface AdminOrderItemRow {
 
 export const ORDERS_PAGE_SIZE = 20;
 
-// The status column is plain TEXT; anything outside the lifecycle means
-// out-of-band writes corrupted it, so fail loudly instead of guessing.
 function toOrderStatus(raw: string): OrderStatus {
   const parsed = parseOrderStatus(raw);
   if (!parsed) {
@@ -96,10 +81,12 @@ export async function listOrders(
   const page = Math.max(1, Math.trunc(opts?.page ?? 1));
   const conditions: SQL[] = [];
   if (opts?.status) {
-    conditions.push(eq(schema.order.status, opts.status));
+    conditions.push(
+      opts.status === "placed"
+        ? inArray(schema.order.status, ["placed", "paid"])
+        : eq(schema.order.status, opts.status),
+    );
   }
-  // Same LIKE-escaping contract as the products/categories/audit filters:
-  // user-supplied % _ \ are matched literally.
   const needle = opts?.query?.trim() ?? "";
   if (needle !== "") {
     const pattern = `%${needle.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
@@ -114,7 +101,6 @@ export async function listOrders(
   }
   const where = conditions.length ? and(...conditions) : undefined;
 
-  // Secondary id ordering keeps pagination deterministic when createdAt ties.
   const rows = await db
     .select(orderColumns)
     .from(schema.order)
@@ -137,8 +123,12 @@ export async function listOrders(
 export async function getOrderWithItems(
   db: LibSQLDatabase<typeof schema>,
   id: string,
-): Promise<{ order: AdminOrderRow; items: AdminOrderItemRow[] } | null> {
-  const row = await db.select(orderColumns).from(schema.order).where(eq(schema.order.id, id)).get();
+): Promise<{ order: AdminOrderRow & { shippingCost: number }; items: AdminOrderItemRow[] } | null> {
+  const row = await db
+    .select({ ...orderColumns, shippingCost: schema.order.shippingCost })
+    .from(schema.order)
+    .where(eq(schema.order.id, id))
+    .get();
   if (!row) return null;
 
   const items = await db
@@ -153,72 +143,51 @@ export async function getOrderWithItems(
     .from(schema.orderItem)
     .where(eq(schema.orderItem.orderId, id));
 
-  return { order: toAdminOrderRow(row), items };
+  return { order: { ...toAdminOrderRow(row), shippingCost: row.shippingCost }, items };
 }
 
 export type TransitionResult =
   | { ok: true }
-  | { ok: false; reason: "not_found" | "invalid_transition" };
+  | { ok: false; reason: "not_found" | "invalid_transition" | "inventory_reconciliation_required" };
 
-interface RestockEntry {
-  variantId: string;
-  quantity: number;
-}
-
-// order_item rows carry productId + variantName but no variant id, so each
-// item resolves its variant through the unique index
-// store_product_variant(product_id, name). Items whose variant no longer
-// matches are skipped with a warning rather than failing the cancellation.
-async function resolveRestockPlan(
+async function cancelLegacyOrder(
   db: LibSQLDatabase<typeof schema>,
   orderId: string,
-): Promise<RestockEntry[]> {
+  currentStatus: string,
+): Promise<TransitionResult> {
   const items = await db
-    .select({
-      productId: schema.orderItem.productId,
-      variantName: schema.orderItem.variantName,
-      quantity: schema.orderItem.quantity,
-    })
+    .select({ variantId: schema.orderItem.variantId })
     .from(schema.orderItem)
-    .where(eq(schema.orderItem.orderId, orderId))
-    .all();
-  if (items.length === 0) return [];
+    .where(eq(schema.orderItem.orderId, orderId));
 
-  const variants = await db
-    .select({
-      id: schema.productVariant.id,
-      productId: schema.productVariant.productId,
-      name: schema.productVariant.name,
-    })
-    .from(schema.productVariant)
-    .where(
-      inArray(schema.productVariant.productId, [...new Set(items.map((item) => item.productId))]),
-    )
-    .all();
-
-  const variantIdByKey = new Map(
-    variants.map((variant) => [`${variant.productId}::${variant.name}`, variant.id] as const),
-  );
-
-  const plan: RestockEntry[] = [];
-  for (const item of items) {
-    const variantId = variantIdByKey.get(`${item.productId}::${item.variantName}`);
-    if (!variantId) {
-      console.warn("[transitionOrderStatus] restock skipped", {
-        productId: item.productId,
-        variantName: item.variantName,
-      });
-      continue;
-    }
-    plan.push({ variantId, quantity: item.quantity });
+  if (items.some((item) => item.variantId === null)) {
+    return { ok: false, reason: "inventory_reconciliation_required" };
   }
-  return plan;
-}
-function restockStatement(db: LibSQLDatabase<typeof schema>, entry: RestockEntry) {
-  return db
-    .update(schema.productVariant)
-    .set({ stock: sql`${schema.productVariant.stock} + ${entry.quantity}` })
-    .where(eq(schema.productVariant.id, entry.variantId));
+
+  const statusUpdate = db
+    .update(schema.order)
+    .set({ status: "cancelled" })
+    .where(and(eq(schema.order.id, orderId), eq(schema.order.status, currentStatus)));
+
+  const hasVariantItems = items.some((i) => i.variantId !== null);
+  const restockSql = hasVariantItems
+    ? db.run(sql`
+        UPDATE store_product_variant
+        SET stock = stock + COALESCE((
+          SELECT SUM(quantity)
+          FROM store_order_item
+          WHERE order_id = ${orderId} AND variant_id = store_product_variant.id
+        ), 0)
+        WHERE id IN (SELECT variant_id FROM store_order_item WHERE order_id = ${orderId} AND variant_id IS NOT NULL)
+          AND (SELECT changes()) = 1
+      `)
+    : db.run(sql`SELECT 1`);
+
+  const [flip] = await retryOnBusy(() => db.batch([statusUpdate, restockSql]));
+  if (affectedRowCount(flip) !== 1) {
+    return { ok: false, reason: "invalid_transition" };
+  }
+  return { ok: true };
 }
 
 export async function transitionOrderStatus(
@@ -227,7 +196,11 @@ export async function transitionOrderStatus(
   next: OrderStatus,
 ): Promise<TransitionResult> {
   const current = await db
-    .select({ id: schema.order.id, status: schema.order.status })
+    .select({
+      id: schema.order.id,
+      status: schema.order.status,
+      stockVersion: schema.order.stockVersion,
+    })
     .from(schema.order)
     .where(eq(schema.order.id, orderId))
     .get();
@@ -238,11 +211,10 @@ export async function transitionOrderStatus(
     return { ok: false, reason: "invalid_transition" };
   }
 
-  // Authorization write: the flip lands only while the stored status still
-  // equals what we read above, so exactly one racing caller wins; a stale
-  // caller's update matches zero rows and is rejected without touching
-  // inventory. Affected-row counting goes through the shared helper because
-  // libsql and D1 shape batch results differently.
+  if (next === "cancelled" && current.stockVersion === "legacy") {
+    return cancelLegacyOrder(db, orderId, current.status);
+  }
+
   const [flip] = await retryOnBusy(() =>
     db.batch([
       db
@@ -255,31 +227,5 @@ export async function transitionOrderStatus(
     return { ok: false, reason: "invalid_transition" };
   }
 
-  if (next !== "cancelled") return { ok: true };
-
-  // Restock runs only after the flip authorized this caller as the winner.
-  // D1 (the production driver — see getDb) has no interactive transactions,
-  // so flip and restock cannot share one atomic unit; ordering them flip-first
-  // keeps inventory safe: stock can never be restored twice for one order.
-  // Residual window: a crash or permanent restock-batch failure after the
-  // committed flip leaves the order cancelled with stock unrestored — logged
-  // loudly and surfaced to the caller instead of being swallowed.
-  const [firstEntry, ...restEntries] = await resolveRestockPlan(db, orderId);
-  if (!firstEntry) return { ok: true };
-
-  try {
-    await retryOnBusy(() =>
-      db.batch([
-        restockStatement(db, firstEntry),
-        ...restEntries.map((e) => restockStatement(db, e)),
-      ]),
-    );
-  } catch (error) {
-    console.error("[transitionOrderStatus] cancel committed but restock failed", {
-      orderId,
-      error,
-    });
-    throw error;
-  }
   return { ok: true };
 }

@@ -18,11 +18,16 @@ Thumbs.db
 !.env.example
 !.env.test
 .dev.vars
+.e2e.vars
 
 # Local databases (dev D1/libsql files, test artifacts)
 *.db
 *.db-journal
 *.sqlite
+
+# Isolated E2E temp paths (per-run DB / seed file under .e2e/, isolated
+# miniflare state under .wrangler/state/e2e/ — see scripts/e2e-setup.mjs).
+.e2e/
 
 # Vite
 vite.config.js.timestamp-*

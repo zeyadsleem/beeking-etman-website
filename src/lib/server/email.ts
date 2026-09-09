@@ -515,7 +515,7 @@ function buildOrderConfirmationText(
 // ---------------------------------------------------------------------------
 
 const STATUS_LABELS: Record<OrderStatus, { ar: string; en: string }> = {
-  paid: { ar: "مؤكد ✓", en: "Confirmed ✓" },
+  placed: { ar: "تم الطلب ✓", en: "Placed ✓" },
   shipped: { ar: "تم الشحن 📦", en: "Shipped 📦" },
   delivered: { ar: "تم التسليم ✅", en: "Delivered ✅" },
   cancelled: { ar: "تم الإلغاء ❌", en: "Cancelled ❌" },

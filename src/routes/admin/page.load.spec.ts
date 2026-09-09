@@ -82,11 +82,12 @@ async function buildDb(): Promise<void> {
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
       address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
+      status TEXT NOT NULL DEFAULT 'placed', payment_status TEXT NOT NULL DEFAULT 'simulated', stock_version TEXT NOT NULL DEFAULT 'legacy', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   await db.run(`
     CREATE TABLE store_order_item (
       id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL, product_id TEXT NOT NULL,
+      variant_id TEXT,
       product_name TEXT NOT NULL, variant_name TEXT NOT NULL DEFAULT '',
       quantity INTEGER NOT NULL, unit_price INTEGER NOT NULL
     )`);
@@ -151,7 +152,7 @@ let orderCounter = 0;
 interface SeedOrder {
   email?: string;
   total?: number;
-  status?: "paid" | "shipped" | "delivered" | "cancelled";
+  status?: "placed" | "shipped" | "delivered" | "cancelled";
   createdAt?: number;
 }
 
@@ -167,7 +168,8 @@ async function seedOrder(db: LibSQLDatabase<typeof schema>, opts: SeedOrder = {}
     address: "شارع 9",
     city: "القاهرة",
     total: opts.total ?? 100_00,
-    status: opts.status ?? "paid",
+    status: opts.status ?? "placed",
+    paymentStatus: "simulated",
     userId: null,
     createdAt: opts.createdAt ?? Date.now(),
   });
@@ -183,6 +185,7 @@ async function seedItem(
   await db.insert(schema.orderItem).values({
     orderId,
     productId,
+    variantId: null,
     productName: "عسل",
     variantName: "",
     quantity: opts.quantity,
@@ -243,7 +246,7 @@ describe("admin dashboard page load", () => {
     expect(data.stats.kpis.orders).toBe(2); // every status counts
     expect(data.stats.kpis.customers).toBe(1);
     expect(data.stats.kpis.byStatus).toEqual({
-      paid: 1,
+      placed: 1,
       shipped: 0,
       delivered: 0,
       cancelled: 1,

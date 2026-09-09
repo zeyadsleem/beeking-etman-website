@@ -15,7 +15,6 @@
   }: {
     lang: Lang;
     categories: Array<{ id: string; name: string; department: string }>;
-    /** Prefill for edits; `price` is integer qirsh and `slug` the stored one. */
     value?: (ProductInput & { slug?: string }) | null;
     action: string;
     submitLabel: string;
@@ -24,9 +23,6 @@
 
   // Seeded once per mount: each page renders exactly one form with static
   // server data, so there is nothing to keep two-way in sync afterwards.
-  // The column stores integer qirsh; admins think in EGP. Display divides by
-  // 100 here, and the server converts ×100 on submit — so the no-JS path
-  // (plain multipart POST) validates exactly like the enhanced one.
   let model = $state(
     // svelte-ignore state_referenced_locally — capturing the initial prefill is the point.
     value === null
@@ -38,7 +34,6 @@
           descriptionEn: "",
           categoryId: "",
           featured: false,
-          priceEgp: "" as number | "",
           department: initialDepartment as Department,
         }
       : {
@@ -49,7 +44,6 @@
           descriptionEn: value.descriptionEn,
           categoryId: value.categoryId,
           featured: value.featured,
-          priceEgp: value.price / 100 as number | "",
           department: initialDepartment as Department,
         },
   );
@@ -125,28 +119,13 @@
     ></textarea>
   </label>
 
-  <div class="grid gap-4 sm:grid-cols-3">
+  <div class="grid gap-4 sm:grid-cols-2">
     <label class="field-label">
       {t(lang, "admin.products.department")}
       <select name="department" bind:value={model.department} required class="field mt-1">
         <option value="honey">{t(lang, "dept.honey")}</option>
         <option value="equipment">{t(lang, "dept.equipment")}</option>
       </select>
-    </label>
-    <label class="field-label">
-      {t(lang, "admin.products.priceEgp")}
-      <input
-        name="price"
-        type="number"
-        bind:value={model.priceEgp}
-        required
-        min="0.01"
-        max="10000000"
-        step="0.01"
-        inputmode="decimal"
-        dir="ltr"
-        class="field mt-1"
-      />
     </label>
     <label class="field-label">
       {t(lang, "admin.products.category")}

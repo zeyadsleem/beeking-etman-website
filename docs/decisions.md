@@ -1366,3 +1366,144 @@ behind `PAYMOB_*` env vars for a later pass** (no webhook/ledger/checkout yet).
   (re-exported by `$lib/server/admin/roles.ts`) to fix a pre-existing
   build-blocking leak guard that refused importing server `roles.ts` into the
   browser on the admin users page.
+
+## 2026-09-09: Order hardening — trigger-owned stock, staged rollout, honest mock payment
+
+**Context:** `createOrder` decremented stock via guarded `UPDATE`s after the
+order/items insert in a separate batch; zero affected rows triggered a
+post-commit compensation path that could itself crash, and admin cancellation
+restocked in a second, separate write. A crash between writes could oversell
+or strand stock. Mock checkout also stored `status = 'paid'`, which a future
+real gateway would misread as collected money.
+
+**Decision (migration `drizzle/0016_order_hardening.sql` + `stock_version`):**
+
+- `store_order_item` gains `variant_id` (FK) plus `quantity > 0` and
+  `unit_price >= 0` CHECKs; `store_order` gains `payment_status`
+  (default `simulated`) and `stock_version` (default `legacy`).
+- Stock reservation moves into a `BEFORE INSERT` trigger on
+  `store_order_item` that aborts the whole batch on shortage
+  (`OUT_OF_STOCK`); cancel-restock moves into an `AFTER UPDATE OF status`
+  trigger. Both triggers act **only** when the order's `stock_version` is
+  `atomic`.
+- New orders write `stock_version = 'atomic'` and never touch stock in app
+  code. Legacy orders keep `legacy` and are restocked by guarded service SQL
+  (`changes() = 1`), so an old app version and a new one can overlap without
+  double-adjusting stock. Safe rollout = deploy, drain old instances, then a
+  future migration may rewrite `paid` → `placed` and drop the legacy path.
+- Legacy `paid` rows are **not** rewritten by the migration (deploy-window
+  compatibility); they display as `placed` via `parseOrderStatus`, and the
+  admin `placed` filter matches both stored values. Cancellation of a legacy
+  order whose items have no resolvable `variant_id` is refused with
+  `inventory_reconciliation_required` instead of silently restocking nothing.
+- Payment semantics: new orders are `status = 'placed'`,
+  `payment_status = 'simulated'`. The dashboard KPI is labeled
+  "Gross bookings (simulated payment)". A real gateway can later own
+  `payment_status` without touching checkout/orders structure.
+
+**Consequences:** Stock cannot silently go negative; checkout is all-or-
+nothing per batch; cancellation is idempotent and race-safe. App code no
+longer decrements stock for new orders. Variant deletion now refuses
+purchases-referenced variants (typed `referenced` failure) instead of relying
+on D1 FK errors. Invoice rendering uses the stored `shipping_cost` snapshot.
+
+## 2026-09-09: Checkout nonce proof cookies
+
+**Context:** The checkout nonce was a server-generated UUID embedded in the
+form; possession of the nonce string alone allowed any anonymous caller to
+replay a guest order (receiving its access cookie and re-firing the
+confirmation email).
+
+**Decision:** `src/lib/server/checkout-nonce.ts` issues a signed, expiring
+HttpOnly cookie per nonce (`honey_checkout_<nonce>`, path-scoped, max 8
+kept). The submit action verifies the proof before calling `createOrder`,
+so a copied nonce is worthless. Replay responses re-mint the order-access
+cookie but skip cart clearing, address saving, and the confirmation email.
+
+**Consequences:** Guest checkout becomes session-bound without requiring an
+account; duplicate submission remains safe and side-effect-free.
+
+## 2026-09-09: Incremental oRPC adoption (search suggestions first)
+
+**Context:** The task calls for contract-first APIs via oRPC where an explicit
+typed boundary has real value, without replacing working SvelteKit server
+actions wholesale.
+
+**Decision:** Added `@orpc/server`/`@orpc/contract`/`@orpc/client` and the
+first consumed capability: search suggestions
+(`src/lib/features/search/` — `contract.ts`, `router.ts`, `context.ts`,
+`client.ts`) mounted at `/api/rpc/[...rest]` with a request-scoped context.
+The storefront `SearchSuggestions` component consumes the typed client; the
+old `/api/search/suggestions` endpoint was deleted after the replacement was
+proven.
+
+**Consequences:** One template exists for future contract-first capabilities
+(products, cart, checkout, orders); form flows keep using server actions
+where they are simpler.
+
+## 2026-09-09: CI as single deploy owner; E2E runs the deployed artifact
+
+**Context:** Cloudflare Pages Git integration races a CI-managed migration,
+and an E2E suite that rebuilds independently cannot certify the artifact that
+ships.
+
+**Decision:** The workflow is the only production deployer: `test` (check,
+unit, migration replay, build, artifact upload) → `e2e` (downloads that exact
+artifact) → `migrate-production` (remote D1, `production` environment) →
+`deploy-production` (deploys the downloaded build). Concurrency is per-ref;
+production jobs run only on pushes to `main` and require environment
+reviewers. The E2E setup (`scripts/e2e-setup.mjs`) replays the real
+`drizzle-kit migrate` chain (never `push --force`) into an isolated
+per-run D1 state directory and never touches developer files
+(`.dev.vars`, `local.db`, `d1-seed.sql`). workerd's dev-server crash on
+client-disconnect (cloudflare/workers-sdk#14926) is absorbed by a bounded
+restart loop and connection-refused-class retry helpers — never by
+weakened assertions.
+
+**Consequences:** A production deploy can never precede its migration; the
+tested build and the deployed build are byte-identical; flake sources are
+fixed at their root (auto-retrying assertions) rather than masked.
+
+## 2026-09-09: Catalog legacy columns — bridge now, drop only after drain
+
+**Context:** `store_product.price/stock/image` are no longer referenced by
+runtime code (the earlier cleanup removed the read/write paths), but the app
+version that is live in production still reads `product.image` and
+`product.price` on storefront queries. CI applies D1 migrations _before_ the
+new Pages deploy, so dropping the columns inside the migration chain would
+break every storefront request served by the old build during the window
+between `migrate-prod` and `deploy-prod`.
+
+**Decision:** Migration `0017_catalog_authority` (in the journal) keeps the
+columns and installs a bridge: existing legacy covers are backfilled into
+`store_product_image`, and two triggers copy any future old-app cover write
+into the gallery. Product-level price/stock values are observably stale —
+the app takes price/stock exclusively from variants. The final drop lives
+outside the journal at `drizzle/staged/0017_drop_legacy_product_columns.sql`
+(drop bridge triggers, then `ALTER TABLE ... DROP COLUMN` ×3) and is applied
+manually via `wrangler d1 execute --remote` only after all old instances are
+drained. `migration-replay.spec.ts` asserts both facts: the bridge tag is in
+the journal and the staged drop is not.
+
+**Consequences:** Old and new builds coexist safely through any deploy
+window; the schema drift is bounded and documented; a future
+`drizzle-kit generate` must not be blindly committed until after the staged
+drop is applied (review generated SQL before merging).
+
+## 2026-09-09: Unshipped feature tables removed from the Drizzle schema
+
+**Context:** `store_return`, `store_review`, and `store_coupon` were declared
+in the schema but never had any service, route, or UI — dead weight that
+falsely advertised capabilities. The owner chose cleanup over building
+unspecified features.
+
+**Decision:** Removed the three table declarations from `schema.ts`. The
+physical tables remain in every database (no migration drops them) — any
+rows there are preserved, and nothing in the app writes them. When returns,
+reviews, or coupons are actually specified, they must be re-added with their
+own reviewed migration rather than resurrected silently.
+
+**Consequence:** A future `drizzle-kit generate` may propose dropping these
+tables because drizzle no longer tracks them — such statements must be
+deleted from generated SQL before applying; the generator never overrides
+owner data-retention rules.

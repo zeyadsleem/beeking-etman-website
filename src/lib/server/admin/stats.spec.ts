@@ -69,11 +69,12 @@ async function buildDb() {
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
       address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
+      status TEXT NOT NULL DEFAULT 'placed', payment_status TEXT NOT NULL DEFAULT 'simulated', stock_version TEXT NOT NULL DEFAULT 'legacy', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   await db.run(`
     CREATE TABLE store_order_item (
       id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL, product_id TEXT NOT NULL,
+      variant_id TEXT,
       product_name TEXT NOT NULL, variant_name TEXT NOT NULL DEFAULT '',
       quantity INTEGER NOT NULL, unit_price INTEGER NOT NULL
     )`);
@@ -140,7 +141,7 @@ interface SeedOrder {
   email?: string;
   userId?: string | null;
   total?: number;
-  status?: "paid" | "shipped" | "delivered" | "cancelled";
+  status?: "placed" | "shipped" | "delivered" | "cancelled";
   createdAt?: number;
 }
 
@@ -156,7 +157,8 @@ async function seedOrder(db: Db, opts: SeedOrder = {}): Promise<string> {
     address: "شارع 9",
     city: "القاهرة",
     total: opts.total ?? 100_00,
-    status: opts.status ?? "paid",
+    status: opts.status ?? "placed",
+    paymentStatus: "simulated",
     userId: opts.userId ?? null,
     createdAt: opts.createdAt ?? Date.now(),
   });
@@ -172,6 +174,7 @@ async function seedItem(
   await db.insert(schema.orderItem).values({
     orderId,
     productId,
+    variantId: null,
     productName: opts.productName ?? "عسل",
     variantName: opts.variantName ?? "",
     quantity: opts.quantity,
@@ -208,8 +211,8 @@ describe("getDashboardStats — kpis", () => {
   it("sums revenue excluding cancelled orders and counts every order", async () => {
     const db = await buildDb();
 
-    await seedOrder(db, { status: "paid", total: 100_00 });
-    await seedOrder(db, { status: "paid", total: 50_00 });
+    await seedOrder(db, { status: "placed", total: 100_00 });
+    await seedOrder(db, { status: "placed", total: 50_00 });
     await seedOrder(db, { status: "shipped", total: 30_00 });
     await seedOrder(db, { status: "delivered", total: 20_00 });
     await seedOrder(db, { status: "cancelled", total: 999_00 });
@@ -225,7 +228,7 @@ describe("getDashboardStats — kpis", () => {
 
     // Same email once as a guest and once logged-in must collapse to one
     // customer; statuses differ to prove the dedupe crosses status groups.
-    await seedOrder(db, { email: "shared@example.com", userId: null, status: "paid" });
+    await seedOrder(db, { email: "shared@example.com", userId: null, status: "placed" });
     await seedOrder(db, {
       email: "shared@example.com",
       userId: "user-1",
@@ -243,14 +246,14 @@ describe("getDashboardStats — kpis", () => {
   it("zero-fills every status and reports counts per status", async () => {
     const db = await buildDb();
 
-    await seedOrder(db, { status: "paid" });
-    await seedOrder(db, { status: "paid" });
+    await seedOrder(db, { status: "placed" });
+    await seedOrder(db, { status: "placed" });
     await seedOrder(db, { status: "cancelled" });
 
     const stats = await getDashboardStats(db);
 
     expect(stats.kpis.byStatus).toEqual({
-      paid: 2,
+      placed: 2,
       shipped: 0,
       delivered: 0,
       cancelled: 1,
@@ -260,7 +263,7 @@ describe("getDashboardStats — kpis", () => {
   it("counts a hand-edited unknown status toward kpis.orders but not byStatus", async () => {
     const db = await buildDb();
 
-    await seedOrder(db, { status: "paid" });
+    await seedOrder(db, { status: "placed" });
 
     // SQLite stores status as free text; simulate an out-of-band write that
     // left a value outside the lifecycle vocabulary.
@@ -283,7 +286,7 @@ describe("getDashboardStats — kpis", () => {
 
     expect(stats.kpis.orders).toBe(2);
     expect(stats.kpis.byStatus).toEqual({
-      paid: 1,
+      placed: 1,
       shipped: 0,
       delivered: 0,
       cancelled: 0,
@@ -297,11 +300,11 @@ describe("getDashboardStats — dailySeries", () => {
     const db = await buildDb();
 
     // Today: one paid order.
-    await seedOrder(db, { status: "paid", total: 100_00, createdAt: nowMs });
+    await seedOrder(db, { status: "placed", total: 100_00, createdAt: nowMs });
     // Yesterday: paid + cancelled — the day's order count includes both,
     // its revenue only the paid one.
     await seedOrder(db, {
-      status: "paid",
+      status: "placed",
       total: 40_00,
       createdAt: nowMs - 1 * DAY_MS,
     });
@@ -318,12 +321,12 @@ describe("getDashboardStats — dailySeries", () => {
     });
     // Window boundary: 29 days back is the oldest bucket, 30 is out.
     await seedOrder(db, {
-      status: "paid",
+      status: "placed",
       total: 10_00,
       createdAt: nowMs - 29 * DAY_MS,
     });
     await seedOrder(db, {
-      status: "paid",
+      status: "placed",
       total: 500_00,
       createdAt: nowMs - 30 * DAY_MS,
     });
@@ -393,7 +396,7 @@ describe("getDashboardStats — topProducts", () => {
     const flower = await seedProduct(db, "flower");
     const ginger = await seedProduct(db, "ginger");
 
-    const paidOne = await seedOrder(db, { status: "paid", total: 500_00 });
+    const paidOne = await seedOrder(db, { status: "placed", total: 500_00 });
     await seedItem(db, paidOne, sidr, { quantity: 2, unitPrice: 100_00 });
     await seedItem(db, paidOne, clover, { quantity: 6, unitPrice: 50_00 });
 
@@ -410,7 +413,7 @@ describe("getDashboardStats — topProducts", () => {
     await seedItem(db, paidThree, citrus, { quantity: 2, unitPrice: 80_00 });
 
     // Quantity ties below resolve by revenue desc, then name asc.
-    const paidFour = await seedOrder(db, { status: "paid", total: 700_00 });
+    const paidFour = await seedOrder(db, { status: "placed", total: 700_00 });
     await seedItem(db, paidFour, flower, { quantity: 1, unitPrice: 300_00 });
     await seedItem(db, paidFour, eucalyptus, { quantity: 1, unitPrice: 200_00 });
     await seedItem(db, paidFour, plum, { quantity: 1, unitPrice: 100_00 });

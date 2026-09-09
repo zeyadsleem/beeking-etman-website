@@ -136,15 +136,7 @@ type ProductRow = typeof schema.product.$inferSelect;
 type ImageRow = typeof schema.productImage.$inferSelect;
 type ProductListRow = Pick<
   ProductRow,
-  | "id"
-  | "name"
-  | "nameEn"
-  | "slug"
-  | "image"
-  | "categoryId"
-  | "department"
-  | "featured"
-  | "createdAt"
+  "id" | "name" | "nameEn" | "slug" | "categoryId" | "department" | "featured" | "createdAt"
 >;
 
 const productListColumns = {
@@ -152,7 +144,6 @@ const productListColumns = {
   name: schema.product.name,
   nameEn: schema.product.nameEn,
   slug: schema.product.slug,
-  image: schema.product.image,
   categoryId: schema.product.categoryId,
   department: schema.product.department,
   featured: schema.product.featured,
@@ -201,14 +192,14 @@ export function withVariants(
       .sort((a, b) => a.sortOrder - b.sortOrder);
     const images = (imagesByProduct.get(row.id) ?? [])
       .slice()
-      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id))
       .map((i) => i.url);
     return {
       id: row.id,
       name: localized(row.name, row.nameEn, lang),
       slug: row.slug,
       description: "description" in row ? localized(row.description, row.descriptionEn, lang) : "",
-      image: row.image,
+      image: images[0] ?? "",
       images,
       categoryId: row.categoryId,
       categorySlug: categorySlugByProduct.get(row.id) ?? "",
@@ -510,18 +501,20 @@ export async function getSearchSuggestions(
           slug: schema.product.slug,
           categoryId: schema.product.categoryId,
           department: schema.product.department,
-          image: schema.product.image,
-          price: schema.product.price,
         })
         .from(schema.product)
         .where(inArray(schema.product.id, ids))
     : [];
-  const [variants, categorySlugs] = await Promise.all([
+  const [variants, categorySlugs, images] = await Promise.all([
     loadVariantsForProducts(
       db,
       rows.map((r) => r.id),
     ),
     loadCategorySlugs(
+      db,
+      rows.map((r) => r.id),
+    ),
+    loadImagesForProducts(
       db,
       rows.map((r) => r.id),
     ),
@@ -534,8 +527,11 @@ export async function getSearchSuggestions(
       categorySlug: categorySlugs.get(row.id) ?? "",
       department:
         row.department === "honey" || row.department === "equipment" ? row.department : "honey",
-      image: row.image,
-      minPrice: minPriceOf(vs, row.price),
+      image:
+        (images.get(row.id) ?? []).sort(
+          (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
+        )[0]?.url ?? "",
+      minPrice: minPriceOf(vs, 0),
     };
   });
   return { products, categories };

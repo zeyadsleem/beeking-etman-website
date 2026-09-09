@@ -42,6 +42,9 @@ function currentDb(): LibSQLDatabase<typeof schema> {
 async function buildDb(): Promise<void> {
   client ??= createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
+  await db.run(`PRAGMA foreign_keys = ON`);
+  await db.run(`DROP TABLE IF EXISTS store_order_item`);
+  await db.run(`DROP TABLE IF EXISTS store_stock_conversion`);
   await db.run(`DROP TABLE IF EXISTS store_admin_audit`);
   await db.run(`DROP TABLE IF EXISTS store_stock_movement`);
   await db.run(`DROP TABLE IF EXISTS store_product_image`);
@@ -85,6 +88,12 @@ async function buildDb(): Promise<void> {
       target_id TEXT NOT NULL, details TEXT,
       created_at INTEGER NOT NULL
     )`);
+  await db.run(`CREATE TABLE store_order_item (
+    id TEXT PRIMARY KEY NOT NULL, variant_id TEXT REFERENCES store_product_variant(id)
+  )`);
+  await db.run(`CREATE TABLE store_stock_conversion (
+    id TEXT PRIMARY KEY NOT NULL, variant_id TEXT NOT NULL REFERENCES store_product_variant(id)
+  )`);
   testDb = db;
   state.database = db;
 }
@@ -125,7 +134,17 @@ async function seedProduct(categoryId: string, opts: ProductSeedOptions = {}): P
       .returning({ id: schema.product.id })
   )[0];
   if (!row) throw new Error("seedProduct insert returned no row");
+  if (opts.image)
+    await currentDb().insert(schema.productImage).values({ productId: row.id, url: opts.image });
   return row.id;
+}
+
+async function coverUrl(productId: string): Promise<string> {
+  const images = await currentDb()
+    .select()
+    .from(schema.productImage)
+    .where(eq(schema.productImage.productId, productId));
+  return images.sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id))[0]?.url ?? "";
 }
 
 async function seedVariant(
@@ -291,7 +310,7 @@ describe("admin edit product load", () => {
 
     expect(data.product.id).toBe(id);
     expect(data.product.slug).toBe("royal-sidr");
-    expect(data.product.price).toBe(25_050);
+    expect(data.product.price).toBe(15_000);
     expect(data.variants.map((variant) => variant.name)).toEqual(["250 زجاج", "1 كيلو"]);
     expect(data.image).toBe("https://example.com/h.jpg");
     expect(data.lang).toBe("ar");
@@ -308,7 +327,6 @@ const DETAILS_FIELDS = {
   slug: "royal-sidr",
   description: "وصف محدث أطول",
   descriptionEn: "Updated description",
-  price: "199.50",
 };
 
 describe("admin edit product details action", () => {
@@ -328,7 +346,7 @@ describe("admin edit product details action", () => {
     expect(row?.description).toBe("وصف أصلي"); // untouched
   });
 
-  it("updates fields, converting the EGP price to integer qirsh, and reports saved", async () => {
+  it("updates details without changing the retired price and reports saved", async () => {
     const categoryId = await seedCategory();
     const id = await seedProduct(categoryId);
 
@@ -347,7 +365,7 @@ describe("admin edit product details action", () => {
       .where(eq(schema.product.id, id));
     expect(row?.name).toBe("عسل سدر ملكي المحدث");
     expect(row?.description).toBe("وصف محدث أطول");
-    expect(row?.price).toBe(19_950);
+    expect(row?.price).toBe(25_050);
   });
 
   it("keeps the stored cover image across a field-only edit", async () => {
@@ -356,13 +374,7 @@ describe("admin edit product details action", () => {
 
     await details(fakeEvent(id, { fields: { ...DETAILS_FIELDS, categoryId }, role: "admin" }));
 
-    // updateProduct rewrites the legacy image column on every write; the
-    // pipeline must carry the stored URL through or a price tweak wipes it.
-    const [row] = await currentDb()
-      .select({ image: schema.product.image })
-      .from(schema.product)
-      .where(eq(schema.product.id, id));
-    expect(row?.image).toBe("https://example.com/keep.jpg");
+    expect(await coverUrl(id)).toBe("https://example.com/keep.jpg");
   });
 
   it("replaces the cover image with a pasted url on a field-only edit", async () => {
@@ -377,11 +389,7 @@ describe("admin edit product details action", () => {
       }),
     );
 
-    const [row] = await currentDb()
-      .select({ image: schema.product.image })
-      .from(schema.product)
-      .where(eq(schema.product.id, id));
-    expect(row?.image).toBe(pasted);
+    expect(await coverUrl(id)).toBe(pasted);
   });
 
   it("keeps an existing auto-suffixed slug when the submitted base derives from it", async () => {
@@ -422,7 +430,7 @@ describe("admin edit product details action", () => {
 
     const result = failureOf(
       await details(
-        fakeEvent(id, { fields: { ...DETAILS_FIELDS, categoryId, price: "abc" }, role: "admin" }),
+        fakeEvent(id, { fields: { ...DETAILS_FIELDS, categoryId, name: "" }, role: "admin" }),
       ),
     );
 
@@ -451,11 +459,7 @@ describe("admin edit product details action", () => {
     expect(ns.calls).toHaveLength(1);
     const call = ns.calls[0];
     expect(call?.key).toMatch(/^products\/[0-9a-f-]{36}\.png$/);
-    const [row] = await currentDb()
-      .select({ image: schema.product.image })
-      .from(schema.product)
-      .where(eq(schema.product.id, id));
-    expect(row?.image).toBe(`/media/${call?.key}`);
+    expect(await coverUrl(id)).toBe(`/media/${call?.key}`);
   });
 
   it("aborts the whole update with 503 when the kv write fails — fields stay untouched", async () => {
@@ -491,7 +495,7 @@ describe("admin edit product details action", () => {
       await details(
         fakeEvent(id, {
           langCookie: "en",
-          fields: { ...DETAILS_FIELDS, categoryId, price: "" },
+          fields: { ...DETAILS_FIELDS, categoryId, name: "" },
           role: "admin",
         }),
       ),
@@ -550,7 +554,7 @@ describe("admin edit product uploadImage action", () => {
     const call = ns.calls[0];
     const url = `/media/${call?.key}`;
     expect(url).toMatch(/^\/media\/products\/[0-9a-f-]{36}\.png$/);
-    expect(row?.image).toBe(url);
+    expect(await coverUrl(id)).toBe(url);
     expect(row?.description).toBe("وصف أصلي"); // details untouched by this action
     const [variant] = await currentDb()
       .select({ image: schema.productVariant.image })
@@ -803,6 +807,36 @@ describe("admin edit product variantSave action", () => {
 });
 
 describe("admin edit product variantDelete action", () => {
+  it.each([
+    ["store_order_item", "ar"],
+    ["store_order_item", "en"],
+    ["store_stock_conversion", "ar"],
+    ["store_stock_conversion", "en"],
+  ] as const)("rejects %s references with a useful %s conflict", async (table, langCookie) => {
+    const productId = await seedProduct(await seedCategory());
+    const variantId = await seedVariant(productId);
+    await currentDb().run(
+      `INSERT INTO ${table} (id, variant_id) VALUES ('reference', '${variantId}')`,
+    );
+    const result = failureOf(
+      await variantDelete(
+        fakeEvent(productId, {
+          role: "admin",
+          langCookie,
+          fields: { variantId },
+        }),
+      ),
+    );
+    expect(result.status).toBe(409);
+    expect(result.message).toBe(
+      langCookie === "ar"
+        ? "لا يمكن حذف متغير مرتبط بطلبات أو تحويلات مخزون. يمكنك تعديل مخزونه بدلاً من حذفه."
+        : "Cannot delete a variant linked to orders or stock conversions. You can adjust its stock instead.",
+    );
+    expect(await currentDb().select().from(schema.productVariant)).toHaveLength(1);
+    expect(await currentDb().all(`PRAGMA foreign_key_check`)).toEqual([]);
+  });
+
   it("removes the variant and reports deleted", async () => {
     const categoryId = await seedCategory();
     const id = await seedProduct(categoryId);
@@ -1073,6 +1107,7 @@ describe("admin edit product galleryReorder action", () => {
     const categoryId = await seedCategory();
     const id = await seedProduct(categoryId);
     const a = await seedGalleryImage(id, "https://example.com/a.jpg", 0);
+    await seedGalleryImage(id, "https://example.com/b.jpg", 1);
 
     const result = failureOf(
       await galleryReorder(fakeEvent(id, { fields: { order: a }, role: "admin" })),

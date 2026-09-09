@@ -31,13 +31,13 @@ export const product = sqliteTable(
     slug: text("slug").notNull().unique(),
     description: text("description").notNull(),
     descriptionEn: text("description_en").notNull().default(""),
-    // @deprecated — legacy columns kept for migration safety. Price, stock,
-    // and image are now sourced from store_product_variant. Remove via a
-    // reviewed hand-written SQLite migration once all FK references are safe
-    // (see docs/todo.md "store_product legacy column drop").
-    price: integer("price").notNull(),
+    price: integer("price")
+      .notNull()
+      .$defaultFn(() => 0),
     stock: integer("stock").notNull().default(0),
-    image: text("image").notNull(),
+    image: text("image")
+      .notNull()
+      .$defaultFn(() => ""),
     categoryId: text("category_id")
       .notNull()
       .references(() => category.id),
@@ -108,6 +108,8 @@ export const order = sqliteTable(
     shippingCost: integer("shipping_cost").notNull().default(0),
     total: integer("total").notNull(),
     status: text("status").notNull().default("paid"),
+    paymentStatus: text("payment_status").notNull().default("simulated"),
+    stockVersion: text("stock_version").notNull().default("legacy"),
     userId: text("user_id"),
     createdAt: integer("created_at")
       .notNull()
@@ -128,6 +130,7 @@ export const orderItem = sqliteTable(
     productId: text("product_id")
       .notNull()
       .references(() => product.id),
+    variantId: text("variant_id").references(() => productVariant.id),
     productName: text("product_name").notNull(),
     variantName: text("variant_name").notNull().default(""),
     quantity: integer("quantity").notNull(),
@@ -343,69 +346,6 @@ export const transferItem = sqliteTable(
   },
   (table) => [index("store_transfer_item_transferId_idx").on(table.transferId)],
 );
-
-// --- Returns & refunds (with damage reasons) ---
-
-export const returnRecord = sqliteTable(
-  "store_return",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    orderId: text("order_id")
-      .notNull()
-      .references(() => order.id),
-    status: text("status").notNull().default("requested"), // requested | approved | refunded | rejected
-    reason: text("reason").notNull(),
-    damageType: text("damage_type"),
-    refundAmount: integer("refund_amount").notNull().default(0),
-    createdAt: integer("created_at")
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [index("store_return_orderId_idx").on(table.orderId)],
-);
-
-// --- CRM: reviews & coupons ---
-
-export const review = sqliteTable(
-  "store_review",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    productId: text("product_id")
-      .notNull()
-      .references(() => product.id),
-    userId: text("user_id"),
-    rating: integer("rating").notNull(),
-    comment: text("comment"),
-    status: text("status").notNull().default("pending"), // pending | approved | rejected
-    createdAt: integer("created_at")
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [index("store_review_productId_idx").on(table.productId)],
-);
-
-export const coupon = sqliteTable("store_coupon", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  code: text("code").notNull().unique(),
-  // "percent" | "fixed"
-  type: text("type").notNull().default("percent"),
-  value: integer("value").notNull(),
-  minSpend: integer("min_spend").notNull().default(0),
-  maxUses: integer("max_uses"),
-  usedCount: integer("used_count").notNull().default(0),
-  validFrom: integer("valid_from"),
-  validUntil: integer("valid_until"),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
-  createdAt: integer("created_at")
-    .notNull()
-    .$defaultFn(() => Date.now()),
-});
 
 // --- Notifications (email / Slack / Telegram) ---
 

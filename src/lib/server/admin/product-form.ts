@@ -4,7 +4,6 @@
  * KV upload → create/update → cover-image persistence. Both routes must stay
  * behaviorally identical, so the sequencing lives here once.
  */
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { RequestEvent } from "@sveltejs/kit";
 import type { MessageKey } from "$lib/i18n/messages";
@@ -107,7 +106,6 @@ export async function applyProductForm(
   const form = await event.request.formData();
 
   const featured = form.get("featured") !== null;
-  const priceQirsh = priceToQirsh(stringField(form, "price"));
   const pastedUrl = pastedUrlOrEmpty(form);
   const departmentRaw = stringField(form, "department").trim();
   const parsed = productInputSchema.safeParse({
@@ -115,7 +113,6 @@ export async function applyProductForm(
     nameEn: stringField(form, "nameEn"),
     description: stringField(form, "description"),
     descriptionEn: stringField(form, "descriptionEn"),
-    price: priceQirsh ?? -1,
     categoryId: stringField(form, "categoryId"),
     featured,
     department: /^(honey|equipment)$/.test(departmentRaw) ? departmentRaw : "honey",
@@ -136,25 +133,7 @@ export async function applyProductForm(
     uploadedUrl = upload.url;
   }
 
-  // Cover resolution: an uploaded file wins, then a pasted URL. A field-only
-  // edit provides neither — and updateProduct rewrites the legacy image column
-  // on every write (productWriteValues hardcodes it) — so the stored URL is
-  // read before the write and re-persisted after; otherwise tweaking just a
-  // name or price would silently blank the cover.
-  let coverUrl: string;
-  if (uploadedUrl !== null) {
-    coverUrl = uploadedUrl;
-  } else if (pastedUrl !== "") {
-    coverUrl = pastedUrl;
-  } else if (productId === undefined) {
-    coverUrl = ""; // a new product without imagery starts blank
-  } else {
-    const [row] = await db
-      .select({ image: schema.product.image })
-      .from(schema.product)
-      .where(eq(schema.product.id, productId));
-    coverUrl = row?.image ?? "";
-  }
+  const coverUrl = uploadedUrl ?? pastedUrl;
 
   const written =
     productId === undefined

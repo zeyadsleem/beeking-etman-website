@@ -8,11 +8,6 @@
  *     `cancelTransfer`, `listTransfers`)
  *
  * Money-free counts are stored as integers; honey mass (kg) as `real`.
- *
- * D1 (the production driver) has no interactive transactions, so mutating
- * flows are ordered with an authorization guard on the first write — exactly
- * one racing caller wins and a stale caller matches zero rows — mirroring the
- * flip-then-restock pattern in admin/orders.ts.
  */
 import { and, asc, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
@@ -204,16 +199,6 @@ export type ConversionResult =
         | "notEnoughMaterial";
     };
 
-/**
- * Convert raw honey from a batch into packaged units of a variant.
- *
- * Sequencing is the D1-safe half-order: decrement the batch's remaining kg
- * with a `quantityKg >= rawKgsUsed` guard and fail if zero rows flip (a racing
- * converter wins). Only then bump the variant, spend material, and record the
- * conversion + movement rows. A mid-way failure leaves a partially-applied
- * conversion — logged and surfaced rather than swallowed, mirroring the
- * flip-then-restock semantics in orders.ts.
- */
 export async function recordConversion(
   db: LibSQLDatabase<typeof schema>,
   input: {
@@ -273,25 +258,18 @@ export async function recordConversion(
       return { ok: false, reason: "notEnoughMaterial" };
   }
 
-  // Authorization guard write #1: batch mass.
-  const [decrement] = await retryOnBusy(() =>
-    db.batch([
-      db
-        .update(schema.batch)
-        .set({ quantityKg: sql`${schema.batch.quantityKg} - ${input.rawKgsUsed}` })
-        .where(
-          and(
-            eq(schema.batch.id, input.batchId),
-            sql`${schema.batch.quantityKg} - ${input.rawKgsUsed} >= 0`,
-          ),
-        ),
-    ]),
-  );
-  if (affectedRowCount(decrement) !== 1) return { ok: false, reason: "notEnoughRaw" };
-
+  const conversionId = crypto.randomUUID();
+  const now = Date.now();
   try {
     await retryOnBusy(() =>
       db.batch([
+        db
+          .update(schema.batch)
+          .set({
+            quantityKg: sql`CASE WHEN ${schema.batch.quantityKg} >= ${input.rawKgsUsed}
+              THEN ${schema.batch.quantityKg} - ${input.rawKgsUsed} ELSE NULL END`,
+          })
+          .where(eq(schema.batch.id, input.batchId)),
         db
           .update(schema.productVariant)
           .set({ stock: sql`${schema.productVariant.stock} + ${input.unitsProduced}` })
@@ -301,54 +279,73 @@ export async function recordConversion(
               db
                 .update(schema.packagingMaterial)
                 .set({
-                  stockQuantity: sql`${schema.packagingMaterial.stockQuantity} - ${spendMaterial}`,
+                  stockQuantity: sql`CASE WHEN ${schema.packagingMaterial.stockQuantity} >= ${spendMaterial}
+                    THEN ${schema.packagingMaterial.stockQuantity} - ${spendMaterial} ELSE NULL END`,
                 })
                 .where(eq(schema.packagingMaterial.id, materialId)),
+            ]
+          : []),
+        db.insert(schema.stockConversion).values({
+          id: conversionId,
+          batchId: input.batchId,
+          variantId: input.variantId,
+          rawKgsUsed: input.rawKgsUsed,
+          unitsProduced: input.unitsProduced,
+          createdAt: now,
+        }),
+        db.insert(schema.stockMovement).values({
+          id: crypto.randomUUID(),
+          type: "conversion",
+          itemType: "batch",
+          itemId: input.batchId,
+          quantity: -Math.round(input.rawKgsUsed * 1000),
+          refId: conversionId,
+          notes: input.notes,
+          createdAt: now,
+        }),
+        db.insert(schema.stockMovement).values({
+          id: crypto.randomUUID(),
+          type: "conversion",
+          itemType: "variant",
+          itemId: input.variantId,
+          quantity: input.unitsProduced,
+          refId: conversionId,
+          notes: input.notes,
+          createdAt: now,
+        }),
+        ...(materialId !== null
+          ? [
+              db.insert(schema.stockMovement).values({
+                id: crypto.randomUUID(),
+                type: "conversion",
+                itemType: "material",
+                itemId: materialId,
+                quantity: sql`(SELECT ${-spendMaterial} FROM ${schema.packagingMaterial} WHERE ${schema.packagingMaterial.id} = ${materialId})`,
+                refId: conversionId,
+                notes: input.notes,
+                createdAt: now,
+              }),
             ]
           : []),
       ]),
     );
   } catch (error) {
-    console.error("[recordConversion] batch decremented but material/variant update failed", {
-      batchId: input.batchId,
-      error,
-    });
+    let cause: unknown = error;
+    while (cause instanceof Error) {
+      if (cause.message.includes("NOT NULL constraint failed: store_batch.quantity_kg"))
+        return { ok: false, reason: "notEnoughRaw" };
+      if (
+        cause.message.includes(
+          "NOT NULL constraint failed: store_packaging_material.stock_quantity",
+        )
+      )
+        return { ok: false, reason: "notEnoughMaterial" };
+      if (cause.message.includes("NOT NULL constraint failed: store_stock_movement.quantity"))
+        return { ok: false, reason: "materialNotFound" };
+      cause = cause.cause;
+    }
     throw error;
   }
-
-  const conversionId = crypto.randomUUID();
-  const now = Date.now();
-  await db.insert(schema.stockConversion).values({
-    id: conversionId,
-    batchId: input.batchId,
-    variantId: input.variantId,
-    rawKgsUsed: input.rawKgsUsed,
-    unitsProduced: input.unitsProduced,
-    createdAt: now,
-  });
-
-  await db.batch([
-    db.insert(schema.stockMovement).values({
-      id: crypto.randomUUID(),
-      type: "conversion",
-      itemType: "batch",
-      itemId: input.batchId,
-      quantity: -Math.round(input.rawKgsUsed * 1000),
-      refId: conversionId,
-      notes: input.notes,
-      createdAt: now,
-    }),
-    db.insert(schema.stockMovement).values({
-      id: crypto.randomUUID(),
-      type: "conversion",
-      itemType: "variant",
-      itemId: input.variantId,
-      quantity: input.unitsProduced,
-      refId: conversionId,
-      notes: input.notes,
-      createdAt: now,
-    }),
-  ]);
 
   logAdminAction(db, {
     action: "inventory.conversion",

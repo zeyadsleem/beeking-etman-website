@@ -160,14 +160,21 @@ function failureOf(result: unknown): { status: number; message: string } {
 async function productRows(): Promise<
   Array<{ id: string; slug: string; image: string; featured: number }>
 > {
-  return currentDb()
+  const rows = await currentDb()
     .select({
       id: schema.product.id,
       slug: schema.product.slug,
-      image: schema.product.image,
       featured: schema.product.featured,
     })
     .from(schema.product);
+  const images = await currentDb().select().from(schema.productImage);
+  return rows.map((row) => ({
+    ...row,
+    image:
+      images
+        .filter((image) => image.productId === row.id)
+        .sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url ?? "",
+  }));
 }
 
 const BASE_FIELDS = {
@@ -176,7 +183,6 @@ const BASE_FIELDS = {
   slug: "",
   description: "وصف طويل بما يكفي",
   descriptionEn: "",
-  price: "250.50",
   categoryId: "",
   imageUrl: "",
 };
@@ -252,11 +258,7 @@ describe("admin new product default action", () => {
 
   it.each([
     { label: "missing name", patch: { name: "" } },
-    { label: "non-numeric price", patch: { price: "abc" } },
-    { label: "zero price", patch: { price: "0" } },
-    { label: "negative price", patch: { price: "-5" } },
-    { label: "sub-qirsh price", patch: { price: "12.999" } },
-    { label: "blank price", patch: { price: "" } },
+    { label: "missing description", patch: { description: "" } },
   ] as Array<{ label: string; patch: Record<string, string> }>)(
     "fails 400 on $label and writes nothing",
     async ({ patch }) => {
@@ -272,7 +274,7 @@ describe("admin new product default action", () => {
     },
   );
 
-  it("creates the product, converting the EGP price to integer qirsh", async () => {
+  it("creates product details without a product-level price", async () => {
     const categoryId = await seedCategory();
 
     await expect(
@@ -293,7 +295,7 @@ describe("admin new product default action", () => {
       .from(schema.product);
     expect(row?.name).toBe("عسل سدر ملكي");
     expect(row?.nameEn).toBe("Royal Sidr");
-    expect(row?.price).toBe(25_050);
+    expect(row?.price).toBe(0);
     expect(row?.featured).toBe(0);
     expect(row?.categoryId).toBe(categoryId);
   });

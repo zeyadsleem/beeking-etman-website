@@ -55,11 +55,15 @@ pnpm check                # svelte-check
 
 ## Deployment
 
-Cloudflare Pages (Free tier) with `adapter-cloudflare`; GitHub Actions runs
-check + unit + build + e2e, then deploys to Pages on merge to `main`
-(`.github/workflows/ci.yml`). Production requires `BETTER_AUTH_SECRET`,
-`ORDER_ACCESS_SECRET`, and `ORIGIN` as Pages environment variables
-(validated at boot by `src/lib/server/env.ts`). Cost posture and monitoring:
+Cloudflare Pages (Free tier) with `adapter-cloudflare`. GitHub Actions is the
+single deploy owner (`.github/workflows/ci.yml`): check + unit + migration
+replay + build → e2e against that exact build artifact → remote D1 migrations
+→ Pages deploy, with production gated on the `production` GitHub environment
+(required reviewers) and pushes to `main` only. One-time external setup
+(disable the Pages Git integration, secrets, reviewers) and rollback steps:
+`docs/production-runbook.md`. Production requires `BETTER_AUTH_SECRET`,
+`ORDER_ACCESS_SECRET`, and `ORIGIN` as Pages environment variables (validated
+at boot by `src/lib/server/env.ts`). Cost posture and monitoring:
 `docs/architecture.md`.
 
 ## Notes

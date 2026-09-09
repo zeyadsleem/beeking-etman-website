@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>حالة المشروع والمعمارية — مملكة النحل</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        background: #faf8f5;
+        color: #2c2417;
+        line-height: 1.8;
+        padding: 24px 16px;
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 26px;
+        margin-bottom: 4px;
+      }
+      .sub {
+        color: #8a7f6d;
+        font-size: 14px;
+        margin-bottom: 24px;
+      }
+      section {
+        background: #fff;
+        border: 1px solid #e5e0d8;
+        border-radius: 14px;
+        padding: 22px 24px;
+        margin-bottom: 18px;
+      }
+      h2 {
+        font-size: 19px;
+        margin-bottom: 12px;
+        color: #7a5c1e;
+      }
+      h3 {
+        font-size: 16px;
+        margin: 14px 0 6px;
+      }
+      p,
+      li {
+        font-size: 15px;
+      }
+      ul {
+        padding-right: 22px;
+      }
+      .tag {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-left: 6px;
+      }
+      .done {
+        background: #d4edda;
+        color: #155724;
+      }
+      .partial {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .todo {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      code {
+        background: #f0ebe3;
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-size: 13px;
+        direction: ltr;
+        display: inline-block;
+      }
+      .layer {
+        border-right: 3px solid #c9a84c;
+        background: #fdfbf7;
+        padding: 10px 14px;
+        margin-bottom: 6px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      th,
+      td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #e5e0d8;
+        font-size: 14px;
+        text-align: right;
+      }
+      th {
+        background: #faf8f5;
+        font-size: 12px;
+        color: #8a7f6d;
+      }
+      .foot {
+        text-align: center;
+        color: #999;
+        font-size: 12px;
+        margin-top: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>🍯 حالة المشروع — مملكة النحل (Beeking Etman)</h1>
+      <p class="sub">
+        ملخص بالعربي للمعمارية المستخدمة، حالة oRPC، والناقص في المتجر ولوحة التحكم والميزات.
+      </p>
+
+      <section>
+        <h2>1) المعمارية اللي بنستخدمها</h2>
+        <p>
+          بناخد «ـ Onion Architecture» لكن بشكل عملي ومبسّط (مش كتابي جامد): ملفات منظمة حسب
+          <strong>الميزات (features)</strong> والتبعية دايمًا لِلداخل — الـ UI مايعرفش تفاصيل قاعدة
+          البيانات، وقواعد العمل (Domain) مستقلة عن ANY إطار.
+        </p>
+        <div class="layer">
+          🖥️ <strong>طبقة الواجهة:</strong> صفحات SvelteKit (<code>/</code>، <code>/products</code>،
+          <code>/cart</code>، <code>/checkout</code>، <code>/account</code>، <code>/admin</code>)
+        </div>
+        <div class="layer">
+          📜 <strong>طبقة العقود:</strong> Zod schemas + عقود oRPC — تحقق من أي إدخال جاي من بره
+        </div>
+        <div class="layer">
+          ⚙️ <strong>طبقة التطبيق (Services):</strong> <code>orders.ts</code>،
+          <code>addresses.ts</code>، <code>admin/*</code> — إجراءات العمل والتحقق من الصلاحيات
+        </div>
+        <div class="layer">
+          💎 <strong>قواعد العمل (Domain):</strong> <code>cart.ts</code>، <code>shipping.ts</code>،
+          <code>admin-order-status.ts</code>، <code>blends.ts</code> — منطق نقي بدون قاعدة بيانات
+        </div>
+        <div class="layer">
+          🗄️ <strong>البنية التحتية:</strong> Drizzle + D1/SQLite، Better Auth، KV للصور،
+          Trigger-based stock
+        </div>
+      </section>
+
+      <section>
+        <h2>2) حالة oRPC <span class="tag partial">نص نص — شغّالة بس لميزة واحدة</span></h2>
+        <p>أول عقد oRPC اتطبق فعليًا وبيتستهلك من الواجهة:</p>
+        <ul>
+          <li>
+            ✅ <strong>اقتراحات البحث</strong> (<code>/api/rpc</code>): عقد مدخل/مخرج بأخطاء مكتوبة،
+            عميل typed في مكوّن البحث، endpoint القديم اتشال.
+          </li>
+          <li>
+            ⚠️ باقي العمليات (السلة، الدفع، الطلبات، أدمن) لسه بـ SvelteKit server actions —
+            <strong>ده مقبول حاليًا</strong>، والهجرة بتتم تدريجيًا لما تكون قيمتها حقيقية.
+          </li>
+          <li>
+            🎯 القاعدة: «مش كل حاجة لازم oRPC» — الهدف حد واحد واضح للـ Capabilities التجارية، مش
+            استبدال بالقوة.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3) المتجر (Storefront) — إيه اللي خلاص <span class="tag done">جاهز إنتاجيًا</span></h2>
+        <table>
+          <tr>
+            <th>المجال</th>
+            <th>الحالة</th>
+          </tr>
+          <tr>
+            <td>الكتالوج + التصنيفات + البحث + الترتيب + الترقيم</td>
+            <td>✅ مكتمل ويستخدم FTS5</td>
+          </tr>
+          <tr>
+            <td>السلة (كوكي موقّعة + UI تفاؤلي + مزامنة تابات)</td>
+            <td>✅ السيرفر هو المرجع للسعر والمخزون</td>
+          </tr>
+          <tr>
+            <td>الدفع/الإتمام (checkout)</td>
+            <td>✅ آمن من التكرار/التلاعب — لكن <strong>دفع محاكى</strong> مش حقيقي ⚠️</td>
+          </tr>
+          <tr>
+            <td>منع البيع الزائد (oversell)</td>
+            <td>✅ Trigger في قاعدة البيانات + صفر سالب مستحيل</td>
+          </tr>
+          <tr>
+            <td>دورة حياة الطلب (placed→shipped→delivered / ملغي يرجع المخزون)</td>
+            <td>✅ قواعد صريحة + مراعاة للطلبات القديمة</td>
+          </tr>
+          <tr>
+            <td>حسابات العملاء + العناوين المحفوظة</td>
+            <td>✅ Better Auth + فحوص ملكية على كل عملية</td>
+          </tr>
+          <tr>
+            <td>عربي RTL + إنجليزي LTR</td>
+            <td>✅ كامل مع i18n للرسائل والكتالوج</td>
+          </tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>4) Dashboard الأدمن — إيه اللي خلاص <span class="tag done">مرتب</span></h2>
+        <p>
+          ✅ موجود ومختبر: مسودة مشتريات (Gross bookings مش «إيرادات» لأن الدفع محاكى)، عدد الطلبات
+          والعملاء، توزيع الحالات، سلسلة 30 يوم (بتوقيت القاهرة)، أفضل المنتجات، تنبيهات مخزون
+          منخفض، إدارة المنتجات/الفئات/الطلبات/العملاء/المستخدمين/المخزون، تصدير CSV وفاتورة قابلة
+          للطباعة، سجل Audit للأدمن.
+        </p>
+      </section>
+
+      <section>
+        <h2>5) الناقص فعليًا (بهيئة واضحة) <span class="tag todo">TODO حقيقي</span></h2>
+        <h3>⚠️ تحجب عمليات حقيقية</h3>
+        <ul>
+          <li>
+            <strong>بوابة دفع حقيقية</strong> (Paymob/Stripe): دلوقتي الدفع محاكى. البنية جاهزة
+            (<code>payment_status</code> مفصولة) لكن المزود نفسه لسه غير مربوط — ده قرار مالك متعمد.
+          </li>
+          <li>
+            <strong>إيميلات إنتاج فعلية:</strong> الـ EMAIL binding مش شغال فوق Cloudflare Pages —
+            الإيميلات بتتسجل في الـ outbox بس وتفضل <code>pending</code> محتاجة Worker خارجي أو SMTP
+            قرار.
+          </li>
+          <li>
+            <strong>خطوات إعداد خارجية قبل أول Deploy:</strong> إيقاف Git integration في Pages،
+            إضافة secrets في GitHub، وضبط الـ <code>production</code> environment reviewers
+            (تفاصيلها في <code>docs/production-runbook.md</code>).
+          </li>
+        </ul>
+        <h3>🧹 تنظيف منفّذ (اتعمل)</h3>
+        <ul>
+          <li>
+            <strong>أعمدة <code>store_product</code> القديمة</strong> (price/stock/image) — الكود
+            اترحّل بالكامل للـ variants/الـ gallery، وفي <code>0017_catalog_authority</code> bridge
+            بيحوّل كتابات النسخ القديمة. الحذف النهائي للأعمدة متجهّز في
+            <code>drizzle/staged/0017_drop_legacy_product_columns.sql</code> — يتنفذ
+            <em>بعد</em> تصفية النسخ القديمة فقط.
+          </li>
+          <li>
+            <strong>المرتجعات/التقييمات/الكوبونات:</strong> التعريفات اتشالت من
+            <code>schema.ts</code> (مفيش أي كود بيستخدمهم) — الجداول الفعلية والبيانات موجودين وما
+            اتلمسوش. مفيش UI ولا services ليهم؛ أي بناء future محتاج قرار.
+          </li>
+          <li>
+            <strong>تصفية App instances بعد أول Deploy:</strong> الـ staged drop يتنفذ بعد التوقف
+            الكامل للنسخ القديمة، وقبل التصفية مينفعش الأدمن يلغي أوردر atomic عشان ما يتعملش
+            restock مرتين.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6) الميزات اللي في الكود كويس لكن محتاجة تشغيل حقيقي</h2>
+        <ul>
+          <li>
+            <strong>Blends Lab (/blends)</strong> — لعب تفاعلي بخلط عسل. شغال جوّه، بس مش بناء عروض
+            حقيقية للزبون بعد (مفيش offer/checkout حقيقي جوّه اللعبة — بيضيف للسلة، لكن من غير تفاعل
+            دفعي حقيقي).
+          </li>
+          <li>
+            <strong>PostHog Analytics</strong> — متسجل في <code>analytics.ts</code> لكن مفيش width
+            في الداشبورد أو قرار إظهار، وPick يحتاج قرار من المالك.
+          </li>
+          <li>
+            <strong>المراجعات (product reviews)</strong> — الجدول موجود، محتاج صفحة عرض + سياسة
+            موافقة.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7) الخلاصة في سطرين</h2>
+        <p>
+          المعمارية <strong>Feature-oriented + عقد صريحة</strong>، oRPC
+          <strong>موجود ويشتغل</strong> لكن لسه لميزة واحدة (البحث)، المتجر والداشبورد
+          <strong>جاهزين إنتاجيًا من ناحية الصحة والاختبارات</strong>، الناقص الحقيقي هو
+          <strong>الدفع الحقيقي، تسليم الإيميل، وخطوات إعداد Cloudflare البيئية الخارجية</strong> —
+          وده كله موثّق في <code>docs/todo.md</code> و <code>docs/decisions.md</code>.
+        </p>
+      </section>
+
+      <p class="foot">
+        مُحدّث في · سبتمبر 2026 · ملف توثيقي داخلي (docs/production-status-ar.html)
+      </p>
+    </div>
+  </body>
+</html>

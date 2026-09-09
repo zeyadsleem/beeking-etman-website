@@ -51,7 +51,7 @@ async function buildDb(): Promise<void> {
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
       address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
+      status TEXT NOT NULL DEFAULT 'placed', payment_status TEXT NOT NULL DEFAULT 'simulated', stock_version TEXT NOT NULL DEFAULT 'legacy', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   await db.run(`
     CREATE TABLE store_product_variant (
@@ -66,9 +66,23 @@ async function buildDb(): Promise<void> {
   await db.run(`
     CREATE TABLE store_order_item (
       id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL, product_id TEXT NOT NULL,
+      variant_id TEXT,
       product_name TEXT NOT NULL, variant_name TEXT NOT NULL DEFAULT '',
       quantity INTEGER NOT NULL, unit_price INTEGER NOT NULL
     )`);
+  await db.run(`
+    CREATE TRIGGER trg_order_status_cancel_restock
+    AFTER UPDATE OF status ON store_order
+    WHEN NEW.status = 'cancelled' AND OLD.status != 'cancelled' AND NEW.stock_version = 'atomic'
+    BEGIN
+      UPDATE store_product_variant
+      SET stock = stock + COALESCE((
+        SELECT SUM(quantity)
+        FROM store_order_item
+        WHERE order_id = NEW.id AND variant_id = store_product_variant.id
+      ), 0)
+      WHERE id IN (SELECT variant_id FROM store_order_item WHERE order_id = NEW.id AND variant_id IS NOT NULL);
+    END`);
   testDb = db;
   state.database = db;
 }
@@ -90,7 +104,8 @@ async function seedOrder(
     address: "شارع 9",
     city: "القاهرة",
     total: 100_00,
-    status: opts.status ?? "paid",
+    status: opts.status ?? "placed",
+    paymentStatus: "simulated",
     userId: null,
     createdAt: Date.now(),
   });
@@ -99,6 +114,7 @@ async function seedOrder(
 
 interface SeedItemOptions {
   productId?: string;
+  variantId?: string;
   variantName?: string;
   quantity?: number;
 }
@@ -114,6 +130,7 @@ async function seedOrderItem(
     id: itemId,
     orderId,
     productId,
+    variantId: opts.variantId ?? null,
     productName: "عسل سدر مصري",
     variantName: opts.variantName ?? "كيلو",
     quantity: opts.quantity ?? 2,
@@ -225,7 +242,7 @@ describe("admin order detail load", () => {
     const data = asData(await load(fakeEvent(id)));
 
     expect(data.order.id).toBe(id);
-    expect(data.order.status).toBe("paid");
+    expect(data.order.status).toBe("placed");
     expect(data.items).toHaveLength(1);
     expect(data.items[0]?.productName).toBe("عسل سدر مصري");
     expect(data.items[0]?.quantity).toBe(3);
@@ -334,8 +351,9 @@ describe("admin order detail update action", () => {
   it("cancelling restocks variant inventory through the real service", async () => {
     const db = currentDb();
     const id = await seedOrder(db);
-    const { productId } = await seedOrderItem(db, id, { quantity: 2 });
+    const productId = crypto.randomUUID();
     const variantId = await seedVariant(db, productId, 5);
+    await seedOrderItem(db, id, { productId, variantId, quantity: 2 });
 
     const message = successOf(
       await update(fakeEvent(id, { role: "admin" }, { id, status: "cancelled" })),
@@ -353,10 +371,11 @@ describe("admin order detail update action", () => {
   it("maps a restock failure to a retryable 500 failure", async () => {
     const db = currentDb();
     const id = await seedOrder(db);
-    const { productId } = await seedOrderItem(db, id);
-    await seedVariant(db, productId, 5);
-    // Force the post-flip restock batch to fail: dropping the variant table
-    // makes resolveRestockPlan throw after the committed status flip.
+    const productId = crypto.randomUUID();
+    const variantId = await seedVariant(db, productId, 5);
+    await seedOrderItem(db, id, { productId, variantId });
+    // Force the cancel restock trigger to fail: dropping the variant table
+    // makes the AFTER UPDATE trigger throw after the committed status flip.
     await db.run(`DROP TABLE store_product_variant`);
 
     const result = failureOf(

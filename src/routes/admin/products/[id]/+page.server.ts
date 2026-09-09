@@ -30,11 +30,8 @@ export const load: PageServerLoad = async (event) => {
   const detail = await getProductForEdit(db, event.params.id);
   if (!detail) error(404, t(lang, "products.notFound"));
 
-  // The shared admin row omits nameEn, the legacy cover column and categoryId;
-  // one PK-indexed select feeds the form's prefills and the current-image thumb.
   const [extra] = await db
     .select({
-      image: schema.product.image,
       categoryId: schema.product.categoryId,
       nameEn: schema.product.nameEn,
     })
@@ -45,7 +42,7 @@ export const load: PageServerLoad = async (event) => {
   const images = await listProductImages(db, event.params.id);
   return {
     ...detail,
-    image: extra?.image ?? "",
+    image: images[0]?.url ?? "",
     categoryId: extra?.categoryId ?? "",
     nameEn: extra?.nameEn ?? "",
     categories: categoryRows.map((row) => ({
@@ -241,6 +238,15 @@ export const actions: Actions = {
     if (id === "") return fail(400, { message: t(lang, "errors.unexpected") });
 
     const result = await deleteVariant(db, id, event.params.id);
+    if (!result.ok && result.reason === "referenced") {
+      return fail(409, {
+        message: localized(
+          "لا يمكن حذف متغير مرتبط بطلبات أو تحويلات مخزون. يمكنك تعديل مخزونه بدلاً من حذفه.",
+          "Cannot delete a variant linked to orders or stock conversions. You can adjust its stock instead.",
+          lang,
+        ),
+      });
+    }
     if (!result.ok) return fail(404, { message: t(lang, "errors.unexpected") });
     return { variantDeleted: t(lang, "admin.products.variantDeleted") };
   },

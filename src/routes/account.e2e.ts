@@ -56,6 +56,21 @@ async function buySeededProduct(page: Page, fillShipping: ShippingFiller): Promi
 }
 
 test.describe("customer account", () => {
+  test("preview remains available after interrupted page loads", async ({
+    browser,
+    baseURL,
+    request,
+  }) => {
+    for (let index = 0; index < 30; index++) {
+      const interruptedPage = await browser.newPage({ baseURL });
+      await interruptedPage.goto("/", { waitUntil: "commit" });
+      await interruptedPage.close();
+      const response = await request.get("/");
+      expect(response.status()).toBe(200);
+      await response.dispose();
+    }
+  });
+
   test("redirects logged-out visitors to login", async ({ page }) => {
     await page.goto("/account");
     await expect(page).toHaveURL(/\/login/);
@@ -157,6 +172,7 @@ test.describe("customer account", () => {
 
   test("password change requires correct current password", async ({ page }) => {
     await registerAndLogin(page, uniqueEmail("password"));
+    await page.goto("/account/security", { waitUntil: "domcontentloaded" });
     await waitForApp(page);
     await page.getByLabel(/الحالية/).fill("wrongpass");
     await page.getByLabel(/الجديدة/).fill("newpassword456");
@@ -180,7 +196,7 @@ test.describe("customer account", () => {
     await page.goto("/account", { waitUntil: "domcontentloaded" });
     await waitForApp(page);
     await page.getByRole("button", { name: "تسجيل الخروج" }).click();
-    expect(new URL(page.url()).pathname).toBe("/");
+    await expect(page).toHaveURL(/\/(\?.*)?$/);
 
     // User B requests A's order id directly — ownership comes from the session,
     // so the id must be indistinguishable from a missing order (404).

@@ -4,6 +4,7 @@
   import { trackSearch } from "$lib/analytics-events";
   import { getDir, t, type Lang } from "$lib/i18n/messages";
   import { productPath } from "$lib/storefront";
+  import { searchClient } from "$lib/features/search/client";
   import Button from "./Button.svelte";
   import SearchSkeleton from "./SearchSkeleton.svelte";
 
@@ -69,20 +70,14 @@
   async function fetchSuggestions(q: string) {
     controller = new AbortController();
     try {
-      const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`, {
-        signal: controller.signal,
-      });
-      if (!res.ok) throw new Error("search suggestions failed");
-      const data = await res.json();
+      const data = await searchClient.suggestions({ q }, { signal: controller.signal });
       if (query.trim() !== q) return;
-      items = data.products.map(
-        (p: { name: string; slug: string; categorySlug: string; department: string; image: string; minPrice: number }) => ({
-          value: productPath(p),
-          label: p.name,
-          image: p.image,
-          minPrice: p.minPrice,
-        }),
-      );
+      items = data.products.map((p) => ({
+        value: productPath(p),
+        label: p.name,
+        image: p.image,
+        minPrice: p.minPrice,
+      }));
     } catch (err) {
       if ((err as Error).name !== "AbortError") items = [];
     } finally {

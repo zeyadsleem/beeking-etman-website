@@ -4,10 +4,27 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+
+# Single owner of the migration + Pages deploy chain. cancel-in-progress=false
+# waits for an in-flight production deploy to finish before a new one starts,
+# so we never abandon a deploy mid-flight and never double-deploy the same
+# migration. This workflow replaces Cloudflare Pages' git integration as the
+# sole production deployer (see docs/production-runbook.md).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+# Least-privilege default. Individual jobs that need more (e.g. wrangler-action
+# using CLOUDFLARE_API_TOKEN) inherit it; nothing else does.
+permissions:
+  contents: read
 
 jobs:
   test:
+    name: Lint, typecheck, unit, build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -19,19 +36,31 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
-      - run: pnpm run test:unit -- --run --project server
-      # Replay the full migration chain against a throwaway SQLite file so a
-      # duplicate/conflicting migration fails here, seconds after push.
+      - run: pnpm exec vp check
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run test:unit -- --run
+      # Apply all migrations to a throwaway SQLite file so the build and e2e
+      # jobs cannot start against a broken schema.
       - run: pnpm exec drizzle-kit migrate
         env:
           DATABASE_URL: file:/tmp/migration-replay.db
       - run: pnpm run build
+      # Same checked-out build is consumed by deploy-production (no rebuild).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-build
+          path: .svelte-kit/cloudflare
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
 
   e2e:
+    name: Playwright E2E (chromium)
+    needs: [test]
     runs-on: ubuntu-latest
-    needs: test
-    env:
-      DATABASE_URL: file:./e2e.db
+    # Full client + server suite + isolated miniflare D1 spin-up; well under
+    # 30 minutes on a healthy runner but with headroom for cold starts.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -42,16 +71,37 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Gate on the full browser install so the suite runs end-to-end on a
+      # clean runner; without --with-deps the first launch fails on missing
+      # system libs.
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec playwright test
+      - uses: actions/download-artifact@v4
+        with:
+          name: cloudflare-build
+          path: .svelte-kit/cloudflare
+      - run: pnpm run test:e2e
+        env:
+          E2E_USE_BUILD: "1"
+      - name: Upload Playwright report + traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14
 
-  migrate:
-    # Cloudflare Pages (git integration) is the only deployer for the site.
-    # This job exists solely to apply D1 schema migrations to production
-    # before the new Worker code goes live, and is gated on e2e passing.
-    if: github.ref == 'refs/heads/main'
+  migrate-production:
+    name: Apply D1 migrations to production
     needs: [test, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Production environment with required reviewers blocks the apply until a
+    # human approves. Configure reviewers in GitHub Settings → Environments
+    # before this job can run end-to-end.
+    environment: production
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -64,8 +114,48 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Idempotent: applied migrations are tracked in the remote d1_migrations
       # table and skipped on subsequent runs.
-      - uses: cloudflare/wrangler-action@v3
+      - name: Apply pending D1 migrations to remote D1
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: d1 migrations apply beeking --remote
+
+  deploy-production:
+    name: Deploy Pages (same checked-out build as test job)
+    needs: [test, e2e, migrate-production]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Production environment + required reviewers is the single human gate on
+    # every Pages deploy. Until the environment is configured and the
+    # secrets below exist, this job cannot deploy.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Reuse the build artifact produced by the test job; rebuilds would
+      # let a Pages deploy drift from the code the e2e suite ran against.
+      - name: Download checked build
+        uses: actions/download-artifact@v4
+        with:
+          name: cloudflare-build
+          path: .svelte-kit/cloudflare
+      - name: Deploy Pages from checked build
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy .svelte-kit/cloudflare
+            --project-name beeking-etman-website
+            --branch main
+            --commit-hash ${{ github.sha }}
+            --commit-dirty=false

@@ -3,29 +3,40 @@ import { defineConfig } from "@playwright/test";
 import path from "node:path";
 
 // Single source of truth for the isolated miniflare D1 directory: the
-// webServer chain and test-process helpers (clearRateLimitRows) must target
-// the same database.
-const E2E_D1_STATE = path.resolve(".wrangler/state/e2e");
-process.env.E2E_D1_STATE ??= E2E_D1_STATE;
+// webServer chain and test-process helpers (clearRateLimitRows, setUserRole)
+// must target the same database.
+const E2E_PORT = Number(process.env.E2E_PORT ?? 4173);
+const E2E_RUN_ID = process.env.E2E_RUN_ID ?? `${process.pid}-${Date.now()}`;
+const E2E_STATE = path.resolve(".wrangler/state/e2e", E2E_RUN_ID);
+const E2E_VARS = path.resolve(".e2e.vars");
+process.env.E2E_RUN_ID = E2E_RUN_ID;
+process.env.E2E_D1_STATE = E2E_STATE;
+process.env.E2E_PORT ??= String(E2E_PORT);
 
 export default defineConfig({
   webServer: {
+    // scripts/e2e-setup.mjs owns the isolated setup:
+    //   - never overwrites .dev.vars / .env (uses --env-file .e2e.vars)
+    //   - never touches local.db / d1-seed.sql (uses .e2e/<run>.db / .e2e/<run>-seed.sql)
+    //   - never kills another process on the E2E_PORT (refuses with a clear
+    //     error if the port is already in use)
+    //   - never adds sleeps to mask failures
+    // Playwright's port-readiness probe handles the actual wait, no sleeps needed.
     command:
-      // A crashed run can leave a detached workerd squatting the e2e port;
-      // reusing it would skip the reset chain and test a stale build. Free
-      // the port first so every invocation runs the full reset chain.
-      //
-      // The miniflare D1 lives in an isolated, wiped-every-run directory
-      // (--persist-to) instead of the default .wrangler/state/v3: sharing
-      // that SQLite WAL between this server and a concurrently running dev
-      // server crashes workerd on the first D1 write ("Network connection
-      // lost"). A fresh database also makes rate-limit budgets start at
-      // zero, so no store_rate_limit wipe step is needed.
-      `fuser -k ${process.env.E2E_PORT ?? 4173}/tcp >/dev/null 2>&1 || true; sleep 1 && rm -rf '${E2E_D1_STATE}' && mkdir -p '${E2E_D1_STATE}' && pnpm run db:reset && pnpm run db:seed:d1 && cp .dev.vars.example .dev.vars && pnpm run build && pnpm exec wrangler d1 migrations apply beeking --local --persist-to '${E2E_D1_STATE}' && pnpm exec wrangler d1 execute beeking --local --file=d1-seed.sql --persist-to '${E2E_D1_STATE}' >/dev/null && sh -c 'while :; do pnpm exec wrangler pages dev .svelte-kit/cloudflare --port ${process.env.E2E_PORT ?? 4173} --persist-to '${E2E_D1_STATE}'; echo "[webserver] preview exited, restarting" >&2; sleep 1; done'`,
-    port: Number(process.env.E2E_PORT ?? 4173),
-    reuseExistingServer: !process.env.CI,
-    // Cold chain (reset + seed export + build + isolated-database setup) can
-    // take several minutes before preview answers on the port.
+      `node scripts/e2e-setup.mjs && ` +
+      `sh -c 'max=5; n=0; while [ $n -lt $max ]; do ` +
+      `pnpm exec wrangler pages dev .svelte-kit/cloudflare ` +
+      `--port ${E2E_PORT} ` +
+      `--persist-to "${E2E_STATE}" ` +
+      `--env-file "${E2E_VARS}"; ` +
+      `code=$?; n=$((n+1)); ` +
+      `[ $code -eq 0 ] && exit 0; ` +
+      `printf "[webserver] preview exited with %d, restart %d/%d\\n" "$code" "$n" "$max" >&2; ` +
+      `done; exit $code'`,
+    port: E2E_PORT,
+    reuseExistingServer: false,
+    // Cold chain (setup script: migrate + seed + build + D1 apply) can take
+    // several minutes before preview answers on the port.
     timeout: 600_000,
   },
   testMatch: "**/*.e2e.{ts,js}",
@@ -35,10 +46,12 @@ export default defineConfig({
   // against it after a crash.
   workers: 1,
   // 2 retries locally too: a crash can land mid-test twice in a long run, and
-  // each restart window is ~15-30s (see gotoWithRestartRetry in e2e-utils).
+  // each restart window is bounded by the workerd process coming back.
   retries: 2,
-  // One crash-restart cycle must fit inside a single attempt: a crash can
-  // poison in-flight interactions until the server (and a reload) return.
-  timeout: 90_000,
+  // One crash-restart cycle (documented upstream workerd crash +
+  // ~15-30s recovery, see src/routes/e2e-utils.ts) must fit inside a single
+  // attempt even in the longest journey test; a crash can poison in-flight
+  // interactions until the server (and a reload) return.
+  timeout: 120_000,
   expect: { timeout: 10_000 },
 });

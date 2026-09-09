@@ -46,6 +46,10 @@ test("customer composes a blend step by step and adds it to the cart", async ({ 
   const scene = page.getByTestId("blends-scene");
   await expect(scene).toBeVisible();
 
+  // Step 0 — choose a goal so the wizard advances to honey selection.
+  await page.getByTestId("goal-children").click();
+  await page.getByTestId("blends-next").click();
+
   // Step 1 — choose a base honey + size.
   await page.getByTestId("honey-sidr").click();
   await expect(page.getByTestId("honey-sidr")).toHaveAttribute("aria-pressed", "true");
@@ -86,6 +90,10 @@ test("next is gated: ordering stays locked until each step is complete", async (
   const next = page.getByTestId("blends-next");
   const scene = page.getByTestId("blends-scene");
 
+  // Step 0: choose a goal to unlock the honey step.
+  await page.getByTestId("goal-children").click();
+  await next.click();
+
   // Step 1: no honey chosen yet → next is disabled and no order panel exists.
   await expect(next).toBeDisabled();
   await expect(page.getByTestId("blends-order-panel")).toHaveCount(0);
@@ -94,8 +102,12 @@ test("next is gated: ordering stays locked until each step is complete", async (
   await expect(next).toBeEnabled();
   await next.click();
 
-  // Step 2: no dose added yet → next is disabled again.
+  // Step 2: the goal pre-selects recommended doses. Clear them so the
+  // stepper gating can be observed from a clean state.
   await expect(scene).toContainText("المكونات");
+  await page.getByTestId("dose-remove-beePollen").click();
+  await page.getByTestId("dose-remove-beePollen").click();
+  await expect(page.getByTestId("dose-count-beePollen")).toHaveCount(0);
   await expect(next).toBeDisabled();
   await page.getByTestId("dose-add-ginseng").click();
   await expect(next).toBeEnabled();

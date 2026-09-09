@@ -14,10 +14,10 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
 
   await page.getByLabel("بحث في المتجر").fill("سدر");
   await page.getByLabel("بحث في المتجر").press("Enter");
-  await expect(page).toHaveURL(/\/products\?q=/);
+  await expect(page).toHaveURL(/\/honey\?q=/);
 
   await page.getByRole("link", { name: "عسل سدر مصري" }).first().click();
-  await expect(page).toHaveURL(/\/honey\/sidr\/honey-sidr-1kg/);
+  await expect(page).toHaveURL(/\/honey\/sidr\/honey-sidr/);
 
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   await page.getByRole("button", { name: "فتح سلة التسوق" }).click();

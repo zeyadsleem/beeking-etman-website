@@ -1,11 +1,3 @@
-/**
- * Gallery (store_product_image) and cover-image management for the admin
- * product editor. This is where the storefront-facing imagery is written:
- * the legacy `product.image` column is synced as a fallback/SEO value, and a
- * cover upload also becomes the image of a single-variant product so cards
- * and the first gallery slot reflect it immediately (decision D1/D2 of the
- * admin-ops plan). Gallery rows drive the storefront's extra images.
- */
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
@@ -111,17 +103,24 @@ export async function reorderProductImages(
   return { ok: true };
 }
 
-/**
- * Writes the cover to the legacy `product.image` column AND, per decision
- * D1, to the image of a single-variant product. Multi-variant products keep
- * their per-variant images untouched here — those are edited per row.
- */
 export async function setCoverUrl(
   db: LibSQLDatabase<typeof schema>,
   productId: string,
   url: string,
 ): Promise<void> {
-  await db.update(schema.product).set({ image: url }).where(eq(schema.product.id, productId));
+  const images = await listProductImages(db, productId);
+  const existing = images.find((image) => image.url === url);
+  if (images[0]?.id !== existing?.id || !existing) {
+    const sortOrder = (images[0]?.sortOrder ?? 0) - 1;
+    if (existing) {
+      await db
+        .update(schema.productImage)
+        .set({ sortOrder })
+        .where(eq(schema.productImage.id, existing.id));
+    } else {
+      await db.insert(schema.productImage).values({ productId, url, sortOrder });
+    }
+  }
 
   const variants = await db
     .select({ id: schema.productVariant.id })

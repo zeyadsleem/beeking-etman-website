@@ -111,7 +111,7 @@ test("cross-page navigation is client-side and still transitions", async () => {
   await browser.close();
 });
 
-test("browser back after client-side navigation returns home", async () => {
+test("browser back after client-side navigation returns to the previous page", async () => {
   const browser = await chromium.launch();
   const context = await browser.newContext({
     locale: "ar-EG",
@@ -119,10 +119,10 @@ test("browser back after client-side navigation returns home", async () => {
   });
   const page = await context.newPage();
 
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("/honey", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
   await expect(page.locator("h1").first()).toBeVisible();
-  const homeUrl = page.url();
+  const listingUrl = page.url();
   await page.waitForTimeout(800);
 
   await page.locator('a[href^="/honey/"]').first().click();
@@ -130,13 +130,13 @@ test("browser back after client-side navigation returns home", async () => {
   await page.waitForTimeout(600);
 
   await page.goBack();
-  await expect(page).toHaveURL(homeUrl);
+  await expect(page).toHaveURL(listingUrl);
   await expect(page.locator("h1").first()).toBeVisible();
 
   await browser.close();
 });
 
-test("hash link still scrolls to section", async () => {
+test("hash link updates the URL fragment", async () => {
   const browser = await chromium.launch();
   const context = await browser.newContext({
     locale: "ar-EG",
@@ -151,10 +151,7 @@ test("hash link still scrolls to section", async () => {
 
   await page.locator('a[href="#categories"]').click();
   await page.waitForTimeout(800);
-  const target = await page.locator("#categories").boundingBox();
-  const y = await page.evaluate(() => scrollY);
-  console.log("#categories scrollY:", y, "target top:", target?.y);
-  expect(target).not.toBeNull();
+  expect(page.url()).toMatch(/#categories$/);
 
   await browser.close();
 });

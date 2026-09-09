@@ -1,5 +1,5 @@
 import { fail } from "@sveltejs/kit";
-import { inArray } from "drizzle-orm";
+import { asc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { deleteProduct, listAdminProducts, PRODUCTS_PAGE_SIZE } from "$lib/server/admin/products";
 import { logAdminAction } from "$lib/server/admin/audit";
@@ -53,15 +53,16 @@ export const load: PageServerLoad = async (event) => {
   const images: Record<string, string> = {};
   if (items.length > 0) {
     const rows = await db
-      .select({ id: schema.product.id, image: schema.product.image })
-      .from(schema.product)
+      .select({ id: schema.productImage.productId, image: schema.productImage.url })
+      .from(schema.productImage)
       .where(
         inArray(
-          schema.product.id,
+          schema.productImage.productId,
           items.map((item) => item.id),
         ),
-      );
-    for (const row of rows) images[row.id] = row.image;
+      )
+      .orderBy(asc(schema.productImage.sortOrder), asc(schema.productImage.id));
+    for (const row of rows) images[row.id] ??= row.image;
   }
 
   return {

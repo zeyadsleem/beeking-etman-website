@@ -36,6 +36,8 @@ let client: ReturnType<typeof createClient> | null = null;
 async function buildDb() {
   client ??= createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
+  await db.run(`PRAGMA foreign_keys = ON`);
+  await db.run(`DROP TABLE IF EXISTS store_stock_conversion`);
   await db.run(`DROP TABLE IF EXISTS store_order_item`);
   await db.run(`DROP TABLE IF EXISTS store_order`);
   await db.run(`DROP TABLE IF EXISTS store_product_image`);
@@ -82,14 +84,19 @@ async function buildDb() {
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
       address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
+      status TEXT NOT NULL DEFAULT 'placed', payment_status TEXT NOT NULL DEFAULT 'simulated', stock_version TEXT NOT NULL DEFAULT 'legacy', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   await db.run(`
     CREATE TABLE store_order_item (
       id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL, product_id TEXT NOT NULL,
+      variant_id TEXT REFERENCES store_product_variant(id),
       product_name TEXT NOT NULL, variant_name TEXT NOT NULL DEFAULT '',
       quantity INTEGER NOT NULL, unit_price INTEGER NOT NULL
     )`);
+  await db.run(`CREATE TABLE store_stock_conversion (
+    id TEXT PRIMARY KEY NOT NULL,
+    variant_id TEXT NOT NULL REFERENCES store_product_variant(id)
+  )`);
   return db;
 }
 
@@ -199,13 +206,15 @@ async function seedOrderWithItem(
     address: "شارع 9",
     city: "القاهرة",
     total: 100_00,
-    status: "paid",
+    status: "placed",
+    paymentStatus: "simulated",
     userId: null,
     createdAt: Date.now(),
   });
   await db.insert(schema.orderItem).values({
     orderId,
     productId,
+    variantId: null,
     productName: "عسل سدر مصري",
     variantName: "250g",
     quantity: 1,
@@ -219,7 +228,6 @@ function productInput(categoryId: string, overrides: Partial<ProductInput> = {})
     nameEn: "Mountain Sidr Honey",
     description: "وصف المنتج الكامل",
     descriptionEn: "Full product description",
-    price: 250_00,
     categoryId,
     featured: false,
     department: "honey",
@@ -260,7 +268,6 @@ describe("productInputSchema", () => {
       nameEn: "",
       description: "عسل طبيعي",
       descriptionEn: "",
-      price: 100_00,
       categoryId,
       featured: false,
       department: "honey",
@@ -296,11 +303,10 @@ describe("productInputSchema", () => {
     ).toBe(false);
   });
 
-  it("rejects prices that are zero, negative, or fractional", () => {
+  it("ignores retired product prices", () => {
     const base = { name: "ن", description: "د", categoryId: crypto.randomUUID() };
-    expect(productInputSchema.safeParse({ ...base, price: 0 }).success).toBe(false);
-    expect(productInputSchema.safeParse({ ...base, price: -5 }).success).toBe(false);
-    expect(productInputSchema.safeParse({ ...base, price: 10.5 }).success).toBe(false);
+    expect(productInputSchema.parse({ ...base, price: 0 })).not.toHaveProperty("price");
+    expect(productInputSchema.parse(base)).not.toHaveProperty("price");
   });
 });
 
@@ -452,7 +458,7 @@ describe("listAdminProducts", () => {
       id: withVariants,
       name: "مجمّع",
       slug: expect.any(String),
-      price: 100_00,
+      price: 150_00,
       featured: true,
       categoryName: "برسيم",
       department: "honey",
@@ -491,7 +497,7 @@ describe("getProductForEdit", () => {
       slug: expect.any(String),
       description: "د",
       descriptionEn: "",
-      price: 100_00,
+      price: 150_00,
       featured: false,
       categoryName: "برسيم",
       department: "honey",
@@ -527,7 +533,7 @@ describe("createProduct", () => {
       nameEn: "Mountain Sidr Honey",
       description: "وصف المنتج الكامل",
       descriptionEn: "Full product description",
-      price: 250_00,
+      price: 0,
       categoryId,
       featured: 1,
     });
@@ -566,13 +572,13 @@ describe("updateProduct", () => {
     const result = await updateProduct(
       db,
       id,
-      productInput(categoryId, { name: "اسم جديد", price: 300_00 }),
+      productInput(categoryId, { name: "اسم جديد" }),
       "new-slug",
     );
 
     expect(result).toEqual({ ok: true, id });
     const row = await db.select().from(schema.product).where(eq(schema.product.id, id)).get();
-    expect(row).toMatchObject({ slug: "new-slug", name: "اسم جديد", price: 300_00 });
+    expect(row).toMatchObject({ slug: "new-slug", name: "اسم جديد", price: 100_00 });
   });
 
   it("keeps the auto-suffixed slug when the caller passes the same base", async () => {
@@ -774,6 +780,34 @@ describe("deleteVariant", () => {
     expect(await deleteVariant(db, id)).toEqual({ ok: true });
     expect(await db.select().from(schema.productVariant)).toHaveLength(0);
   });
+
+  it.each(["store_order_item", "store_stock_conversion"])(
+    "preserves variants referenced by %s with foreign keys enabled",
+    async (table) => {
+      expect((await db.all(`PRAGMA foreign_keys`))[0]).toEqual({ foreign_keys: 1 });
+      const categoryId = await seedCategory(db);
+      const productId = await seedProduct(db, categoryId);
+      const id = await seedVariant(db, productId);
+      if (table === "store_order_item") {
+        await seedOrderWithItem(db, productId);
+        await db.update(schema.orderItem).set({ variantId: id });
+      } else {
+        await db.run(
+          `INSERT INTO store_stock_conversion (id, variant_id) VALUES ('conversion', '${id}')`,
+        );
+      }
+      await expect(
+        db.delete(schema.productVariant).where(eq(schema.productVariant.id, id)),
+      ).rejects.toThrow();
+      expect(await deleteVariant(db, id, "another-product")).toEqual({
+        ok: false,
+        reason: "not_found",
+      });
+      expect(await deleteVariant(db, id, productId)).toEqual({ ok: false, reason: "referenced" });
+      expect(await db.select().from(schema.productVariant)).toHaveLength(1);
+      expect(await db.all(`PRAGMA foreign_key_check`)).toEqual([]);
+    },
+  );
 
   it("returns not_found for an unknown id", async () => {
     expect(await deleteVariant(db, crypto.randomUUID())).toEqual({

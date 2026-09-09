@@ -6,6 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
+import { t } from "$lib/i18n/messages";
 import { createOrder, isNonceConflict } from "./orders";
 import { computeShipping, DEFAULT_GOVERNORATE } from "$lib/shipping";
 import { isBusyError } from "$lib/server/sqlite";
@@ -52,14 +53,48 @@ async function buildDb() {
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
       address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
+      status TEXT NOT NULL DEFAULT 'placed', payment_status TEXT NOT NULL DEFAULT 'simulated', stock_version TEXT NOT NULL DEFAULT 'legacy', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   await db.run(`
     CREATE TABLE store_order_item (
-      id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL, product_id TEXT NOT NULL,
+      id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL REFERENCES store_order(id),
+      product_id TEXT NOT NULL REFERENCES store_product(id),
+      variant_id TEXT REFERENCES store_product_variant(id),
       product_name TEXT NOT NULL, variant_name TEXT NOT NULL DEFAULT '',
-      quantity INTEGER NOT NULL, unit_price INTEGER NOT NULL
+      quantity INTEGER NOT NULL CHECK (quantity > 0), unit_price INTEGER NOT NULL CHECK (unit_price >= 0)
     )`);
+  await db.run(`
+    CREATE TRIGGER trg_order_item_reserve_stock
+    BEFORE INSERT ON store_order_item
+    WHEN (SELECT stock_version FROM store_order WHERE id = NEW.order_id) = 'atomic'
+    BEGIN
+      SELECT CASE
+        WHEN NEW.variant_id IS NULL THEN
+          RAISE(ABORT, 'MISSING_VARIANT_ID')
+      END;
+
+      UPDATE store_product_variant
+      SET stock = stock - NEW.quantity
+      WHERE id = NEW.variant_id AND stock >= NEW.quantity;
+
+      SELECT CASE
+        WHEN (SELECT changes()) = 0 THEN
+          RAISE(ABORT, 'OUT_OF_STOCK')
+      END;
+    END`);
+  await db.run(`
+    CREATE TRIGGER trg_order_status_cancel_restock
+    AFTER UPDATE OF status ON store_order
+    WHEN NEW.status = 'cancelled' AND OLD.status != 'cancelled' AND NEW.stock_version = 'atomic'
+    BEGIN
+      UPDATE store_product_variant
+      SET stock = stock + COALESCE((
+        SELECT SUM(quantity)
+        FROM store_order_item
+        WHERE order_id = NEW.id AND variant_id = store_product_variant.id
+      ), 0)
+      WHERE id IN (SELECT variant_id FROM store_order_item WHERE order_id = NEW.id AND variant_id IS NOT NULL);
+    END`);
   const cat = (
     await db
       .insert(schema.category)
@@ -113,7 +148,7 @@ afterAll(() => {
 
 describe("createOrder", () => {
   it("creates an order, decrements variant stock, stores variantName", async () => {
-    const { db, v } = await buildDb();
+    const { db, p, v } = await buildDb();
     const result = await createOrder(
       db,
       [{ variantId: v.id, quantity: 2 }],
@@ -132,6 +167,8 @@ describe("createOrder", () => {
       .where(eq(schema.order.id, result.orderId))
       .get();
     expect(order?.number).toBe(result.orderNumber);
+    expect(order?.status).toBe("placed");
+    expect(order?.paymentStatus).toBe("simulated");
     const stock = await db
       .select()
       .from(schema.productVariant)
@@ -144,6 +181,8 @@ describe("createOrder", () => {
       .where(eq(schema.orderItem.orderId, result.orderId));
     expect(items).toEqual([
       expect.objectContaining({
+        productId: p.id,
+        variantId: v.id,
         productName: "عسل سدر مصري",
         variantName: "500 جرام",
         quantity: 2,
@@ -165,10 +204,10 @@ describe("createOrder", () => {
     expect(result.ok).toBe(true);
     expect(batchSpy).toHaveBeenCalledTimes(1);
     const statements = batchSpy.mock.calls[0]?.[0] ?? [];
-    expect(statements).toHaveLength(3); // 1 guarded decrement + 1 order insert + 1 items insert
+    expect(statements).toHaveLength(2); // 1 order insert + 1 items insert (stock reserved by trigger)
   });
 
-  it("compensates a committed batch when a concurrent checkout wins the stock race", async () => {
+  it("rolls back the batch when a concurrent checkout wins the stock race", async () => {
     const { db, v } = await buildDb();
     const originalBatch = db.batch.bind(db);
     const batchSpy = vi.spyOn(db, "batch").mockImplementationOnce(async (statements) => {
@@ -186,8 +225,8 @@ describe("createOrder", () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.outOfStock).toContain("عسل سدر مصري");
-    expect(batchSpy).toHaveBeenCalledTimes(2); // main batch + compensation batch
+    expect(result.outOfStock).toContain("عسل سدر مصري - 500 جرام");
+    expect(batchSpy).toHaveBeenCalledTimes(1); // trigger aborts inside the single batch
     expect(await db.select().from(schema.order)).toEqual([]);
     expect(await db.select().from(schema.orderItem)).toEqual([]);
     const stock = await db
@@ -195,10 +234,10 @@ describe("createOrder", () => {
       .from(schema.productVariant)
       .where(eq(schema.productVariant.id, v.id))
       .get();
-    expect(stock?.stock).toBe(0); // winner keeps the stock; loser restored nothing
+    expect(stock?.stock).toBe(0); // winner keeps the stock; loser wrote nothing
   });
 
-  it("restores only the applied decrements when one of two variants loses the race", async () => {
+  it("rolls back the entire batch when one of two variants loses the race", async () => {
     const { db, p, v } = await buildDb();
     const p2 = (
       await db
@@ -246,8 +285,8 @@ describe("createOrder", () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.outOfStock).toContain("غذاء ملكات");
-    expect(batchSpy).toHaveBeenCalledTimes(2); // main batch + compensation batch
+    expect(result.outOfStock).toContain("غذاء ملكات - 1 كيلو");
+    expect(batchSpy).toHaveBeenCalledTimes(1); // trigger aborts inside the single batch
     expect(await db.select().from(schema.order)).toEqual([]);
     expect(await db.select().from(schema.orderItem)).toEqual([]);
     const aStock = await db
@@ -255,59 +294,13 @@ describe("createOrder", () => {
       .from(schema.productVariant)
       .where(eq(schema.productVariant.id, v.id))
       .get();
-    expect(aStock?.stock).toBe(3); // A's applied decrement was added back
+    expect(aStock?.stock).toBe(3); // A was never decremented
     const bStock = await db
       .select({ stock: schema.productVariant.stock })
       .from(schema.productVariant)
       .where(eq(schema.productVariant.id, b.id))
       .get();
     expect(bStock?.stock).toBe(0); // B lost the race; nothing restored
-  });
-
-  it("treats D1-shaped results (meta.changes) as affected-row counts", async () => {
-    const { db, v } = await buildDb();
-    const d1BatchResult = (changes: number[]) =>
-      changes.map((c) => ({ meta: { changes: c } })) as never;
-    const batchSpy = vi
-      .spyOn(db, "batch")
-      .mockImplementationOnce(async () => d1BatchResult([1, 1, 1]));
-    const result = await createOrder(
-      db,
-      [{ variantId: v.id, quantity: 1 }],
-      customer,
-      crypto.randomUUID(),
-    );
-
-    expect(result.ok).toBe(true);
-    expect(batchSpy).toHaveBeenCalledTimes(1); // no compensation on all-applied
-  });
-
-  it("compensates when a D1-shaped decrement reports zero changes", async () => {
-    const { db, v } = await buildDb();
-    const d1BatchResult = (changes: number[]) =>
-      changes.map((c) => ({ meta: { changes: c } })) as never;
-    const batchSpy = vi
-      .spyOn(db, "batch")
-      .mockImplementationOnce(async () => d1BatchResult([1, 1, 0]));
-    const result = await createOrder(
-      db,
-      [{ variantId: v.id, quantity: 1 }],
-      customer,
-      crypto.randomUUID(),
-    );
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.outOfStock).toContain("عسل سدر مصري");
-    expect(batchSpy).toHaveBeenCalledTimes(2); // main batch + compensation batch
-    expect(await db.select().from(schema.order)).toEqual([]);
-    expect(await db.select().from(schema.orderItem)).toEqual([]);
-    const stock = await db
-      .select({ stock: schema.productVariant.stock })
-      .from(schema.productVariant)
-      .where(eq(schema.productVariant.id, v.id))
-      .get();
-    expect(stock?.stock).toBe(3); // the only decrement was the lost one, so nothing is added back
   });
 
   it("retries the whole batch when the order number collides", async () => {
@@ -350,7 +343,8 @@ describe("createOrder", () => {
         address: customer.address,
         city: customer.city,
         total: 380_00,
-        status: "paid",
+        status: "placed",
+        paymentStatus: "simulated",
         userId: null,
         createdAt: Date.now(),
       });
@@ -361,6 +355,7 @@ describe("createOrder", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.orderId).toBe("winner-id");
+    expect(result).toMatchObject({ outcome: "replayed" });
     expect(result.orderNumber).toBe("HNY-999999");
     expect(await db.select().from(schema.order)).toHaveLength(1);
     const stock = await db
@@ -402,7 +397,7 @@ describe("createOrder", () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.outOfStock).toContain("عسل سدر مصري");
+    expect(result.outOfStock).toContain("عسل سدر مصري - 500 جرام");
     expect(batchSpy).not.toHaveBeenCalled();
     expect(await db.select().from(schema.order)).toEqual([]);
     const stock = await db
@@ -430,7 +425,7 @@ describe("createOrder", () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.outOfStock).toContain("عسل سدر مصري");
+    expect(result.outOfStock).toContain("عسل سدر مصري - 500 جرام");
     expect(await db.select().from(schema.order)).toEqual([]);
     const stock = await db
       .select()
@@ -450,6 +445,8 @@ describe("createOrder", () => {
     expect(second.ok).toBe(true);
     if (!first.ok || !second.ok) return;
     expect(second.orderId).toBe(first.orderId);
+    expect(first).toMatchObject({ outcome: "created" });
+    expect(second).toMatchObject({ outcome: "replayed" });
     expect(second.orderNumber).toBe(first.orderNumber);
     expect(second.total).toBe(first.total);
 
@@ -538,18 +535,155 @@ describe("createOrder", () => {
     expect(items).toHaveLength(2);
     expect(items).toEqual([
       expect.objectContaining({
+        productId: v.productId,
+        variantId: v.id,
         productName: "عسل سدر مصري",
         variantName: "نص كيلو",
         quantity: 1,
         unitPrice: 380_00,
       }),
       expect.objectContaining({
+        productId: additive.id,
+        variantId: additiveVariant.id,
         productName: "غذاء ملكات",
         variantName: "",
         quantity: 2,
         unitPrice: 85_00,
       }),
     ]);
+
+    const order = await db
+      .select()
+      .from(schema.order)
+      .where(eq(schema.order.id, result.orderId))
+      .get();
+    expect(order?.status).toBe("placed");
+    expect(order?.paymentStatus).toBe("simulated");
+  });
+
+  it("replays a nonce with an empty cart for the same owner", async () => {
+    const { db, v } = await buildDb();
+    const nonce = crypto.randomUUID();
+    const first = await createOrder(db, [{ variantId: v.id, quantity: 1 }], customer, nonce);
+    expect(first.ok).toBe(true);
+    const second = await createOrder(db, [], customer, nonce);
+    expect(second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+    expect(second.orderId).toBe(first.orderId);
+    const stock = await db
+      .select()
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, v.id))
+      .get();
+    expect(stock?.stock).toBe(2);
+  });
+
+  it("rejects a cross-owner nonce replay", async () => {
+    const { db, v } = await buildDb();
+    const nonce = crypto.randomUUID();
+    const first = await createOrder(
+      db,
+      [{ variantId: v.id, quantity: 1 }],
+      customer,
+      nonce,
+      "user-a",
+    );
+    expect(first.ok).toBe(true);
+    const second = await createOrder(
+      db,
+      [{ variantId: v.id, quantity: 1 }],
+      customer,
+      nonce,
+      "user-b",
+    );
+    expect(second.ok).toBe(false);
+    if (second.ok) return;
+    expect(second.outOfStock).toEqual([]);
+    const orders = await db.select().from(schema.order);
+    expect(orders).toHaveLength(1);
+  });
+
+  it("rejects a stale cart with an unpublished product", async () => {
+    const { db, p, v } = await buildDb();
+    await db.update(schema.product).set({ published: false }).where(eq(schema.product.id, p.id));
+    const result = await createOrder(
+      db,
+      [{ variantId: v.id, quantity: 1 }],
+      customer,
+      crypto.randomUUID(),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.outOfStock.length).toBeGreaterThan(0);
+    expect(await db.select().from(schema.order)).toEqual([]);
+    const stock = await db
+      .select()
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, v.id))
+      .get();
+    expect(stock?.stock).toBe(3);
+  });
+
+  it("rejects a stale cart with a deleted variant", async () => {
+    const { db, v } = await buildDb();
+    const result = await createOrder(
+      db,
+      [{ variantId: "does-not-exist", quantity: 1 }],
+      customer,
+      crypto.randomUUID(),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.outOfStock).toContain(t("ar", "orders.unknownProduct"));
+    expect(await db.select().from(schema.order)).toEqual([]);
+    const stock = await db
+      .select()
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, v.id))
+      .get();
+    expect(stock?.stock).toBe(3);
+  });
+
+  it("does not oversell under concurrent checkouts", async () => {
+    const { db, v } = await buildDb();
+    await db
+      .update(schema.productVariant)
+      .set({ stock: 1 })
+      .where(eq(schema.productVariant.id, v.id));
+    const nonce1 = crypto.randomUUID();
+    const nonce2 = crypto.randomUUID();
+    const [a, b] = await Promise.all([
+      createOrder(
+        db,
+        [{ variantId: v.id, quantity: 1 }],
+        { ...customer, email: "a@example.com" },
+        nonce1,
+      ),
+      createOrder(
+        db,
+        [{ variantId: v.id, quantity: 1 }],
+        { ...customer, email: "b@example.com" },
+        nonce2,
+      ),
+    ]);
+    const successes = [a, b].filter((r) => r.ok).length;
+    expect(successes).toBe(1);
+    const orders = await db.select().from(schema.order);
+    expect(orders).toHaveLength(1);
+    const stock = await db
+      .select()
+      .from(schema.productVariant)
+      .where(eq(schema.productVariant.id, v.id))
+      .get();
+    expect(stock?.stock).toBe(0);
+  });
+
+  it("throws unexpected infrastructure errors instead of disguising them as stock failures", async () => {
+    const { db, v } = await buildDb();
+    vi.spyOn(db, "batch").mockRejectedValueOnce(new Error("DATABASE_CORRUPTION"));
+    await expect(
+      createOrder(db, [{ variantId: v.id, quantity: 1 }], customer, crypto.randomUUID()),
+    ).rejects.toThrow("DATABASE_CORRUPTION");
   });
 });
 

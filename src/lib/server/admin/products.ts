@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, notExists, or, sql, type SQL } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { z } from "zod";
 import * as schema from "$lib/server/db/schema";
@@ -20,7 +20,6 @@ export interface ProductInput {
   nameEn: string;
   description: string;
   descriptionEn: string;
-  price: number;
   categoryId: string;
   featured: boolean;
   department: string;
@@ -31,7 +30,6 @@ export const productInputSchema: z.ZodType<ProductInput> = z.object({
   nameEn: z.string().trim().max(PRODUCT_NAME_MAX).default(""),
   description: z.string().trim().min(1).max(PRODUCT_DESCRIPTION_MAX),
   descriptionEn: z.string().trim().max(PRODUCT_DESCRIPTION_MAX).default(""),
-  price: z.number().int().positive(),
   categoryId: z.string().min(1),
   featured: z.boolean().default(false),
   department: z.string().default("honey"),
@@ -104,7 +102,7 @@ async function fetchAdminProductRows(
       slug: schema.product.slug,
       description: schema.product.description,
       descriptionEn: schema.product.descriptionEn,
-      price: schema.product.price,
+      price: sql<number>`coalesce(min(${schema.productVariant.price}), 0)`,
       featured: schema.product.featured,
       department: schema.product.department,
       createdAt: schema.product.createdAt,
@@ -265,21 +263,12 @@ async function probeAvailableSlug(
   return null;
 }
 
-/**
- * Column set written by create/update. Product-level stock/image are legacy
- * columns that the admin form does not carry (stock lives on variants); they
- * are zeroed/emptied explicitly because the mirrored DDL has no defaults for
- * image. featured rides the existing integer column.
- */
 interface ProductWriteValues {
   name: string;
   nameEn: string;
   slug: string;
   description: string;
   descriptionEn: string;
-  price: number;
-  stock: number;
-  image: string;
   categoryId: string;
   department: string;
   featured: number;
@@ -292,9 +281,6 @@ function productWriteValues(input: ProductInput, slug: string): ProductWriteValu
     slug,
     description: input.description,
     descriptionEn: input.descriptionEn,
-    price: input.price,
-    stock: 0,
-    image: "",
     categoryId: input.categoryId,
     department: input.department,
     featured: input.featured ? 1 : 0,
@@ -481,18 +467,41 @@ export async function upsertVariant(
   return { ok: true, id: created[0].id };
 }
 
+export type VariantDeleteResult = { ok: true } | { ok: false; reason: "not_found" | "referenced" };
+
 export async function deleteVariant(
   db: LibSQLDatabase<typeof schema>,
   id: string,
   productId?: string,
-): Promise<{ ok: true } | { ok: false; reason: "not_found" }> {
+): Promise<VariantDeleteResult> {
   const condition = productId
     ? and(eq(schema.productVariant.id, id), eq(schema.productVariant.productId, productId))
     : eq(schema.productVariant.id, id);
   const deleted = await db
     .delete(schema.productVariant)
-    .where(condition)
+    .where(
+      and(
+        condition,
+        notExists(
+          db
+            .select({ id: schema.orderItem.id })
+            .from(schema.orderItem)
+            .where(eq(schema.orderItem.variantId, id)),
+        ),
+        notExists(
+          db
+            .select({ id: schema.stockConversion.id })
+            .from(schema.stockConversion)
+            .where(eq(schema.stockConversion.variantId, id)),
+        ),
+      ),
+    )
     .returning({ id: schema.productVariant.id });
   if (deleted[0]) return { ok: true };
-  return { ok: false, reason: "not_found" };
+  const existing = await db
+    .select({ id: schema.productVariant.id })
+    .from(schema.productVariant)
+    .where(condition)
+    .get();
+  return { ok: false, reason: existing ? "referenced" : "not_found" };
 }

@@ -82,11 +82,12 @@ async function buildDb(): Promise<void> {
       nonce TEXT UNIQUE,
       email TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
       address TEXT NOT NULL, city TEXT NOT NULL, governorate TEXT NOT NULL DEFAULT 'cairo', shipping_cost INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'paid', user_id TEXT, created_at INTEGER NOT NULL
+      status TEXT NOT NULL DEFAULT 'placed', payment_status TEXT NOT NULL DEFAULT 'simulated', stock_version TEXT NOT NULL DEFAULT 'legacy', user_id TEXT, created_at INTEGER NOT NULL
     )`);
   await db.run(`
     CREATE TABLE store_order_item (
       id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL, product_id TEXT NOT NULL,
+      variant_id TEXT,
       product_name TEXT NOT NULL, variant_name TEXT NOT NULL DEFAULT '',
       quantity INTEGER NOT NULL, unit_price INTEGER NOT NULL
     )`);
@@ -133,6 +134,9 @@ async function seedProduct(categoryId: string, opts: ProductSeedOptions = {}): P
       .returning({ id: schema.product.id })
   )[0];
   if (!row) throw new Error("seedProduct insert returned no row");
+  await currentDb()
+    .insert(schema.productImage)
+    .values({ productId: row.id, url: opts.image ?? "https://example.com/h.jpg" });
   return row.id;
 }
 
@@ -175,13 +179,15 @@ async function seedOrderItemFor(productId: string): Promise<void> {
     address: "شارع 9",
     city: "القاهرة",
     total: 100_00,
-    status: "paid",
+    status: "placed",
+    paymentStatus: "simulated",
     userId: null,
     createdAt: Date.now(),
   });
   await db.insert(schema.orderItem).values({
     orderId,
     productId,
+    variantId: null,
     productName: "عسل سدر مصري",
     variantName: "250g",
     quantity: 1,
@@ -265,7 +271,6 @@ describe("admin products page load", () => {
     expect(data.query).toBe("");
     expect(data.lang).toBe("ar"); // no cookie/header → Arabic default
     expect(data.items[0]?.id).toBe(createdIds[PRODUCTS_PAGE_SIZE + 4]);
-    // Every listed product carries its product-level image for the thumbnail.
     expect(Object.keys(data.images)).toHaveLength(PRODUCTS_PAGE_SIZE);
     for (const item of data.items) {
       expect(data.images[item.id]).toBe("https://example.com/h.jpg");

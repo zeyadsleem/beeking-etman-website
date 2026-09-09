@@ -43,6 +43,7 @@ const ar = {
   "nav.store": "المتجر",
   "nav.storeHoney": "متجر العسل",
   "nav.storeEquipment": "متجر أدوات النحالين",
+  "nav.about": "من نحن",
   "nav.cart": "سلة التسوق",
   "nav.main": "القائمة الرئيسية",
   "nav.account": "حسابي",
@@ -104,7 +105,13 @@ const ar = {
   "footer.site": "الموقع",
   "footer.about": "من نحن",
   "footer.aboutBody":
-    "منصة تجريبية — الدفع محاكى ولا تتم أي عمليات خصم فعلية. العسل المعروض حقيقي، والطعم أسطوري.",
+    "تراث عائلي في تربية النحل يمتد لثلاثة أجيال منذ عام ١٩٤٠ — من مناحل عتمان الأصلي في قرية شِبشير إلى مملكة النحل الرقمية اليوم.",
+  "footer.siteTitle": "تصفّح الموقع",
+  "footer.aboutTitle": "عن المملكة",
+  "footer.contactTitle": "مقرنا",
+  "footer.contactBody":
+    "من مناحلنا في قرية شِبشير بدلتا مصر، نوصل العسل الطبيعي وخلطاته إلى كل بيت في جميع المحافظات.",
+  "footer.contactCta": "تواصل معنا",
   "footer.copyright": "© {year} مملكة النحل — كل قطرة محسوبة بحب.",
   "hero.eyebrow": "مملكة النحل",
   "hero.since": "منذ عام ١٩٤٠",
@@ -261,8 +268,12 @@ const ar = {
   "orders.empty": "لم تقم بأي طلبات بعد.",
   "orders.browse": "تصفح المتجر",
   "orders.status": "الحالة",
-  "orders.paid": "مؤكد ✓",
+  "orders.placed": "تم الطلب ✓",
+  "orders.shipped": "تم الشحن 📦",
+  "orders.delivered": "تم التسليم ✅",
+  "orders.cancelled": "تم الإلغاء ❌",
   "orders.unknown": "غير محدد",
+  "orders.unknownProduct": "منتج غير متوفر",
   "orderDetail.backToOrders": "رجوع لطلباتي",
   "orderDetail.placedOn": "تاريخ الطلب",
   "orderDetail.shippingTo": "بيانات الشحن",
@@ -397,7 +408,7 @@ const ar = {
   "blends.reset": "ابدأ من جديد",
   "admin.orders.title": "إدارة الطلبات",
   "admin.orders.all": "الكل",
-  "admin.orders.paid": "مدفوع",
+  "admin.orders.placed": "تم الطلب",
   "admin.orders.shipped": "تم الشحن",
   "admin.orders.delivered": "تم التسليم",
   "admin.orders.cancelled": "ملغي",
@@ -495,7 +506,7 @@ const ar = {
   "admin.stats.trendDown": "أقل من الأسبوع السابق",
   "admin.stats.noData": "لا توجد بيانات بعد",
   "admin.stats.noDataHint": "ستظهر الإحصائيات هنا بمجرد بدء النشاط.",
-  "admin.stats.revenue": "الإيرادات",
+  "admin.stats.revenue": "إجمالي الحجوزات (دفع محاكى)",
   "admin.stats.orders": "الطلبات",
   "admin.stats.customers": "العملاء",
   "admin.stats.byStatus": "توزيع الحالات",
@@ -692,6 +703,60 @@ const ar = {
   "home.deptShopEquipment": "متجر أدوات النحالين",
   "home.deptShopEquipmentDesc": "معدات وأدوات احترافية لرعاية النحل وتصنيع العسل",
   "admin.products.department": "القسم",
+  "about.pageTitle": "من نحن — مملكة النحل",
+  "about.heroEyebrow": "قصتنا",
+  "about.heroTitle": "تراث يمتد منذ عام ١٩٤٠",
+  "about.heroSubtitle":
+    "ثلاثة أجيال من شغف النحل — من منحلة عتمان الأصلي إلى منصة مملكة النحل الرقمية، نواصل إرث الطبيعة بحبٍّ ورعاية.",
+  "about.timelineEyebrow": "مسيرة الإرث",
+  "about.timeline.1940Year": "١٩٤٠",
+  "about.timeline.1940Title": "بداية الإرث",
+  "about.timeline.1940Body":
+    "الحاج إسماعيل عتمان يُؤسس أول منحلة في قرية شِبشير بدلتا مصر. كان رجلًا يُحب النحل برعاية ويرى في كل خلية عالَمًا.",
+  "about.timeline.1970Year": "١٩٧٠",
+  "about.timeline.1970Title": "توسيع الآفاق",
+  "about.timeline.1970Body":
+    "الحاج أحمد إسماعيل عتمان يتسلّم قيادة العائلة ويُؤسّس عسل شِبشير. حوّل المنحلة المحلية إلى علامة تجارية تغطي عدة محافظات.",
+  "about.timeline.2010Year": "٢٠١٠",
+  "about.timeline.2010Title": "ريادة المعدات",
+  "about.timeline.2010Body":
+    "إطلاق معدات شِبشير — إمداد النحالين المصريين بأدوات احترافية عالمية المستوى، مع التزام الجودة والاستدامة.",
+  "about.timeline.presentYear": "الآن",
+  "about.timeline.presentTitle": "المملكة الرقمية",
+  "about.timeline.presentBody":
+    "إطلاق مملكة النحل — منصة رقمية تجمع بين التراث الأصيل والتجربة الحديثة، لتصل منتجاتنا الطبيعية إلى كل بيت مصري.",
+  "about.ecosystemEyebrow": "منظومة شِبشير",
+  "about.ecoHoneyTitle": "عسل شِبشير",
+  "about.ecoHoneyBody":
+    "عسل طبيعي ١٠٠% من مناحلنا — سدر، برسيم، موالح، وخلطات مخصوصة بعبوات تبدأ من ٥٠٠ جرام.",
+  "about.ecoEquipmentTitle": "معدات شِبشير",
+  "about.ecoEquipmentBody":
+    "أدوات ومعدات النحالين الاحترافية — خلايا، عتلات، مدخّن، وأدوات حماية مختارة بعناية.",
+  "about.ecoWaxTitle": "شمع ومكملات",
+  "about.ecoWaxBody":
+    "شمع نقي وملمس بالعسل ومكسرات صحية — منتجات مكملة تعكس عمق خبرتنا في تربية النحل.",
+  "about.visionEyebrow": "رؤيتنا وقيمنا",
+  "about.visionTitle": "مبنون على الطبيعة، مرساة الجودة",
+  "about.visionBody":
+    "نؤمن بأن العسل النقي نادر في عالم يزداد صناعتنا. نلتزم بالاستخراج البطيء، العبوة الصادقة، والشراكة المباشرة مع النحالين — لنصل إلى كل بيت بثقة.",
+  "about.valuesTitle": "قيمنا",
+  "about.valuesAuth": "أصالة الإرث",
+  "about.valuesAuthBody":
+    "ثلاثة أجيال من المعرفة العميقة بالنحل — نحترم الطبيعة كما تعلّمنا من أجدادنا.",
+  "about.valuesQuality": "جودة بلا تنازل",
+  "about.valuesQualityBody":
+    "عسل خام غير مبستر، فحص يدوي، عبوة تحافظ على كل فائدة — الجودة واجبة لا تفاوض.",
+  "about.valuesTransparent": "شفافية مطلقة",
+  "about.valuesTransparentBody":
+    "المصدر واضح، النحل من مناحلنا، لا وسطاء — نشاركك ثقتنا كما نتشاركها مع عائلتنا.",
+  "about.valuesCommunity": "تمكين المجتمع",
+  "about.valuesCommunityBody":
+    "ندعم النحالين المحليين ونوفر لهم أدواتهم — مساهمتنا في ازدهار قطاع النحل المصري.",
+  "about.ctaEyebrow": "تواصل معنا",
+  "about.ctaTitle": "هل تريد أن تعرف أكثر؟",
+  "about.ctaBody":
+    "سواء كنت تبحث عن تفاصيل منتجاتنا أو تود شراكة تجارية أو فقط تريد أن تسمع قصتنا — نحن هنا.",
+  "about.ctaButton": "تواصل معنا",
 } as const;
 
 export type MessageKey = keyof typeof ar;
@@ -703,6 +768,7 @@ const en: Record<MessageKey, string> = {
   "nav.store": "Store",
   "nav.storeHoney": "Honey Store",
   "nav.storeEquipment": "Beekeeping Tools",
+  "nav.about": "About us",
   "nav.cart": "Cart",
   "nav.main": "Main menu",
   "nav.account": "My account",
@@ -765,7 +831,13 @@ const en: Record<MessageKey, string> = {
   "footer.site": "Site",
   "footer.about": "About us",
   "footer.aboutBody":
-    "Demo platform — payment is simulated and no real charges are made. The honey is real, and the taste is legendary.",
+    "A family beekeeping heritage spanning three generations since 1940 — from Etman's original apiaries in Shibshir village to the digital Kingdom of Honey today.",
+  "footer.siteTitle": "Explore",
+  "footer.aboutTitle": "About the kingdom",
+  "footer.contactTitle": "Our home",
+  "footer.contactBody":
+    "From our apiaries in Shibshir village, Nile Delta, we deliver natural honey and blends to every home across the governorates.",
+  "footer.contactCta": "Contact us",
   "footer.copyright": "© {year} Kingdom of Honey — every drop measured with love.",
   "hero.eyebrow": "Bee King",
   "hero.since": "Since 1940",
@@ -926,8 +998,12 @@ const en: Record<MessageKey, string> = {
   "orders.empty": "You have no orders yet.",
   "orders.browse": "Browse the store",
   "orders.status": "Status",
-  "orders.paid": "Confirmed ✓",
+  "orders.placed": "Placed ✓",
+  "orders.shipped": "Shipped 📦",
+  "orders.delivered": "Delivered ✅",
+  "orders.cancelled": "Cancelled ❌",
   "orders.unknown": "Unknown",
+  "orders.unknownProduct": "Unavailable product",
   "orderDetail.backToOrders": "Back to my orders",
   "orderDetail.placedOn": "Order date",
   "orderDetail.shippingTo": "Shipping details",
@@ -1063,7 +1139,7 @@ const en: Record<MessageKey, string> = {
   "blends.reset": "Start over",
   "admin.orders.title": "Manage orders",
   "admin.orders.all": "All",
-  "admin.orders.paid": "Paid",
+  "admin.orders.placed": "Placed",
   "admin.orders.shipped": "Shipped",
   "admin.orders.delivered": "Delivered",
   "admin.orders.cancelled": "Cancelled",
@@ -1161,7 +1237,7 @@ const en: Record<MessageKey, string> = {
   "admin.stats.trendDown": "down from last week",
   "admin.stats.noData": "No data yet",
   "admin.stats.noDataHint": "Statistics will appear here once there is activity.",
-  "admin.stats.revenue": "Revenue",
+  "admin.stats.revenue": "Gross bookings (simulated payment)",
   "admin.stats.orders": "Orders",
   "admin.stats.customers": "Customers",
   "admin.stats.byStatus": "Status breakdown",
@@ -1361,6 +1437,60 @@ const en: Record<MessageKey, string> = {
   "home.deptShopEquipmentDesc":
     "Professional tools and equipment for beekeeping and honey production",
   "admin.products.department": "Department",
+  "about.pageTitle": "About us — Kingdom of Honey",
+  "about.heroEyebrow": "Our story",
+  "about.heroTitle": "A heritage since 1940",
+  "about.heroSubtitle":
+    "Three generations of beekeeping passion — from Etman's original apiary to the digital Kingdom of Honey, we carry nature's legacy with care and craftsmanship.",
+  "about.timelineEyebrow": "Heritage journey",
+  "about.timeline.1940Year": "1940",
+  "about.timeline.1940Title": "The foundation",
+  "about.timeline.1940Body":
+    "Ismail Etman establishes the first apiary in Shibshir village, Nile Delta. A man who spoke to bees and saw a world in every cell.",
+  "about.timeline.1970Year": "1970",
+  "about.timeline.1970Title": "Expanding horizons",
+  "about.timeline.1970Body":
+    "Ahmad Ismail Etman takes over the family legacy and founds Shibshir Honey. He transforms a local apiary into a brand reaching multiple governorates.",
+  "about.timeline.2010Year": "2010",
+  "about.timeline.2010Title": "Equipment pioneer",
+  "about.timeline.2010Body":
+    "Launch of Shibshir Equipment — providing Egyptian beekeepers with world-class professional tools, committed to quality and sustainability.",
+  "about.timeline.presentYear": "Now",
+  "about.timeline.presentTitle": "The digital kingdom",
+  "about.timeline.presentBody":
+    "Launch of Kingdom of Honey — a digital platform merging authentic heritage with modern experience, bringing our natural products to every Egyptian home.",
+  "about.ecosystemEyebrow": "The Shibshir Ecosystem",
+  "about.ecoHoneyTitle": "Shibshir Honey",
+  "about.ecoHoneyBody":
+    "100% natural honey from our apiaries — sidr, clover, citrus, and custom blends in jars starting from 500g.",
+  "about.ecoEquipmentTitle": "Shibshir Equipment",
+  "about.ecoEquipmentBody":
+    "Professional beekeeping tools and equipment — hives, smokers, protection gear, and more — carefully selected.",
+  "about.ecoWaxTitle": "Wax & supplements",
+  "about.ecoWaxBody":
+    "Pure foundation wax, honey-soaked treats, and healthy nut mixes — complementary products reflecting our deep beekeeping expertise.",
+  "about.visionEyebrow": "Vision & values",
+  "about.visionTitle": "Built on nature, held by quality",
+  "about.visionBody":
+    "We believe pure honey is rare in an increasingly industrialized world. We commit to slow extraction, honest packaging, and direct partnerships with beekeepers — delivering trust to every home.",
+  "about.valuesTitle": "Our values",
+  "about.valuesAuth": "Authentic heritage",
+  "about.valuesAuthBody":
+    "Three generations of deep bee knowledge — we respect nature as our grandparents taught us.",
+  "about.valuesQuality": "Uncompromising quality",
+  "about.valuesQualityBody":
+    "Raw unpasteurized honey, hand-inspected, packed to preserve every benefit — quality is non-negotiable.",
+  "about.valuesTransparent": "Full transparency",
+  "about.valuesTransparentBody":
+    "The source is clear, the honey is from our own apiaries, no middlemen — we share our trust as we share it with family.",
+  "about.valuesCommunity": "Empowering community",
+  "about.valuesCommunityBody":
+    "We support local beekeepers and equip them with the tools they need — our contribution to a thriving Egyptian beekeeping sector.",
+  "about.ctaEyebrow": "Get in touch",
+  "about.ctaTitle": "Want to learn more?",
+  "about.ctaBody":
+    "Whether you're looking for product details, exploring a partnership, or just want to hear our story — we're here.",
+  "about.ctaButton": "Contact us",
 };
 
 const catalogs: Record<Lang, Record<MessageKey, string>> = { ar, en };

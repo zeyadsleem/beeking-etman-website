@@ -4,7 +4,7 @@ import * as schema from "$lib/server/db/schema";
 import { siteOrigin } from "$lib/site";
 import type { RequestHandler } from "./$types";
 
-const STATIC_PATHS = ["/", "/honey", "/equipment", "/blends"];
+const STATIC_PATHS = ["/", "/honey", "/equipment", "/blends", "/about"];
 
 function xmlEscape(value: string): string {
   return value

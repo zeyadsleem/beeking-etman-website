@@ -37,7 +37,7 @@
   let city = $state(value("city"));
   let governorate = $state(
     (data.governorates.some((g) => g === form?.values?.governorate)
-      ? form.values.governorate
+      ? form?.values?.governorate
       : undefined) ?? data.defaultGovernorate,
   );
 
@@ -90,7 +90,10 @@
     use:enhance={() => {
       submitting = true;
       return async ({ result, update }) => {
-        if (result.type === "redirect") clearCart();
+        if (
+          result.type === "redirect" &&
+          new URL(result.location, window.location.origin).searchParams.get("replayed") !== "1"
+        ) clearCart();
         submitting = false;
         update();
       };

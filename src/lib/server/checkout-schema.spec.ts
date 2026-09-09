@@ -7,6 +7,7 @@ const base = {
   phone: "01012345678",
   city: "القاهرة",
   address: "شارع 9",
+  governorate: "cairo",
   nonce: crypto.randomUUID(),
 };
 

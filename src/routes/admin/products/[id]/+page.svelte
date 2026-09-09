@@ -63,7 +63,6 @@
         nameEn: data.nameEn,
         description: data.product.description,
         descriptionEn: data.product.descriptionEn,
-        price: data.product.price,
         categoryId: data.categoryId,
         featured: data.product.featured,
         slug: data.product.slug,

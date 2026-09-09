@@ -11,10 +11,11 @@
   import UserIcon from "./UserIcon.svelte";
 
   const NAV_ITEMS = [
-    { href: "/", labelKey: "nav.home", highlight: false },
-    { href: "/honey", labelKey: "nav.storeHoney", highlight: false },
-    { href: "/equipment", labelKey: "nav.storeEquipment", highlight: false },
-    { href: "/blends", labelKey: "blends.nav", highlight: true },
+    { href: "/", labelKey: "nav.home" },
+    { href: "/honey", labelKey: "nav.storeHoney" },
+    { href: "/equipment", labelKey: "nav.storeEquipment" },
+    { href: "/blends", labelKey: "blends.nav" },
+    { href: "/about", labelKey: "nav.about" },
   ] as const;
 
   let {
@@ -93,9 +94,10 @@
 
       <nav class="hidden items-center gap-5 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>
         {#each NAV_ITEMS as item (item.href)}
+          {@const active = item.href === "/" ? page.url.pathname === "/" : page.url.pathname.startsWith(item.href)}
           <a
             href={item.href}
-            class="shrink-0 transition-colors hover:text-honey-700 {item.highlight ? "font-bold text-honey-700 hover:text-honey-800" : ""}"
+            class="shrink-0 transition-colors hover:text-honey-700 {active ? "font-bold text-honey-700 hover:text-honey-800" : ""}"
           >{t(lang, item.labelKey)}</a>
         {/each}
       </nav>
@@ -232,13 +234,14 @@
         />
 
         <nav class="mt-4 flex flex-col" aria-label={t(lang, "nav.main")}>
-          {#each NAV_ITEMS as item (item.href)}
-            <a
-              href={item.href}
-              onclick={closeMobile}
-              class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800 {item.highlight ? "font-bold text-honey-700" : ""}"
-            >{t(lang, item.labelKey)}</a>
-          {/each}
+        {#each NAV_ITEMS as item (item.href)}
+          {@const active = item.href === "/" ? page.url.pathname === "/" : page.url.pathname.startsWith(item.href)}
+          <a
+            href={item.href}
+            onclick={closeMobile}
+            class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800 {active ? "bg-honey-50 font-bold text-honey-700" : ""}"
+          >{t(lang, item.labelKey)}</a>
+        {/each}
         </nav>
 
         <div class="mt-4 space-y-1 border-t border-cocoa-200 pt-4">

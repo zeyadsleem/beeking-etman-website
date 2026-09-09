@@ -1,13 +1,13 @@
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { computeTotals } from "$lib/cart";
+import { computeTotals, regularItemPayload } from "$lib/cart";
 import { DEFAULT_GOVERNORATE, type GovernorateCode } from "$lib/shipping";
-import type { CartEntry, CartItem } from "$lib/cart";
-import { isBlendEntry, isBlendItem } from "$lib/cart";
-import { t, type Lang } from "$lib/i18n/messages";
-import { resolveCartItems } from "$lib/server/store";
-import { isBusyError, sleep, SQLITE_BUSY_RETRIES } from "$lib/server/sqlite";
+import type { BlendCartItem, CartEntry, CartItem } from "$lib/cart";
+import { isBlendEntry } from "$lib/cart";
+import { ADDITIVE_LABELS, isAdditiveKey, jarLabel } from "$lib/blends";
+import { localized, t, type Lang } from "$lib/i18n/messages";
 import * as schema from "$lib/server/db/schema";
+import { isBusyError, sleep, SQLITE_BUSY_RETRIES } from "$lib/server/sqlite";
 
 export interface Customer {
   email: string;
@@ -19,7 +19,13 @@ export interface Customer {
 }
 
 export type CreateOrderResult =
-  | { ok: true; orderId: string; orderNumber: string; total: number }
+  | {
+      ok: true;
+      outcome: "created" | "replayed";
+      orderId: string;
+      orderNumber: string;
+      total: number;
+    }
   | { ok: false; message: string; outOfStock: string[] };
 
 const MAX_ORDER_ATTEMPTS = SQLITE_BUSY_RETRIES + 5;
@@ -38,6 +44,26 @@ export function isOrderNumberConflict(error: unknown): boolean {
   return error.message.includes("store_order.number");
 }
 
+function isOutOfStockError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("OUT_OF_STOCK");
+}
+
+function formatUnitName(unit: OrderUnit): string {
+  return `${unit.name} - ${unit.variantName}`;
+}
+
+interface BatchWriteResult {
+  rowsAffected?: number;
+  meta?: { changes?: number };
+}
+
+export function affectedRowCount(result: unknown): number {
+  if (typeof result !== "object" || result === null) return 0;
+  const { rowsAffected, meta } = result as BatchWriteResult;
+  if (typeof rowsAffected === "number") return rowsAffected;
+  return typeof meta?.changes === "number" ? meta.changes : 0;
+}
+
 interface OrderUnit {
   variantId: string;
   productId: string;
@@ -47,112 +73,201 @@ interface OrderUnit {
   unitPrice: number;
 }
 
-// Batch write results differ per driver: libsql reports `rowsAffected`,
-// D1 reports `meta.changes`. A guarded UPDATE matching 0 rows is not an
-// error inside a batch, so affected counts must be verified explicitly.
-interface BatchWriteResult {
-  rowsAffected?: number;
-  meta?: { changes?: number };
+interface VariantSnapshot {
+  id: string;
+  productId: string;
+  name: string;
+  nameEn: string;
+  price: number;
+  stock: number;
+  image: string;
+  department: string;
+  productName: string;
+  productNameEn: string;
+  published: boolean;
 }
 
-// Exported for sibling services (e.g. admin/orders) that must gate writes on
-// affected-row counts across both drivers.
-export function affectedRowCount(result: unknown): number {
-  if (typeof result !== "object" || result === null) return 0;
-  const { rowsAffected, meta } = result as BatchWriteResult;
-  if (typeof rowsAffected === "number") return rowsAffected;
-  return typeof meta?.changes === "number" ? meta.changes : 0;
+async function loadVariantSnapshots(
+  db: LibSQLDatabase<typeof schema>,
+  variantIds: string[],
+): Promise<Map<string, VariantSnapshot>> {
+  if (variantIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      id: schema.productVariant.id,
+      productId: schema.productVariant.productId,
+      name: schema.productVariant.name,
+      nameEn: schema.productVariant.nameEn,
+      price: schema.productVariant.price,
+      stock: schema.productVariant.stock,
+      image: schema.productVariant.image,
+      department: schema.product.department,
+      productName: schema.product.name,
+      productNameEn: schema.product.nameEn,
+      published: schema.product.published,
+    })
+    .from(schema.productVariant)
+    .innerJoin(schema.product, eq(schema.product.id, schema.productVariant.productId))
+    .where(inArray(schema.productVariant.id, variantIds));
+  return new Map(rows.map((row) => [row.id, row]));
 }
 
-function toOrderUnits(items: CartItem[]): OrderUnit[] {
+function validateCart(
+  lines: CartEntry[],
+  snapshots: Map<string, VariantSnapshot>,
+  lang: Lang,
+): { ok: true; items: CartItem[]; units: OrderUnit[] } | { ok: false; outOfStock: string[] } {
+  const items: CartItem[] = [];
   const units: OrderUnit[] = [];
-  for (const item of items) {
-    if (isBlendItem(item)) {
+  const outOfStock = new Set<string>();
+
+  for (const line of lines) {
+    if (isBlendEntry(line)) {
+      const base = snapshots.get(line.baseVariantId);
+      if (!base || !base.published) {
+        outOfStock.add(
+          base
+            ? localized(base.productName, base.productNameEn, lang)
+            : t(lang, "orders.unknownProduct"),
+        );
+        continue;
+      }
       units.push({
-        variantId: item.baseVariantId,
-        productId: item.productId,
-        name: item.name,
-        variantName: item.variantName,
+        variantId: base.id,
+        productId: base.productId,
+        name: localized(base.productName, base.productNameEn, lang),
+        variantName: jarLabel(lang, line.jarSize),
         quantity: 1,
-        unitPrice: item.basePrice,
+        unitPrice: base.price,
       });
-      for (const a of item.additives) {
+
+      const additives: Extract<CartItem, { kind: "blend" }>["additives"] = [];
+      let additiveMissing = false;
+      for (const a of line.additives) {
+        const v = snapshots.get(a.variantId);
+        if (!v || !v.published) {
+          outOfStock.add(
+            v ? localized(v.productName, v.productNameEn, lang) : t(lang, "orders.unknownProduct"),
+          );
+          additiveMissing = true;
+          continue;
+        }
         units.push({
-          variantId: a.variantId,
-          productId: a.productId,
-          name: a.name,
+          variantId: v.id,
+          productId: v.productId,
+          name: localized(v.productName, v.productNameEn, lang),
           variantName: "",
           quantity: a.qty,
-          unitPrice: a.price,
+          unitPrice: v.price,
+        });
+        const label = isAdditiveKey(a.key) ? ADDITIVE_LABELS[a.key] : undefined;
+        additives.push({
+          key: a.key,
+          variantId: v.id,
+          productId: v.productId,
+          name: label
+            ? localized(label.ar, label.en, lang)
+            : localized(v.productName, v.productNameEn, lang),
+          image: v.image,
+          qty: a.qty,
+          price: v.price,
+          stock: v.stock,
         });
       }
+      if (additiveMissing) continue;
+      const item: BlendCartItem = {
+        kind: "blend",
+        id: line.id,
+        baseVariantId: base.id,
+        productId: base.productId,
+        name: localized(base.productName, base.productNameEn, lang),
+        variantName: jarLabel(lang, line.jarSize),
+        image: base.image,
+        jarSize: line.jarSize,
+        basePrice: base.price,
+        stock: base.stock,
+        quantity: 1,
+        additives,
+      };
+      items.push(item);
     } else {
+      const v = snapshots.get(line.variantId);
+      if (!v || !v.published) {
+        outOfStock.add(
+          v ? localized(v.productName, v.productNameEn, lang) : t(lang, "orders.unknownProduct"),
+        );
+        continue;
+      }
       units.push({
-        variantId: item.variantId,
-        productId: item.productId,
-        name: item.name,
-        variantName: item.variantName,
-        quantity: item.quantity,
-        unitPrice: item.price,
+        variantId: v.id,
+        productId: v.productId,
+        name: localized(v.productName, v.productNameEn, lang),
+        variantName: localized(v.name, v.nameEn, lang),
+        quantity: line.quantity,
+        unitPrice: v.price,
+      });
+      items.push({
+        ...regularItemPayload(
+          {
+            id: v.productId,
+            name: localized(v.productName, v.productNameEn, lang),
+            slug: "",
+            categorySlug: "",
+            department:
+              v.department === "honey" || v.department === "equipment" ? v.department : "honey",
+          },
+          {
+            id: v.id,
+            name: localized(v.name, v.nameEn, lang),
+            image: v.image,
+            price: v.price,
+            stock: v.stock,
+          },
+        ),
+        quantity: line.quantity,
       });
     }
   }
-  return units;
+
+  const demand = new Map<string, { name: string; variantName: string; quantity: number }>();
+  for (const u of units) {
+    const existing = demand.get(u.variantId);
+    if (existing) {
+      existing.quantity += u.quantity;
+    } else {
+      demand.set(u.variantId, { name: u.name, variantName: u.variantName, quantity: u.quantity });
+    }
+  }
+  for (const [variantId, d] of demand) {
+    const v = snapshots.get(variantId);
+    if (v && d.quantity > v.stock) {
+      outOfStock.add(`${d.name} - ${d.variantName}`);
+    }
+  }
+
+  if (items.length !== lines.length) {
+    outOfStock.add(t(lang, "orders.outOfStock"));
+  }
+  if (outOfStock.size > 0) {
+    return { ok: false, outOfStock: [...outOfStock] };
+  }
+  return { ok: true, items, units };
 }
 
 async function findOrderByNonce(
   db: LibSQLDatabase<typeof schema>,
   nonce: string,
-): Promise<{ id: string; number: string; total: number } | undefined> {
+): Promise<{ id: string; number: string; total: number; userId: string | null } | undefined> {
   return db
     .select({
       id: schema.order.id,
       number: schema.order.number,
       total: schema.order.total,
+      userId: schema.order.userId,
     })
     .from(schema.order)
     .where(eq(schema.order.nonce, nonce))
     .get();
-}
-
-// Undo a committed batch whose guarded decrement lost a stock race: delete
-// the order we just wrote and add back exactly what was taken (restoring
-// only the decrements that applied is safe under concurrency). Returns
-// false when compensation itself fails even after busy retries — the caller
-// must then treat the outcome as unknown rather than report stock state.
-async function compensateLostStockRace(
-  db: LibSQLDatabase<typeof schema>,
-  orderId: string,
-  appliedVariantIds: string[],
-  demandByVariant: Map<string, number>,
-): Promise<boolean> {
-  const restockEntries = appliedVariantIds.flatMap((variantId) => {
-    const quantity = demandByVariant.get(variantId);
-    return quantity === undefined ? [] : [[variantId, quantity] as const];
-  });
-  for (let attempt = 0; attempt <= SQLITE_BUSY_RETRIES; attempt++) {
-    try {
-      await db.batch([
-        db.delete(schema.orderItem).where(eq(schema.orderItem.orderId, orderId)),
-        db.delete(schema.order).where(eq(schema.order.id, orderId)),
-        ...restockEntries.map(([variantId, quantity]) =>
-          db
-            .update(schema.productVariant)
-            .set({ stock: sql`${schema.productVariant.stock} + ${quantity}` })
-            .where(eq(schema.productVariant.id, variantId)),
-        ),
-      ]);
-      return true;
-    } catch (error) {
-      if (isBusyError(error) && attempt < SQLITE_BUSY_RETRIES) {
-        await sleep((attempt + 1) * 50);
-        continue;
-      }
-      console.error("[createOrder] compensation after lost stock race failed", { orderId, error });
-      return false;
-    }
-  }
-  return false;
 }
 
 export async function createOrder(
@@ -163,41 +278,39 @@ export async function createOrder(
   userId?: string,
   lang: Lang = "ar",
 ): Promise<CreateOrderResult> {
+  const existing = await findOrderByNonce(db, nonce);
+  if (existing) {
+    if (existing.userId !== (userId ?? null)) {
+      return { ok: false, message: t(lang, "orders.failed"), outOfStock: [] };
+    }
+    return {
+      ok: true,
+      outcome: "replayed",
+      orderId: existing.id,
+      orderNumber: existing.number,
+      total: existing.total,
+    };
+  }
+
   if (lines.length === 0) {
     return { ok: false, message: t(lang, "orders.cartEmpty"), outOfStock: [] };
   }
 
-  const { items } = await resolveCartItems(db, lines, lang);
-  if (items.length === 0) {
-    return { ok: false, message: t(lang, "orders.noProducts"), outOfStock: [] };
-  }
-
-  const units = toOrderUnits(items);
-  // Aggregate demand per variant from the resolved units: several cart lines
-  // (or blend base + additives) can target the same variant, and the guarded
-  // decrement must reserve the combined amount in one statement.
-  const demandByVariant = new Map<string, number>();
-  for (const unit of units) {
-    demandByVariant.set(unit.variantId, (demandByVariant.get(unit.variantId) ?? 0) + unit.quantity);
-  }
-  // resolveCartItems clamps line quantities to the stock snapshot, so raw
-  // requested amounts are tracked separately to catch over-demand.
-  const requested = new Map<string, number>();
+  const variantIds: string[] = [];
   for (const line of lines) {
     if (isBlendEntry(line)) {
-      requested.set(line.baseVariantId, (requested.get(line.baseVariantId) ?? 0) + 1);
-      for (const a of line.additives) {
-        requested.set(a.variantId, (requested.get(a.variantId) ?? 0) + a.qty);
-      }
+      variantIds.push(line.baseVariantId);
+      for (const a of line.additives) variantIds.push(a.variantId);
     } else {
-      requested.set(line.variantId, (requested.get(line.variantId) ?? 0) + line.quantity);
+      variantIds.push(line.variantId);
     }
   }
-
-  const existing = await findOrderByNonce(db, nonce);
-  if (existing) {
-    return { ok: true, orderId: existing.id, orderNumber: existing.number, total: existing.total };
+  const snapshots = await loadVariantSnapshots(db, [...new Set(variantIds)]);
+  const validation = validateCart(lines, snapshots, lang);
+  if (!validation.ok) {
+    return { ok: false, message: t(lang, "orders.outOfStock"), outOfStock: validation.outOfStock };
   }
+  const { items, units } = validation;
 
   const governorate = customer.governorate ?? DEFAULT_GOVERNORATE;
   const totals = computeTotals(items, governorate);
@@ -207,34 +320,8 @@ export async function createOrder(
     const orderNumber = generateOrderNumber();
     const orderId = crypto.randomUUID();
 
-    // D1 does not support interactive transactions, but drizzle's libsql
-    // driver runs db.batch([...]) as one implicit transaction: every write
-    // below (stock decrements + order + items) commits or rolls back together.
-    // Sufficiency is enforced against a fresh read before batching; because a
-    // guarded UPDATE matching 0 rows is not an error, each decrement is
-    // verified after the batch and the whole order is compensated if a
-    // concurrent checkout won the stock race.
-    const variantIds = [...demandByVariant.keys()];
-    const stockRows = await db
-      .select({ id: schema.productVariant.id, stock: schema.productVariant.stock })
-      .from(schema.productVariant)
-      .where(inArray(schema.productVariant.id, variantIds));
-    const stockById = new Map(stockRows.map((row) => [row.id, row.stock]));
-    const insufficient = units.filter((u) => {
-      const current = stockById.get(u.variantId);
-      return current === undefined || (requested.get(u.variantId) ?? u.quantity) > current;
-    });
-    if (insufficient.length > 0) {
-      return {
-        ok: false,
-        message: t(lang, "orders.outOfStock"),
-        outOfStock: [...new Set(insufficient.map((u) => u.name))],
-      };
-    }
-
     try {
-      const decrementEntries = [...demandByVariant];
-      const batchResult = await db.batch([
+      await db.batch([
         db.insert(schema.order).values({
           id: orderId,
           number: orderNumber,
@@ -247,7 +334,9 @@ export async function createOrder(
           governorate,
           shippingCost: totals.shipping,
           total: totals.total,
-          status: "paid",
+          status: "placed",
+          paymentStatus: "simulated",
+          stockVersion: "atomic",
           userId: userId ?? null,
           createdAt: Date.now(),
         }),
@@ -255,54 +344,32 @@ export async function createOrder(
           units.map((u) => ({
             orderId,
             productId: u.productId,
+            variantId: u.variantId,
             productName: u.name,
             variantName: u.variantName,
             quantity: u.quantity,
             unitPrice: u.unitPrice,
           })),
         ),
-        ...decrementEntries.map(([variantId, quantity]) =>
-          db
-            .update(schema.productVariant)
-            .set({ stock: sql`${schema.productVariant.stock} - ${quantity}` })
-            .where(
-              and(
-                eq(schema.productVariant.id, variantId),
-                gte(schema.productVariant.stock, quantity),
-              ),
-            ),
-        ),
       ]);
-      const lostStock = decrementEntries.filter(
-        (_, i) => affectedRowCount(batchResult[2 + i]) !== 1,
-      );
-      if (lostStock.length > 0) {
-        const appliedIds = decrementEntries
-          .filter(([variantId]) => !lostStock.some(([lostId]) => lostId === variantId))
-          .map(([variantId]) => variantId);
-        const compensated = await compensateLostStockRace(db, orderId, appliedIds, demandByVariant);
-        if (!compensated) {
-          return { ok: false, message: t(lang, "orders.failed"), outOfStock: [] };
-        }
+      return { ok: true, outcome: "created", orderId, orderNumber, total: totals.total };
+    } catch (error) {
+      if (isOutOfStockError(error)) {
         return {
           ok: false,
           message: t(lang, "orders.outOfStock"),
-          outOfStock: [
-            ...new Set(
-              units.filter((u) => lostStock.some(([id]) => id === u.variantId)).map((u) => u.name),
-            ),
-          ],
+          outOfStock: units.map(formatUnitName),
         };
       }
-      return { ok: true, orderId, orderNumber, total: totals.total };
-    } catch (error) {
-      // The batch is atomic: nothing was written, so retries just re-run it.
-
       if (isNonceConflict(error)) {
         const replayed = await findOrderByNonce(db, nonce);
         if (replayed) {
+          if (replayed.userId !== (userId ?? null)) {
+            return { ok: false, message: t(lang, "orders.failed"), outOfStock: [] };
+          }
           return {
             ok: true,
+            outcome: "replayed",
             orderId: replayed.id,
             orderNumber: replayed.number,
             total: replayed.total,
@@ -318,8 +385,7 @@ export async function createOrder(
         await sleep((attempt + 1) * 50);
         continue;
       }
-      console.error("[createOrder] attempt failed", error);
-      return { ok: false, message: t(lang, "orders.failed"), outOfStock: [] };
+      throw error;
     }
   }
 

@@ -425,3 +425,56 @@ free-tier cost posture`) pushed to `main`; CI run 32490427853 green
 
 The site now runs entirely on Cloudflare Free with no third-party image
 dependencies; monitoring guidance is in `docs/architecture.md`.
+
+## Done: production-readiness pass (2026-09-09)
+
+Shipped this pass (see `docs/decisions.md` 2026-09-09 entries for rationale):
+
+- **Order hardening (0016):** trigger-owned stock reservation/restock gated by
+  `store_order.stock_version` (`atomic`/`legacy`) for a safe old/new overlap;
+  `payment_status` split; `variant_id` + CHECK constraints on order items;
+  legacy `paid` rows display as `placed` and the admin `placed` filter matches
+  both; legacy cancels with unresolvable variants are refused instead of
+  silently restocking nothing; migration replays cleanly on libsql and D1
+  (duplicate-index bug fixed, snapshot present).
+- **Checkout integrity:** per-nonce signed proof cookies (copied nonces are
+  worthless), replay skips cart-clear/address-save/confirmation-email, admin
+  dashboard KPI relabeled "Gross bookings (simulated payment)".
+- **Referential safety:** variant deletion refuses order/conversion-referenced
+  variants (typed 409); D1 seed exporter keeps referenced variants.
+- **Inventory atomicity:** raw→packaged conversion is one all-or-nothing batch
+  (no more partial commits or unguarded material decrements).
+- **oRPC boundary:** contract-first search suggestions at `/api/rpc`, typed
+  client consumed by the storefront; old endpoint deleted.
+- **Invoice correctness:** renders the stored `shipping_cost` snapshot.
+- **CI/E2E:** single deploy owner (test → e2e → migrate-production →
+  deploy-production on the same artifact); E2E replays the real migration
+  chain into isolated per-run D1 state; workerd crash flake absorbed by a
+  bounded restart (documented, not masked); racy logout assertion fixed.
+- Full suite green at end of pass: `vp check` 0 errors (7 pre-existing
+  reactivity warnings), 480+ unit tests, `vp build`, 40 E2E tests, migration
+  replay on libsql + D1.
+
+## Remaining (non-blocking, explicitly out of scope)
+
+- **Real payment gateway** — owner-deferred; `payment_status`/`stock_version`
+  architecture is ready without touching checkout/orders structure.
+- **Transactional email in production** — the `EMAIL` binding is omitted from
+  the Pages config (unsupported binding there); outbox rows accumulate as
+  `pending`. Needs a Workers-based sender or external SMTP decision.
+- **Old-instance drain** — after the first deploy of 0016, channel old app
+  instances through a scheduled drain before administratively cancelling new
+  (`atomic`) orders; then a future migration can rewrite `paid` → `placed`
+  and drop the legacy path.
+- **Deprecated `store_product` price/stock/image columns** — runtime code no
+  longer reads or writes them. Migration `0017_catalog_authority` (already in
+  the journal) backfills legacy covers into the gallery and triggers future
+  old-app cover writes into the gallery during the overlap window. The final
+  drop lives in `drizzle/staged/0017_drop_legacy_product_columns.sql` (NOT in the
+  journal): apply it via `wrangler d1 execute --remote --file` only after old
+  instances are fully drained — the drop removes the bridge triggers and the
+  columns, and a pre-drain apply would crash the old build.
+- **External deployment setup** — disable the Pages Git integration, set
+  `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` secrets, configure the
+  `production` environment reviewers (checklist in
+  `docs/production-runbook.md`).
