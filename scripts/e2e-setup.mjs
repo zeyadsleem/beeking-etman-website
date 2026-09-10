@@ -2,7 +2,7 @@
 
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -120,7 +120,6 @@ run("wrangler d1 execute", "pnpm", [
 ]);
 
 mkdirSync(E2E_RUNTIME, { recursive: true });
-copyFileSync(resolve(root, "wrangler.jsonc"), resolve(E2E_RUNTIME, "wrangler.jsonc"));
 writeFileSync(
   E2E_VARS,
   [

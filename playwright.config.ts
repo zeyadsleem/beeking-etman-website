@@ -19,8 +19,9 @@ export default defineConfig({
   webServer: {
     command:
       `node scripts/e2e-setup.mjs && ` +
-      `sh -c 'max=5; n=0; while [ $n -lt $max ]; do ` +
-      `pnpm exec wrangler pages dev "${E2E_BUILD}" --cwd "${E2E_RUNTIME}" ` +
+      `sh -c 'set -a; . "${E2E_RUNTIME}/.dev.vars"; set +a; ` +
+      `max=5; n=0; while [ $n -lt $max ]; do ` +
+      `pnpm exec wrangler pages dev "${E2E_BUILD}" ` +
       `--port ${E2E_PORT} ` +
       `--persist-to "${E2E_STATE}"; ` +
       `code=$?; n=$((n+1)); ` +
