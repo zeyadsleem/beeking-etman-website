@@ -49,7 +49,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cloudflare-build
-          path: .svelte-kit/cloudflare
+          # The adapter's _worker.js imports its server and manifest from
+          # sibling directories. Preserve that structure in the artifact.
+          path: |
+            .svelte-kit/cloudflare
+            .svelte-kit/output/server
+            .svelte-kit/cloudflare-tmp
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: true
@@ -80,7 +85,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: cloudflare-build
-          path: .svelte-kit/cloudflare
+          path: .svelte-kit
       - run: pnpm exec playwright test
         env:
           E2E_USE_BUILD: "1"
@@ -153,7 +158,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: cloudflare-build
-          path: .svelte-kit/cloudflare
+          path: .svelte-kit
       - name: Deploy Pages from checked build
         uses: cloudflare/wrangler-action@v3
         with:

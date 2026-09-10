@@ -45,7 +45,8 @@ Key guarantees baked into the workflow:
 - **Single owner of migration + deploy.** The Pages git integration is
   off, so only this workflow mutates production D1 and the deployed Pages
   artifact.
-- **Same checked build, no drift.** `test` uploads `.svelte-kit/cloudflare`
+- **Same checked build, no drift.** `test` uploads `.svelte-kit/cloudflare`,
+  `.svelte-kit/output/server`, and `.svelte-kit/cloudflare-tmp`
   as an artifact; both `e2e` and `deploy-prod` download that exact same
   artifact instead of rebuilding. E2E sets `E2E_USE_BUILD=1`; local runs
   still build by default.
