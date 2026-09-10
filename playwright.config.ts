@@ -29,9 +29,11 @@ export default defineConfig({
       `done; exit $code'`,
     url: `http://localhost:${E2E_PORT}/`,
     reuseExistingServer: false,
-    // Cold chain (setup script: migrate + seed + build + D1 apply) can take
-    // several minutes before preview answers on the port.
-    timeout: 600_000,
+    // Cold chain (setup script: migrate + seed + D1 apply) can take
+    // several minutes in CI before preview answers on the port.  With the
+    // build artifact reused from the test job, setup is fast; the extra
+    // headroom covers cold workerd download + compilation.
+    timeout: 900_000,
   },
   testMatch: "**/*.e2e.{ts,js}",
   // The wrangler pages dev server (workerd) crashes under concurrent load
