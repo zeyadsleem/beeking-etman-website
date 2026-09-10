@@ -29,10 +29,9 @@ export default defineConfig({
       `done; exit $code'`,
     url: `http://localhost:${E2E_PORT}/`,
     reuseExistingServer: false,
-    // Cold chain (setup script: migrate + seed + D1 apply) can take
-    // several minutes in CI before preview answers on the port.  With the
-    // build artifact reused from the test job, setup is fast; the extra
-    // headroom covers cold workerd download + compilation.
+    // Cold chain (setup script: migrate + seed + build + D1 apply) can
+    // take several minutes in CI before preview answers on the port.  The
+    // extra headroom covers the full build + cold workerd download.
     timeout: 900_000,
   },
   testMatch: "**/*.e2e.{ts,js}",

@@ -76,16 +76,7 @@ jobs:
       # clean runner; without --with-deps the first launch fails on missing
       # system libs.
       - run: pnpm exec playwright install --with-deps chromium
-      # Reuse the build artifact produced by the test job so e2e doesn't
-      # rebuild from scratch (the slow build is the main time-budget hog).
-      - name: Download checked build
-        uses: actions/download-artifact@v4
-        with:
-          name: cloudflare-build
-          path: .svelte-kit/cloudflare
       - run: pnpm run test:e2e
-        env:
-          E2E_USE_BUILD: "1"
       # if: always() so a job-timeout cancel still uploads the report; the
       # list reporter defers error details to end-of-run, which a timeout
       # would otherwise swallow.
