@@ -128,16 +128,25 @@ test("admin creates a product and it appears in the product list", async ({ page
   await page.getByLabel("اسم المنتج").fill(productName);
   await page.getByLabel("الاسم بالإنجليزية").fill(`Test Honey ${runId}`);
   await page.getByLabel("الوصف", { exact: true }).fill("وصف تجريبي للمنتج");
-  await page.getByLabel("السعر (ج.م)").fill("250");
   await page.getByLabel("القسم").selectOption("honey");
   await page.getByLabel("الصنف").selectOption({ label: "عسل سدر" });
-  await page.getByLabel("أو الصق رابط صورة").fill("http://localhost:4173/images/logo.png");
+  await page.getByLabel("أو الصق رابط صورة").fill("https://example.com/honey.png");
 
   await page.getByRole("button", { name: "إنشاء المنتج" }).click();
 
   await expect(page).toHaveURL(/\/admin\/products\/[a-z0-9-]+/);
   await waitForApp(page);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(productName);
+
+  const variantForm = page.locator('form[action="?/variantSave"]').last();
+  await variantForm.locator('input[name="name"]').fill("500 جرام");
+  await variantForm.locator('input[name="price"]').fill("250");
+  await variantForm.locator('input[name="stock"]').fill("10");
+  await variantForm.getByRole("button", { name: "حفظ" }).click();
+  const variantRow = page.getByTestId("variant-row");
+  await expect(variantRow.locator('input[name="name"]')).toHaveValue("500 جرام");
+  await expect(variantRow.locator('input[name="price"]')).toHaveValue("250");
+  await expect(variantRow.locator('input[name="stock"]')).toHaveValue("10");
 
   await page.goto("/admin/products", { waitUntil: "domcontentloaded" });
   await waitForApp(page);

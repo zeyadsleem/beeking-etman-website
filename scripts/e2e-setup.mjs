@@ -1,28 +1,9 @@
 #!/usr/bin/env node
-// Safe isolated E2E setup for Playwright. Runs before the wrangler pages
-// dev webServer is started by playwright.config.ts.
-//
-// Contract:
-//   - Never overwrites .dev.vars or .env (creates .e2e.vars on demand from
-//     .dev.vars.example; wrangler pages dev is invoked with --env-file so
-//     the developer's .dev.vars is untouched).
-//   - Never writes to local.db or d1-seed.sql (everything goes through
-//     .e2e/e2e.db and .e2e/e2e-seed.sql under the project's .e2e/ dir).
-//   - Never kills a process on the E2E_PORT (refuses with a clear error if
-//     the port is already bound, so another developer's `wrangler pages
-//     dev` or `vp dev` is never touched).
-//   - Never adds sleeps to mask failures; failures surface immediately with
-//     exit code 1.
-//
-// Output paths are stable per run via E2E_RUN_ID so a crashed run cannot
-// collide with a fresh one. The wrangler pages dev webServer is launched
-// after this script returns 0, using --persist-to <state> and
-// --env-file <vars> so the isolated state never bleeds into the default
-// .wrangler/state/v3 or the developer's .dev.vars.
 
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -36,8 +17,8 @@ if (!Number.isInteger(PORT) || PORT < 1024 || PORT > 65535) throw new Error("Inv
 const E2E_DIR = resolve(root, ".e2e");
 const E2E_DB = resolve(E2E_DIR, `${RUN_ID}.db`);
 const E2E_SEED = resolve(E2E_DIR, `${RUN_ID}-seed.sql`);
-const E2E_VARS = resolve(root, ".e2e.vars");
-const E2E_VARS_EXAMPLE = resolve(root, ".dev.vars.example");
+const E2E_RUNTIME = resolve(E2E_DIR, RUN_ID);
+const E2E_VARS = resolve(E2E_RUNTIME, ".dev.vars");
 const E2E_STATE = resolve(root, ".wrangler", "state", "e2e", RUN_ID);
 
 function log(msg) {
@@ -138,22 +119,19 @@ run("wrangler d1 execute", "pnpm", [
   E2E_STATE,
 ]);
 
-// 9. Ensure .e2e.vars exists with non-secret placeholder content. We never
-//    touch the developer's .dev.vars or .env; the wrangler pages dev command
-//    uses --env-file to point at this file. Content is identical to
-//    .dev.vars.example (dev placeholders, never real secrets), plus an
-//    ADMIN_EMAIL entry that src/lib/server/env.ts optionally validates.
-if (!existsSync(E2E_VARS)) {
-  if (!existsSync(E2E_VARS_EXAMPLE)) {
-    fail(`missing template env file at ${E2E_VARS_EXAMPLE}`);
-  }
-  copyFileSync(E2E_VARS_EXAMPLE, E2E_VARS);
-  let content = readFileSync(E2E_VARS, "utf8");
-  if (!/^ADMIN_EMAIL=/m.test(content)) {
-    content = `${content.replace(/\n*$/, "")}\nADMIN_EMAIL=e2e@example.com\n`;
-    writeFileSync(E2E_VARS, content, "utf8");
-  }
-}
+mkdirSync(E2E_RUNTIME, { recursive: true });
+copyFileSync(resolve(root, "wrangler.jsonc"), resolve(E2E_RUNTIME, "wrangler.jsonc"));
+writeFileSync(
+  E2E_VARS,
+  [
+    `BETTER_AUTH_SECRET=${randomBytes(32).toString("hex")}`,
+    `ORDER_ACCESS_SECRET=${randomBytes(32).toString("hex")}`,
+    `ORIGIN=http://localhost:${PORT}`,
+    "ADMIN_EMAIL=e2e@example.com",
+    "",
+  ].join("\n"),
+  { mode: 0o600 },
+);
 
 log(
   `ready port=${PORT} run=${RUN_ID} ` +
