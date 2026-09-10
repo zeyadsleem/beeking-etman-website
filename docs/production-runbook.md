@@ -46,9 +46,14 @@ Key guarantees baked into the workflow:
   off, so only this workflow mutates production D1 and the deployed Pages
   artifact.
 - **Same checked build, no drift.** `test` uploads `.svelte-kit/cloudflare`
-  as an artifact; `deploy-prod` downloads that exact same artifact instead
-  of rebuilding. A deploy cannot drift from the code the e2e suite ran
-  against.
+  as an artifact; both `e2e` and `deploy-prod` download that exact same
+  artifact instead of rebuilding. E2E sets `E2E_USE_BUILD=1`; local runs
+  still build by default.
+- **Explicit E2E runtime bindings.** `scripts/e2e-server.mjs` launches the
+  installed Wrangler CLI directly with the isolated `.dev.vars` file via
+  `--env-file`. Sourcing that file into a shell does not bind its values
+  to the Worker. Playwright waits for `/api/health` (including a D1 query),
+  and prints both server output streams so startup failures are visible.
 - **Race-free ordering.** `migrate-prod` runs before `deploy-prod` in the
   same workflow and only after both `test` and `e2e` succeed, so the new
   Worker code never starts against an old schema and no migration ships
@@ -58,7 +63,7 @@ Key guarantees baked into the workflow:
   queues concurrent merges and never abandons an in-flight deploy.
 - **Least-privilege tokens.** Top-level `permissions: contents: read`. The
   Cloudflare API token only lives in the wrangler-action steps.
-- **Timeouts on every job.** A hung step is killed (test: 20m, e2e: 30m,
+- **Timeouts on every job.** A hung step is killed (test: 20m, e2e: 45m,
   migrate-prod: 10m, deploy-prod: 20m) instead of burning the 6-hour
   workflow ceiling.
 - **Failure evidence on e2e.** Playwright report and `test-results/` are

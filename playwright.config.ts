@@ -8,8 +8,6 @@ import path from "node:path";
 const E2E_PORT = Number(process.env.E2E_PORT ?? 4173);
 const E2E_RUN_ID = process.env.E2E_RUN_ID ?? `${process.pid}-${Date.now()}`;
 const E2E_STATE = path.resolve(".wrangler/state/e2e", E2E_RUN_ID);
-const E2E_RUNTIME = path.resolve(".e2e", E2E_RUN_ID);
-const E2E_BUILD = path.resolve(".svelte-kit/cloudflare");
 process.env.E2E_RUN_ID = E2E_RUN_ID;
 process.env.E2E_D1_STATE = E2E_STATE;
 process.env.E2E_PORT ??= String(E2E_PORT);
@@ -17,18 +15,10 @@ process.env.E2E_PORT ??= String(E2E_PORT);
 export default defineConfig({
   use: { baseURL: `http://localhost:${E2E_PORT}` },
   webServer: {
-    command:
-      `node scripts/e2e-setup.mjs && ` +
-      `sh -c 'set -a; . "${E2E_RUNTIME}/.dev.vars"; set +a; ` +
-      `max=5; n=0; while [ $n -lt $max ]; do ` +
-      `pnpm exec wrangler pages dev "${E2E_BUILD}" ` +
-      `--port ${E2E_PORT} ` +
-      `--persist-to "${E2E_STATE}"; ` +
-      `code=$?; n=$((n+1)); ` +
-      `[ $code -eq 0 ] && exit 0; ` +
-      `printf "[webserver] preview exited with %d, restart %d/%d\\n" "$code" "$n" "$max" >&2; ` +
-      `done; exit $code'`,
-    url: `http://localhost:${E2E_PORT}/`,
+    command: "node scripts/e2e-server.mjs",
+    url: `http://127.0.0.1:${E2E_PORT}/api/health`,
+    stdout: "pipe",
+    stderr: "pipe",
     reuseExistingServer: false,
     // Cold chain (setup script: migrate + seed + build + D1 apply) can
     // take several minutes in CI before preview answers on the port.  The

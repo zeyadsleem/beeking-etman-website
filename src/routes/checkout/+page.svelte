@@ -35,11 +35,12 @@
   let phone = $state(value("phone"));
   let address = $state(value("address"));
   let city = $state(value("city"));
-  let governorate = $state(
-    (data.governorates.some((g) => g === form?.values?.governorate)
+  function initialGovernorate() {
+    return (data.governorates.some((g) => g === form?.values?.governorate)
       ? form?.values?.governorate
-      : undefined) ?? data.defaultGovernorate,
-  );
+      : undefined) ?? data.defaultGovernorate;
+  }
+  let governorate = $state(initialGovernorate());
 
   const liveTotals = $derived({
     ...data.totals,
