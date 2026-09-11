@@ -25,17 +25,17 @@ CREATE TRIGGER `trg_order_item_reserve_stock`
 BEFORE INSERT ON `store_order_item`
 WHEN (SELECT `stock_version` FROM `store_order` WHERE `id` = NEW.`order_id`) = 'atomic'
 BEGIN
-  SELECT CASE
+  SELECT (CASE
     WHEN NEW.`variant_id` IS NULL THEN
       RAISE(ABORT, 'MISSING_VARIANT_ID')
-  END;
+  END);
   UPDATE `store_product_variant`
   SET `stock` = `stock` - NEW.`quantity`
   WHERE `id` = NEW.`variant_id` AND `stock` >= NEW.`quantity`;
-  SELECT CASE
+  SELECT (CASE
     WHEN (SELECT changes()) = 0 THEN
       RAISE(ABORT, 'OUT_OF_STOCK')
-  END;
+  END);
 END;--> statement-breakpoint
 CREATE TRIGGER `trg_order_item_quantity_positive`
 BEFORE INSERT ON `store_order_item`
