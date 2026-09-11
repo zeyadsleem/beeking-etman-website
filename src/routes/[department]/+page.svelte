@@ -1,5 +1,6 @@
 <script lang="ts">
   import Breadcrumb from "$lib/components/Breadcrumb.svelte";
+  import PageHero from "$lib/components/PageHero.svelte";
   import Seo from "$lib/components/Seo.svelte";
   import StoreBrowser from "$lib/components/StoreBrowser.svelte";
   import { t } from "$lib/i18n/messages";
@@ -37,12 +38,6 @@
   noindex={Boolean(data.filters.q)}
 />
 
-<section class="mt-8">
-  <p class="eyebrow">{t(lang, "brand.name")}</p>
-  <h1 class="headline mt-2 text-4xl leading-tight text-cocoa-900">{title}</h1>
-  <p class="mt-3 max-w-xl text-cocoa-500">{subtitle}</p>
-</section>
-
 <Breadcrumb
   lang={lang}
   className="mt-8"
@@ -51,5 +46,7 @@
     { label: crumb, href: deptPath },
   ]}
 />
+
+<PageHero eyebrow={t(lang, "brand.name")} {title} {subtitle} class="mt-5" />
 
 <StoreBrowser data={data} department={department} {lang} />

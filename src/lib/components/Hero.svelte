@@ -4,241 +4,109 @@
   import { t, type Lang } from "$lib/i18n/messages";
   import Button from "./Button.svelte";
 
-  let { lang = "ar", productCount }: { lang?: Lang; productCount: number } =
-    $props();
+  let { lang = "ar", productCount }: { lang?: Lang; productCount: number } = $props();
 
   const mainImage = "/images/Beeking Etman/برطمان السدر المصرى.jpg";
+  const seal = $derived(lang === "en" ? "/images/etman-wax-en.png" : "/images/etman-wax-ar.png");
 </script>
 
 <section
-  class="relative start-1/2 -ms-[50vw] w-screen overflow-x-clip pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-14 lg:pb-16"
+  class="relative start-1/2 -ms-[50vw] w-screen overflow-x-clip border-b border-honey-100 bg-gradient-to-b from-paper via-paper to-cream pt-12 pb-16 sm:pt-14 sm:pb-20 lg:pt-16 lg:pb-24"
 >
-  <div
-    class="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-    aria-hidden="true"
-  >
-    <img
-      src="/images/hero-background-honey.jpeg"
-      alt=""
-      draggable="false"
-      class="absolute inset-0 h-full w-full object-cover saturate-150 {lang ===
-      'en'
-        ? '-scale-x-100'
-        : ''}"
-    />
-    <div
-      class="absolute inset-0 bg-gradient-to-b from-parchment/10 via-parchment/5 to-parchment/10"
-    ></div>
-    <div
-      class="absolute -top-40 end-[-8rem] h-[30rem] w-[30rem] rounded-full bg-honey-200/50 blur-3xl"
-    ></div>
-    <div
-      class="absolute bottom-[-10rem] start-[-8rem] h-[26rem] w-[26rem] rounded-full bg-clay-200/40 blur-3xl"
-    ></div>
+  <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div class="honeycomb absolute inset-0 opacity-60"></div>
+    <div class="absolute -top-40 end-[-8rem] h-[30rem] w-[30rem] rounded-full bg-honey-200/40 blur-3xl"></div>
+    <div class="absolute bottom-[-10rem] start-[-8rem] h-[24rem] w-[24rem] rounded-full bg-clay-100/40 blur-3xl"></div>
   </div>
 
-  <div
-    class="hero-grid mx-auto w-full max-w-7xl gap-x-8 gap-y-8 px-4 sm:gap-x-10 sm:gap-y-10 sm:px-6 lg:gap-x-14 lg:gap-y-9 lg:px-8"
-  >
-    <div class="relative grid-area-text motion-safe:animate-fade-up">
-      <div
-        data-testid="hero-brand-inline"
-        class="pointer-events-none absolute -top-2 end-0 z-10 h-28 w-28 sm:h-36 sm:w-36 lg:hidden"
-        aria-hidden="true"
-      >
-        <img
-          data-testid="hero-brand-img-inline"
-          src={lang === "ar"
-            ? "/images/etman-wax-ar.png"
-            : "/images/etman-wax-en.png"}
-          alt=""
-          draggable="false"
-          class="h-full w-full select-none"
-        />
+  <div class="hero-grid relative mx-auto max-w-7xl px-4 lg:px-6">
+    <div class="grid-area-text max-w-2xl motion-safe:animate-fade-up">
+      <div class="flex items-center gap-3">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3 8l4-3 5 3 5-3 4 3-1 3H4z" fill="var(--color-honey-500)" />
+          <path d="M4 14h16v2a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6z" fill="var(--color-honey-700)" />
+        </svg>
+        <p class="eyebrow">{t(lang, "hero.eyebrow")}</p>
       </div>
 
-      <p class="brand-wordmark flex items-center gap-2.5">
-        <svg class="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">
-          <defs>
-            <linearGradient id="crown-gradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="var(--color-amber-400)" />
-              <stop offset="100%" stop-color="var(--color-honey-700)" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M5 16 3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1Z"
-            fill="url(#crown-gradient)"
-          />
-        </svg>
-        {t(lang, "hero.eyebrow")}
-      </p>
-
-      <p
-        class="mt-2 flex items-center gap-3 text-sm tracking-wider text-honey-700"
-      >
-        <span class="h-px w-3 bg-honey-400"></span>
+      <p class="mt-4 flex items-center gap-3 text-sm font-semibold text-cocoa-500">
+        <span class="rule-gold h-px w-10"></span>
         {t(lang, "hero.since")}
-        <span class="h-px w-3 bg-honey-400"></span>
       </p>
 
-      <h1
-        class="headline mt-4 text-4xl leading-[1.15] text-cocoa-950 sm:text-5xl lg:mt-5 lg:text-7xl"
-        style="text-shadow: 0 1px 3px rgba(255,255,255,0.7)"
-      >
-        {t(lang, "hero.titleA")}<br />
+      <h1 class="headline mt-5 text-4xl leading-[1.15] text-cocoa-900 sm:text-5xl lg:text-6xl">
+        {t(lang, "hero.titleA")}
+        <br />
         <span class="relative inline-block text-honey-700">
           {t(lang, "hero.titleB")}
           <svg
-            class="absolute -bottom-3 start-0 h-2.5 w-full text-honey-500"
+            class="absolute -bottom-2 start-0 w-full"
+            height="10"
             viewBox="0 0 200 10"
             preserveAspectRatio="none"
-            fill="none"
             aria-hidden="true"
           >
-            <path
-              d="M3 8c50-5 130-6 194-2"
-              stroke="currentColor"
-              stroke-width="3"
-              stroke-linecap="round"
-            />
+            <path d="M2 7c40-5 158-5 196 0" stroke="var(--color-honey-400)" stroke-width="3" stroke-linecap="round" fill="none" />
           </svg>
         </span>
       </h1>
 
-      <p
-        class="mt-4 max-w-md text-base font-medium leading-relaxed text-cocoa-700 sm:text-lg lg:mt-6 {lang ===
-        'en'
-          ? '!text-cocoa-900'
-          : ''}"
-        style="text-shadow: 0 1px 2px rgba(255,250,240,0.85)"
-      >
+      <p class="mt-6 max-w-xl text-base leading-relaxed text-cocoa-600 sm:text-lg">
         {t(lang, "hero.subtitle")}
       </p>
 
-      <div class="mt-6 flex flex-wrap items-center gap-3 sm:gap-4 lg:mt-8">
-        <Button variant="primary" href="/products">
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        <Button variant="primary" href="/products" class="px-6 py-3">
           {t(lang, "hero.ctaShop")}
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M19 12H5M11 6l-6 6 6 6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </Button>
-        <Button variant="outline" href="#categories"
-          >{t(lang, "hero.ctaDiscover")}</Button
-        >
+        <Button variant="outline" href="#categories" class="px-6 py-3">{t(lang, "hero.ctaDiscover")}</Button>
       </div>
     </div>
 
-    <div
-      class="relative mx-auto mt-2 w-full max-w-sm grid-area-image motion-safe:animate-fade-up sm:max-w-md lg:mt-0"
-      style="animation-delay: 120ms"
-    >
-      <div
-        class="hex-texture absolute inset-0 rounded-[2rem] opacity-30"
-        aria-hidden="true"
-      ></div>
-
-      <div
-        data-testid="hero-brand"
-        class="absolute -top-9 end-0 z-10 hidden h-36 w-36 lg:block"
-        aria-hidden="true"
-      >
+    <div class="grid-area-image relative mx-auto mt-10 w-full max-w-sm motion-safe:animate-fade-up sm:max-w-md lg:mt-0">
+      <div data-testid="hero-brand" class="absolute -top-10 end-2 z-10 hidden h-36 w-36 lg:block" aria-hidden="true">
         <img
           data-testid="hero-brand-img"
-          src={lang === "ar"
-            ? "/images/etman-wax-ar.png"
-            : "/images/etman-wax-en.png"}
-          alt=""
-          draggable="false"
-          class="h-full w-full select-none"
+          src={seal}
+          alt={t(lang, "brand.tagline")}
+          class="seal h-full w-full select-none"
         />
       </div>
 
-      <figure class="relative">
-        <div
-          class="absolute inset-0 -z-10 rounded-full bg-honey-100/70 blur-2xl"
-          aria-hidden="true"
-        ></div>
-        <div
-          class="relative overflow-hidden rounded-t-full rounded-b-2xl border border-honey-200 bg-parchment shadow-warm-lg lg:rounded-b-[1.5rem]"
-        >
-          <AspectRatio.Root
-            ratio={4 / 5}
-            class="transition-transform duration-700 ease-out group-hover:scale-105"
-          >
-            <img
-              src={mainImage}
-              alt={t(lang, "hero.sidrAlt")}
-              class="h-full w-full object-cover"
-            />
+      <div class="relative">
+        <div class="absolute inset-4 -z-10 rounded-full bg-honey-200/50 blur-2xl"></div>
+        <div class="overflow-hidden rounded-t-full rounded-b-3xl border border-honey-200 bg-parchment p-3 shadow-warm-lg">
+          <AspectRatio.Root ratio={4 / 5} class="overflow-hidden rounded-t-full rounded-b-2xl">
+            <img src={mainImage} alt={t(lang, "hero.sidrAlt")} class="h-full w-full object-cover" />
           </AspectRatio.Root>
-          <div
-            class="pointer-events-none absolute inset-3 rounded-t-full rounded-b-2xl ring-1 ring-inset ring-parchment/70 lg:rounded-b-[1.2rem]"
-            aria-hidden="true"
-          ></div>
         </div>
-      </figure>
+
+        <div data-testid="hero-brand-inline" class="absolute -top-6 end-1 z-10 h-24 w-24 lg:hidden" aria-hidden="true">
+          <img
+            data-testid="hero-brand-img-inline"
+            src={seal}
+            alt={t(lang, "brand.tagline")}
+            class="seal h-full w-full select-none"
+          />
+        </div>
+      </div>
     </div>
 
-    <dl
-      class="mt-2 grid max-w-lg grid-cols-3 gap-4 grid-area-stats motion-safe:animate-fade-up sm:gap-6"
-      style="animation-delay: 240ms"
-    >
+    <dl class="grid-area-stats mt-12 grid grid-cols-3 gap-4 border-t border-honey-100 pt-8 sm:gap-8">
       <div>
-        <dt
-          class="text-xs font-semibold text-cocoa-700 {lang === 'en'
-            ? '!text-cocoa-800'
-            : ''}"
-        >
-          {t(lang, "hero.statProducts")}
-        </dt>
-        <dd
-          class="headline mt-1 text-2xl text-cocoa-950 sm:text-3xl"
-          use:countUp={{ target: productCount, lang }}
-        >
-          0
-        </dd>
+        <dd class="headline text-3xl text-honey-700 sm:text-4xl" use:countUp={{ target: productCount, lang }}></dd>
+        <dt class="mt-1 text-xs font-semibold text-cocoa-500 sm:text-sm">{t(lang, "hero.statProducts")}</dt>
       </div>
       <div>
-        <dt
-          class="text-xs font-semibold text-cocoa-700 {lang === 'en'
-            ? '!text-cocoa-800'
-            : ''}"
-        >
-          {t(lang, "hero.statGovernorates")}
-        </dt>
-        <dd
-          class="headline mt-1 text-2xl text-cocoa-950 sm:text-3xl"
-          use:countUp={{ target: 27, lang }}
-        >
-          0
-        </dd>
+        <dd class="headline text-3xl text-honey-700 sm:text-4xl" use:countUp={{ target: 27, lang }}></dd>
+        <dt class="mt-1 text-xs font-semibold text-cocoa-500 sm:text-sm">{t(lang, "hero.statGovernorates")}</dt>
       </div>
       <div>
-        <dt
-          class="text-xs font-semibold text-cocoa-700 {lang === 'en'
-            ? '!text-cocoa-800'
-            : ''}"
-        >
-          {t(lang, "hero.statCustomers")}
-        </dt>
-        <dd
-          class="headline mt-1 text-2xl text-cocoa-950 sm:text-3xl"
-          use:countUp={{ target: 12000, lang }}
-        >
-          0
-        </dd>
+        <dd class="headline text-3xl text-honey-700 sm:text-4xl" use:countUp={{ target: 12000, lang }}></dd>
+        <dt class="mt-1 text-xs font-semibold text-cocoa-500 sm:text-sm">{t(lang, "hero.statCustomers")}</dt>
       </div>
     </dl>
   </div>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import AuthShell from "$lib/components/AuthShell.svelte";
   import Button from "$lib/components/Button.svelte";
-  import Logo from "$lib/components/Logo.svelte";
   import { t } from "$lib/i18n/messages";
 
   import type { ActionData, PageData } from "./$types";
@@ -15,18 +15,13 @@
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="mx-auto mt-14 max-w-md motion-safe:animate-fade-up">
-  <div class="mb-8 flex flex-col items-center text-center">
-    <Logo alt={t(lang, "brand.name")} class="h-11 w-11" />
-    <h1 class="headline mt-3 text-3xl text-cocoa-900">{t(lang, "login.heading")}</h1>
-    <p class="mt-1 text-sm text-cocoa-500">{t(lang, "login.helper")}</p>
-  </div>
+<AuthShell {lang} title={t(lang, "login.heading")} helper={t(lang, "login.helper")}>
   <!-- The named action replaces the query string, so redirectTo must ride along explicitly. -->
   <form
     method="post"
     action={`?/signIn&redirectTo=${encodeURIComponent(data.redirectTo)}`}
     use:enhance
-    class="space-y-4 rounded-2xl border border-cocoa-100 bg-parchment p-7 shadow-warm-sm"
+    class="space-y-4"
   >
     {#if form?.message}
       <p class="alert-error" role="alert">{form.message}</p>
@@ -42,4 +37,4 @@
     <Button variant="primary" type="submit" class="w-full">{t(lang, "login.submit")}</Button>
     <p class="text-center text-sm text-cocoa-500">{t(lang, "login.noAccount")} <a href="/register" class="font-semibold text-honey-700 underline decoration-honey-300 underline-offset-4 hover:text-honey-800">{t(lang, "login.signup")}</a></p>
   </form>
-</div>
+</AuthShell>

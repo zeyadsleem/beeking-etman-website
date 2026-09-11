@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { ToggleGroup } from "bits-ui";
+  import { AspectRatio, ToggleGroup } from "bits-ui";
   import Breadcrumb from "$lib/components/Breadcrumb.svelte";
   import Button from "$lib/components/Button.svelte";
   import Price from "$lib/components/Price.svelte";
+  import ProductArt from "$lib/components/ProductArt.svelte";
   import ProductCard from "$lib/components/ProductCard.svelte";
   import ProductImageGallery from "$lib/components/ProductImageGallery.svelte";
   import QuantityPicker from "$lib/components/QuantityPicker.svelte";
@@ -14,7 +15,7 @@
   import { formatEGP } from "$lib/currency";
   import { trackProductView } from "$lib/analytics-events";
   import { t } from "$lib/i18n/messages";
-  import { categoryPath, departmentPath, productPath } from "$lib/storefront";
+  import { categoryPath, departmentPath, productPath, isPlaceholderImage } from "$lib/storefront";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -53,6 +54,9 @@
       (url, index, all) => all.indexOf(url) === index,
     ),
   );
+
+  const galleryIsPlaceholder = $derived(galleryImages.every(isPlaceholderImage));
+  const seal = $derived(lang === "en" ? "/images/etman-wax-en.png" : "/images/etman-wax-ar.png");
 
   function selectVariant(id: string) {
     const v = data.product.variants.find((x) => x.id === id);
@@ -107,18 +111,31 @@
 />
 
 <div class="grid gap-8 lg:grid-cols-2">
-  <ProductImageGallery
-    images={galleryImages}
-    productName={data.product.name}
-    lang={lang}
-    viewTransitionName={`product-${data.product.id}`}
-    activeKey={selectedVariant.id}
-  />
+  <div class="lg:sticky lg:top-24 lg:self-start">
+    {#if galleryIsPlaceholder}
+      <div class="overflow-hidden rounded-3xl border border-honey-100 shadow-warm">
+        <AspectRatio.Root ratio={1}>
+          <ProductArt department={data.product.department} categorySlug={data.product.categorySlug} />
+        </AspectRatio.Root>
+      </div>
+    {:else}
+      <ProductImageGallery
+        images={galleryImages}
+        productName={data.product.name}
+        lang={lang}
+        viewTransitionName={`product-${data.product.id}`}
+        activeKey={selectedVariant.id}
+      />
+    {/if}
+  </div>
 
   <div class="flex flex-col gap-5">
     <div>
-      <p class="eyebrow">{t(lang, "detail.eyebrow")}</p>
-      <h1 class="card-title mt-2 text-4xl leading-tight text-cocoa-900">{data.product.name}</h1>
+      <div class="flex items-center gap-3">
+        <p class="eyebrow">{t(lang, "detail.eyebrow")}</p>
+        <img src={seal} alt="" aria-hidden="true" class="seal h-10 w-10" />
+      </div>
+      <h1 class="headline mt-2 text-4xl leading-tight text-cocoa-900">{data.product.name}</h1>
     </div>
 
     <div class="flex flex-wrap items-end gap-3">

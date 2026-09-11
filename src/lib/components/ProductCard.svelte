@@ -3,14 +3,16 @@
   import { addToCart } from "$lib/cart-store.svelte";
   import { regularItemPayload } from "$lib/cart";
   import Price from "./Price.svelte";
+  import ProductArt from "./ProductArt.svelte";
   import { formatEGP } from "$lib/currency";
   import { t, type Lang } from "$lib/i18n/messages";
   import type { ProductSummary } from "$lib/server/store";
-  import { productPath } from "$lib/storefront";
+  import { isPlaceholderImage, productPath } from "$lib/storefront";
 
   let { lang = "ar", product }: { lang?: Lang; product: ProductSummary } = $props();
 
   const href = $derived(productPath(product));
+  const imageSrc = $derived(product.variants[0]?.image ?? product.image);
 
   let imageEl = $state<HTMLImageElement>();
   let added = $state(false);
@@ -39,13 +41,17 @@
 <section class="group flex flex-col overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment transition-all duration-300 hover:-translate-y-0.5 hover:border-cocoa-200 hover:shadow-warm">
   <a href={href} class="relative block overflow-hidden bg-cocoa-100" onclick={beginImageTransition}>
     <AspectRatio.Root ratio={4 / 3} class="overflow-hidden">
-      <img
-        bind:this={imageEl}
-        src={product.variants[0]?.image ?? product.image}
-        alt={product.name}
-        loading="lazy"
-        class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-      />
+      {#if isPlaceholderImage(imageSrc)}
+        <ProductArt department={product.department} categorySlug={product.categorySlug} />
+      {:else}
+        <img
+          bind:this={imageEl}
+          src={imageSrc}
+          alt={product.name}
+          loading="lazy"
+          class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        />
+      {/if}
     </AspectRatio.Root>
     {#if product.variants[0]?.stock === 0}
       <span class="badge-out absolute bottom-4 start-1/2 -translate-x-1/2">{t(lang, "product.outOfStock")}</span>

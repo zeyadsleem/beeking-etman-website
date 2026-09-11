@@ -112,7 +112,7 @@
   class="min-h-dvh bg-paper pb-40 text-cocoa-900"
   data-testid="blends-scene"
 >
-  <header class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper/80 backdrop-blur">
+  <header class="sticky top-0 z-30 border-b border-honey-100 bg-paper/90 backdrop-blur">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
       <div>
         <h1 class="headline text-xl font-bold text-cocoa-900">{t(data.lang, "blends.game.title")}</h1>

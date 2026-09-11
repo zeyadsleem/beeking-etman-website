@@ -1,12 +1,13 @@
 <script lang="ts">
   import QuantityPicker from "./QuantityPicker.svelte";
   import Price from "./Price.svelte";
+  import ProductArt from "./ProductArt.svelte";
   import { formatEGP } from "$lib/currency";
   import { closeDrawer, removeFromCart, setBlendQuantity, setQuantity } from "$lib/cart-store.svelte";
   import { isBlendItem, itemId, lineTotal } from "$lib/cart";
   import { blendLineDetail } from "$lib/blends";
   import { t, type Lang } from "$lib/i18n/messages";
-  import { productPath } from "$lib/storefront";
+  import { productPath, isPlaceholderImage } from "$lib/storefront";
   import type { CartItem } from "$lib/cart";
 
   let { item, lang, size = "page" }: { item: CartItem; lang: Lang; size?: "drawer" | "page" } = $props();
@@ -20,6 +21,11 @@
   );
   const detailClass = $derived(
     isDrawer ? "mt-0.5 line-clamp-2 text-[11px] font-medium" : "line-clamp-2 text-sm font-medium",
+  );
+  const artInfo = $derived(
+    isBlendItem(item)
+      ? { department: "honey", categorySlug: "" }
+      : { department: item.department, categorySlug: item.categorySlug },
   );
 </script>
 
@@ -35,7 +41,11 @@
       ? "w-16 shrink-0 self-stretch overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100"
       : "w-20 shrink-0 self-stretch overflow-hidden rounded-xl border border-cocoa-100 bg-cocoa-100 sm:w-24"}
   >
-    <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
+    {#if isPlaceholderImage(item.image)}
+      <ProductArt department={artInfo.department} categorySlug={artInfo.categorySlug} />
+    {:else}
+      <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
+    {/if}
   </a>
   <div class="flex min-w-0 flex-1 flex-col gap-1.5">
     <div class="flex items-start justify-between gap-2">

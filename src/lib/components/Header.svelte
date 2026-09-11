@@ -85,11 +85,15 @@
   }
 </script>
 
-<header class="sticky top-0 z-30 border-b border-cocoa-100 bg-paper/85 backdrop-blur">
+<header class="sticky top-0 z-30 border-b border-honey-100 bg-paper/90 backdrop-blur">
   <div class="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3">
     <div class="col-start-1 flex min-w-0 items-center gap-5 justify-self-start">
-      <a href="/" class="relative flex items-center gap-2.5 transition-colors hover:opacity-80" aria-label={t(lang, "brand.tagline")}>
-        <Logo alt={t(lang, "brand.tagline")} class="h-14 w-14" />
+      <a href="/" class="relative flex items-center gap-3 transition-opacity hover:opacity-90" aria-label={t(lang, "brand.tagline")}>
+        <Logo alt={t(lang, "brand.tagline")} class="h-14 w-14 shrink-0" />
+        <span class="hidden flex-col leading-none sm:flex">
+          <span class="font-display text-lg font-bold text-cocoa-900">{t(lang, "brand.name")}</span>
+          <span class="mt-1 text-[10px] font-semibold tracking-[0.2em] text-honey-700">{t(lang, "hero.since")}</span>
+        </span>
       </a>
 
       <nav class="hidden items-center gap-5 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>

@@ -3,6 +3,7 @@
   import Button from "$lib/components/Button.svelte";
   import Breadcrumb from "$lib/components/Breadcrumb.svelte";
   import HoneycombIcon from "$lib/components/HoneycombIcon.svelte";
+  import PageHero from "$lib/components/PageHero.svelte";
   import ProductCard from "$lib/components/ProductCard.svelte";
   import SearchSuggestions from "$lib/components/SearchSuggestions.svelte";
   import Seo from "$lib/components/Seo.svelte";
@@ -63,12 +64,6 @@
   noindex={Boolean(data.filters.q)}
 />
 
-<section class="mt-8">
-  <p class="eyebrow">{t(lang, "brand.name")}</p>
-  <h1 class="headline mt-2 text-4xl leading-tight text-cocoa-900">{t(lang, "products.title")}</h1>
-  <p class="mt-3 max-w-xl text-cocoa-500">{t(lang, "products.subtitle")}</p>
-</section>
-
 <Breadcrumb
   lang={lang}
   className="mt-8"
@@ -76,6 +71,13 @@
     { label: t(lang, "nav.home"), href: "/" },
     { label: t(lang, DEPT_LABELS[data.filters.dept].key), href: `/products${data.filters.dept !== "honey" ? `?dept=${data.filters.dept}` : ""}` },
   ]}
+/>
+
+<PageHero
+  eyebrow={t(lang, "brand.name")}
+  title={t(lang, "products.title")}
+  subtitle={t(lang, "products.subtitle")}
+  class="mt-5"
 />
 
 <!-- Department tabs -->

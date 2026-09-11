@@ -5,17 +5,22 @@
   let { lang = "ar" }: { lang?: Lang } = $props();
 
   const year = new Date().getFullYear();
+  const seal = $derived(lang === "en" ? "/images/etman-wax-en.png" : "/images/etman-wax-ar.png");
 </script>
 
-<footer class="mt-16 border-t border-cocoa-200 bg-cocoa-50">
-  <div class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
+<footer class="mt-16 border-t border-honey-100 bg-cream">
+  <div class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
     <!-- Brand -->
     <div class="sm:col-span-2 lg:col-span-1">
-      <a href="/" class="flex items-center gap-2.5 transition-colors hover:opacity-80">
-        <Logo alt={t(lang, "brand.tagline")} class="h-12 w-12" />
-        <span class="font-display text-lg font-bold text-cocoa-900">{t(lang, "brand.name")}</span>
+      <a href="/" class="flex items-center gap-3 transition-opacity hover:opacity-90">
+        <Logo alt={t(lang, "brand.tagline")} class="h-16 w-16 shrink-0" />
+        <span class="flex flex-col leading-none">
+          <span class="font-display text-xl font-bold text-cocoa-900">{t(lang, "brand.name")}</span>
+          <span class="mt-1.5 text-[11px] font-semibold tracking-[0.2em] text-honey-700">{t(lang, "hero.since")}</span>
+        </span>
       </a>
-      <p class="mt-4 text-sm leading-relaxed text-cocoa-600">{t(lang, "footer.tagline")}</p>
+      <p class="mt-4 max-w-xs text-sm leading-relaxed text-cocoa-600">{t(lang, "footer.tagline")}</p>
+      <img src={seal} alt="" class="seal mt-6 h-20 w-20 opacity-90" />
     </div>
 
     <!-- Site links -->
@@ -47,7 +52,7 @@
       </a>
     </div>
   </div>
-  <div class="border-t border-cocoa-200 py-4 text-center text-xs text-cocoa-500">
+  <div class="border-t border-honey-100 py-4 text-center text-xs text-cocoa-500">
     {t(lang, "footer.copyright", { year })}
   </div>
 </footer>

@@ -3,6 +3,7 @@
   import Breadcrumb from "$lib/components/Breadcrumb.svelte";
   import Button from "$lib/components/Button.svelte";
   import HoneycombIcon from "$lib/components/HoneycombIcon.svelte";
+  import PageHero from "$lib/components/PageHero.svelte";
   import ProductCard from "$lib/components/ProductCard.svelte";
   import Seo from "$lib/components/Seo.svelte";
   import { goto } from "$app/navigation";
@@ -49,11 +50,6 @@
   siteName={t(lang, "brand.name")}
 />
 
-<section class="mt-8">
-  <p class="eyebrow">{deptLabel}</p>
-  <h1 class="headline mt-2 text-4xl leading-tight text-cocoa-900">{title}</h1>
-</section>
-
 <Breadcrumb
   lang={lang}
   className="mt-8"
@@ -62,6 +58,13 @@
     { label: deptLabel, href: deptPath },
     { label: data.category.name },
   ]}
+/>
+
+<PageHero
+  eyebrow={deptLabel}
+  title={title}
+  subtitle={t(lang, "products.categorySubtitle", { category: data.category.name })}
+  class="mt-5"
 />
 
 {#if data.subcategories.length > 0}

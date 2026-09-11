@@ -9,6 +9,7 @@
   let { data }: { data: PageData } = $props();
 
   const lang = $derived(data.lang);
+  const seal = $derived(lang === "en" ? "/images/etman-wax-en.png" : "/images/etman-wax-ar.png");
 
   const timeline = $derived([
     {
@@ -77,6 +78,12 @@
       icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
     },
   ]);
+
+  const stats = $derived([
+    { label: t(lang, "hero.since"), icon: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Z M12 6v6l4 2" },
+    { label: t(lang, "hero.statCustomers"), icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" },
+    { label: t(lang, "hero.statGovernorates"), icon: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" },
+  ]);
 </script>
 
 <Seo
@@ -86,244 +93,141 @@
   siteName={t(lang, "brand.name")}
 />
 
-<div class="relative overflow-hidden">
-  <div
-    class="pointer-events-none absolute inset-x-0 -top-24 h-96 bg-[radial-gradient(60%_100%_at_50%_0%,#fef3c7_0%,#fde68a_30%,transparent_75%)] opacity-60"
-    aria-hidden="true"
-  ></div>
-  <div
-    class="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(40%_100%_at_85%_20%,#fde68a_0%,transparent_70%)] opacity-40"
-    aria-hidden="true"
-  ></div>
+<div class="mx-auto max-w-7xl px-4 pt-6 lg:px-6">
+  <Breadcrumb
+    lang={lang}
+    items={[
+      { label: t(lang, "nav.home"), href: "/" },
+      { label: t(lang, "footer.about") },
+    ]}
+  />
+</div>
 
-  <div class="relative mx-auto max-w-7xl px-4 pt-6 sm:px-6">
-    <Breadcrumb
-      lang={lang}
-      items={[
-        { label: t(lang, "nav.home"), href: "/" },
-        { label: t(lang, "footer.about") },
-      ]}
-      className="mb-10"
-    />
+<!-- Hero -->
+<section class="relative start-1/2 -ms-[50vw] w-screen overflow-x-clip bg-gradient-to-b from-paper via-paper to-cream">
+  <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div class="honeycomb absolute inset-0 opacity-50"></div>
+    <div class="absolute -top-32 end-[-6rem] h-[26rem] w-[26rem] rounded-full bg-honey-200/40 blur-3xl"></div>
+    <div class="absolute bottom-[-8rem] start-[-6rem] h-[20rem] w-[20rem] rounded-full bg-clay-100/40 blur-3xl"></div>
   </div>
 
-  <!-- Hero -->
-  <section class="relative mx-auto max-w-3xl px-4 pb-14 text-center sm:pb-20">
-    <p class="eyebrow motion-safe:animate-fade-up">{t(lang, "about.heroEyebrow")}</p>
-    <h1 class="headline mt-5 text-4xl leading-tight text-cocoa-900 motion-safe:animate-fade-up sm:text-5xl">
+  <div class="relative mx-auto max-w-3xl px-4 pb-20 pt-12 text-center sm:pb-28 sm:pt-16">
+    <p class="eyebrow">{t(lang, "about.heroEyebrow")}</p>
+    <h1 class="headline mt-5 text-4xl leading-tight text-cocoa-900 sm:text-5xl lg:text-6xl">
       {t(lang, "about.heroTitle")}
     </h1>
-    <div
-      class="mx-auto mt-6 h-1 w-24 rounded-full bg-gradient-to-r from-honey-300 via-honey-600 to-honey-800 motion-safe:animate-fade-up"
-      aria-hidden="true"
-    ></div>
-    <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-cocoa-500 motion-safe:animate-fade-up">
+    <div class="mx-auto mt-7 h-1 w-28 rounded-full bg-gradient-to-r from-honey-200 via-honey-500 to-honey-800" aria-hidden="true"></div>
+    <p class="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-cocoa-600">
       {t(lang, "about.heroSubtitle")}
     </p>
-  </section>
-</div>
+    <img src={seal} alt={t(lang, "brand.tagline")} class="seal mx-auto mt-10 h-32 w-32 sm:h-40 sm:w-40" />
+  </div>
+</section>
 
 <!-- Stat strip -->
-<div class="relative border-y border-honey-100 bg-gradient-to-b from-paper-deep to-paper">
-  <div class="mx-auto grid max-w-4xl grid-cols-3 px-4 py-6 text-center sm:px-6 sm:py-8">
-    <div class="rounded-2xl p-3 sm:p-4">
-      <svg class="mx-auto h-6 w-6 shrink-0 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Z" stroke="currentColor" stroke-width="1.8" />
-        <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-      <p class="mt-2 text-sm font-bold text-cocoa-900 sm:text-lg">{t(lang, "hero.since")}</p>
-    </div>
-    <div class="rounded-2xl p-3 sm:p-4">
-      <svg class="mx-auto h-6 w-6 shrink-0 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-      </svg>
-      <p class="mt-2 text-sm font-bold text-cocoa-900 sm:text-lg">{t(lang, "hero.statCustomers")}</p>
-    </div>
-    <div class="rounded-2xl p-3 sm:p-4">
-      <svg class="mx-auto h-6 w-6 shrink-0 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="1.8" />
-        <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.8" />
-      </svg>
-      <p class="mt-2 text-sm font-bold text-cocoa-900 sm:text-lg">{t(lang, "hero.statGovernorates")}</p>
-    </div>
+<div class="border-y border-honey-100 bg-cream">
+  <div class="mx-auto grid max-w-4xl grid-cols-1 gap-4 px-4 py-8 text-center sm:grid-cols-3 sm:px-6">
+    {#each stats as item (item.label)}
+      <div class="flex items-center justify-center gap-3 sm:flex-col sm:gap-0">
+        <span class="hex-frame grid h-12 w-12 shrink-0 place-items-center bg-honey-100 text-honey-800">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d={item.icon} stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <p class="text-sm font-bold text-cocoa-900 sm:mt-3 sm:text-lg">{item.label}</p>
+      </div>
+    {/each}
   </div>
 </div>
 
-<!-- Heritage Timeline -->
-<section class="relative mx-auto mt-16 max-w-4xl px-4 sm:mt-24 sm:px-6">
-  <div
-    class="pointer-events-none absolute start-1/2 top-0 hidden h-full w-px bg-gradient-to-b from-honey-200 via-honey-400 to-honey-200 opacity-40 sm:block"
-    aria-hidden="true"
-  ></div>
-
-  <SectionTitle as="h2" className="text-center text-3xl">
-    {t(lang, "about.timelineEyebrow")}
-  </SectionTitle>
-
-  <div class="relative mt-12 sm:mt-14">
-    <div
-      class="absolute start-4 top-0 h-full w-px bg-gradient-to-b from-honey-200 via-honey-400 to-honey-200 opacity-50 sm:start-1/2 sm:-ms-px"
-      aria-hidden="true"
-    ></div>
-
-    <div class="space-y-10 sm:space-y-14">
-      {#each timeline as item, i (item.year)}
-        {@const isEven = i % 2 === 0}
-        <div
-          class="relative flex gap-6 sm:gap-0 {isEven
-            ? 'sm:flex-row'
-            : 'sm:flex-row-reverse'}"
-        >
-          <div
-            class="absolute start-4 z-10 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-gradient-to-br from-honey-400 to-honey-700 text-parchment shadow-warm-sm ring-4 ring-paper sm:start-1/2 motion-safe:animate-fade-up"
-            aria-hidden="true"
-          >
-            <span class="block h-2 w-2 rounded-full bg-parchment"></span>
-          </div>
-
-          <div class="ms-10 flex-1 sm:ms-0 {isEven ? 'sm:pe-12' : 'sm:ps-12'} motion-safe:animate-fade-up">
-            <div class="group rounded-2xl border border-honey-100 bg-parchment p-6 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-warm sm:p-7">
-              <span class="text-xs font-bold uppercase tracking-[0.18em] text-honey-700">{item.year}</span>
-              <h3 class="headline mt-2 text-xl text-cocoa-900">{item.title}</h3>
-              <p class="mt-2.5 text-sm leading-relaxed text-cocoa-500">
-                {item.body}
-              </p>
-            </div>
-          </div>
-        </div>
-      {/each}
+<!-- Vision / story -->
+<section class="mx-auto mt-20 max-w-7xl px-4 lg:px-6">
+  <div class="grid items-center gap-10 lg:grid-cols-2">
+    <div class="aspect-[4/3] overflow-hidden rounded-3xl border border-honey-100 bg-cream shadow-warm">
+      <img src="/images/Beeking Etman/برواز البرسيم.png" alt={t(lang, "about.visionTitle")} class="h-full w-full object-cover" />
+    </div>
+    <div>
+      <p class="eyebrow">{t(lang, "about.visionEyebrow")}</p>
+      <SectionTitle className="mt-2 text-3xl text-cocoa-900 sm:text-4xl">{t(lang, "about.visionTitle")}</SectionTitle>
+      <p class="mt-5 leading-relaxed text-cocoa-600">{t(lang, "about.visionBody")}</p>
     </div>
   </div>
 </section>
 
-<!-- Shibshir Ecosystem -->
-<section class="relative mx-auto mt-16 max-w-5xl px-4 sm:mt-24 sm:px-6">
-  <div
-    class="pointer-events-none absolute inset-x-0 top-10 mx-auto h-72 max-w-2xl rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,#fef3c7_0%,transparent_70%)] opacity-50"
-    aria-hidden="true"
-  ></div>
+<!-- Timeline -->
+<section class="mx-auto mt-20 max-w-7xl px-4 lg:px-6">
+  <div class="text-center">
+    <SectionTitle className="text-3xl text-cocoa-900 sm:text-4xl">{t(lang, "about.timelineEyebrow")}</SectionTitle>
+  </div>
 
-  <SectionTitle as="h2" className="relative text-center text-3xl">
-    {t(lang, "about.ecosystemEyebrow")}
-  </SectionTitle>
+  <div class="relative mx-auto mt-12 max-w-3xl">
+    <div class="absolute bottom-4 start-6 top-4 w-px bg-gradient-to-b from-honey-200 via-honey-500 to-honey-200" aria-hidden="true"></div>
+    <ol class="space-y-8">
+      {#each timeline as item (item.year)}
+        <li class="relative flex gap-5">
+          <span class="hex-frame relative z-10 grid h-12 w-12 shrink-0 place-items-center bg-gradient-to-br from-honey-400 to-honey-700 text-[11px] font-bold text-cocoa-950">
+            {item.year}
+          </span>
+          <div class="flex-1 rounded-2xl border border-honey-100 bg-parchment p-5 shadow-warm-sm">
+            <h3 class="headline text-lg text-cocoa-900">{item.title}</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-cocoa-500">{item.body}</p>
+          </div>
+        </li>
+      {/each}
+    </ol>
+  </div>
+</section>
 
-  <div class="relative mt-12 grid gap-6 sm:grid-cols-3">
-    {#each ecosystem as card, i (card.title)}
-      <div
-        class="group relative overflow-hidden rounded-3xl border border-honey-100 bg-parchment p-7 text-center shadow-warm-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-warm motion-safe:animate-fade-up"
-        style={`animation-delay: ${i * 0.08}s`}
-      >
-        <div
-          class="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-honey-50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          aria-hidden="true"
-        ></div>
-        <div
-          class="relative mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-honey-100 to-honey-200 text-honey-700 shadow-warm-sm ring-1 ring-inset ring-honey-200 transition-colors group-hover:text-honey-800"
-        >
-          <svg
-            class="h-7 w-7"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d={card.icon} />
+<!-- Ecosystem -->
+<section class="mx-auto mt-20 max-w-7xl px-4 lg:px-6">
+  <div class="text-center">
+    <SectionTitle className="text-3xl text-cocoa-900 sm:text-4xl">{t(lang, "about.ecosystemEyebrow")}</SectionTitle>
+  </div>
+  <div class="mt-10 grid gap-6 sm:grid-cols-3">
+    {#each ecosystem as item (item.title)}
+      <div class="rounded-3xl border border-honey-100 bg-parchment p-6 shadow-warm-sm">
+        <span class="hex-frame grid h-12 w-12 place-items-center bg-honey-100 text-honey-800">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d={item.icon} stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-        </div>
-        <h3 class="headline relative mt-5 text-lg text-cocoa-900">{card.title}</h3>
-        <p class="relative mt-2.5 text-sm leading-relaxed text-cocoa-500">{card.body}</p>
+        </span>
+        <h3 class="headline mt-4 text-lg text-cocoa-900">{item.title}</h3>
+        <p class="mt-1.5 text-sm leading-relaxed text-cocoa-500">{item.body}</p>
       </div>
     {/each}
   </div>
 </section>
 
-<!-- Vision & Values -->
-<section class="relative mx-auto mt-16 max-w-4xl px-4 sm:mt-24 sm:px-6">
-  <SectionTitle as="h2" className="text-center text-3xl">
-    {t(lang, "about.visionEyebrow")}
-  </SectionTitle>
-
-  <div class="relative mt-12 overflow-hidden rounded-3xl border border-honey-100 bg-parchment p-7 shadow-warm-sm sm:p-10 motion-safe:animate-fade-up">
-    <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-honey-300 via-honey-600 to-honey-800"
-      aria-hidden="true"
-    ></div>
-    <div
-      class="pointer-events-none absolute -end-16 -top-16 h-48 w-48 rounded-full bg-[radial-gradient(60%_60%_at_50%_50%,#fef3c7_0%,transparent_70%)]"
-      aria-hidden="true"
-    ></div>
-    <h3 class="headline relative text-2xl text-cocoa-900">
-      {t(lang, "about.visionTitle")}
-    </h3>
-    <p class="relative mt-4 text-base leading-relaxed text-cocoa-500">
-      {t(lang, "about.visionBody")}
-    </p>
+<!-- Values -->
+<section class="mx-auto mt-20 max-w-7xl px-4 lg:px-6">
+  <div class="text-center">
+    <SectionTitle className="text-3xl text-cocoa-900 sm:text-4xl">{t(lang, "about.valuesTitle")}</SectionTitle>
   </div>
-
-  <h3 class="headline mt-14 text-center text-2xl text-cocoa-900">
-    {t(lang, "about.valuesTitle")}
-  </h3>
-
-  <div class="mt-8 grid gap-5 sm:grid-cols-2">
-    {#each values as value (value.title)}
-      <div class="group flex gap-4 rounded-2xl border border-cocoa-100 bg-parchment p-5 shadow-warm-sm transition-all duration-300 hover:-translate-y-1 hover:border-honey-200 hover:shadow-warm">
-        <div class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-honey-50 text-honey-700 ring-1 ring-inset ring-honey-100 transition-colors group-hover:bg-honey-100">
-          <svg
-            class="h-5 w-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d={value.icon} />
+  <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    {#each values as item (item.title)}
+      <div class="rounded-3xl border border-honey-100 bg-parchment p-6 text-center shadow-warm-sm">
+        <span class="hex-frame mx-auto grid h-14 w-14 place-items-center bg-honey-50 text-honey-700">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d={item.icon} stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-        </div>
-        <div>
-          <h4 class="headline text-base text-cocoa-900">{value.title}</h4>
-          <p class="mt-1.5 text-sm leading-relaxed text-cocoa-500">
-            {value.body}
-          </p>
-        </div>
+        </span>
+        <h3 class="headline mt-4 text-lg text-cocoa-900">{item.title}</h3>
+        <p class="mt-1.5 text-sm leading-relaxed text-cocoa-500">{item.body}</p>
       </div>
     {/each}
   </div>
 </section>
 
-<!-- Contact CTA -->
-<section class="relative mx-auto mt-16 max-w-4xl px-4 pb-16 sm:mt-24 sm:px-6 sm:pb-24">
-  <div class="relative overflow-hidden rounded-3xl bg-ink-950 px-6 py-12 text-center text-parchment shadow-warm-lg sm:px-12 sm:py-16 motion-safe:animate-fade-up">
-    <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-honey-300 via-honey-500 to-honey-800"
-      aria-hidden="true"
-    ></div>
-    <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-full bg-[radial-gradient(70%_80%_at_50%_-10%,#b45309_0%,transparent_60%)] opacity-50"
-      aria-hidden="true"
-    ></div>
-    <div
-      class="pointer-events-none absolute -end-10 -top-10 h-40 w-40 rounded-full bg-[radial-gradient(60%_60%_at_50%_50%,#f59e0b_0%,transparent_70%)] opacity-30"
-      aria-hidden="true"
-    ></div>
-
-    <div class="relative">
-      <p class="eyebrow text-honey-400">{t(lang, "about.ctaEyebrow")}</p>
-      <h2 class="headline mt-4 text-2xl text-parchment sm:text-3xl">
-        {t(lang, "about.ctaTitle")}
-      </h2>
-      <p class="mx-auto mt-4 max-w-xl text-base leading-relaxed text-cocoa-200">
-        {t(lang, "about.ctaBody")}
-      </p>
-      <Button variant="outline" href="/contact" class="mt-8 inline-flex">
-        {t(lang, "about.ctaButton")}
-      </Button>
+<!-- CTA -->
+<section class="mx-auto mt-20 max-w-7xl px-4 lg:px-6">
+  <div class="relative overflow-hidden rounded-3xl border border-honey-200 bg-gradient-to-br from-honey-100 via-cream to-cream-deep p-8 text-center sm:p-14">
+    <div class="honeycomb pointer-events-none absolute inset-0 opacity-50" aria-hidden="true"></div>
+    <div class="relative mx-auto max-w-2xl">
+      <img src={seal} alt="" class="seal mx-auto h-24 w-24" />
+      <p class="eyebrow mt-4">{t(lang, "about.ctaEyebrow")}</p>
+      <h2 class="headline mt-3 text-3xl text-cocoa-900">{t(lang, "about.ctaTitle")}</h2>
+      <p class="mt-3 text-cocoa-600">{t(lang, "about.ctaBody")}</p>
+      <Button variant="primary" href="/contact" class="mt-6 px-7 py-3">{t(lang, "about.ctaButton")}</Button>
     </div>
   </div>
 </section>
