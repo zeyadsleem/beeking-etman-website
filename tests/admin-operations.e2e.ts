@@ -57,10 +57,11 @@ async function loginAsAdmin(page: Page, email: string): Promise<void> {
 async function placeGuestOrder(page: Page): Promise<string> {
   await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
-  await page.getByRole("button", { name: "أضف إلى السلة" }).click();
-  await page.waitForResponse(
+  const cartResponse = page.waitForResponse(
     (r) => r.url().includes("/api/cart") && r.request().method() === "POST",
   );
+  await page.getByRole("button", { name: "أضف إلى السلة" }).click();
+  await cartResponse;
   await page.goto("/checkout", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 
@@ -161,10 +162,11 @@ test("admin views the customers list", async ({ page }) => {
 
   await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
-  await page.getByRole("button", { name: "أضف إلى السلة" }).click();
-  await page.waitForResponse(
+  const cartResponse = page.waitForResponse(
     (r) => r.url().includes("/api/cart") && r.request().method() === "POST",
   );
+  await page.getByRole("button", { name: "أضف إلى السلة" }).click();
+  await cartResponse;
   await page.goto("/checkout", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 

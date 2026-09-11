@@ -10,10 +10,11 @@ test.use({ locale: "ar-EG" });
 async function goToCheckout(page: import("@playwright/test").Page): Promise<void> {
   await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
-  await page.getByRole("button", { name: "أضف إلى السلة" }).click();
-  await page.waitForResponse(
+  const cartResponse = page.waitForResponse(
     (r) => r.url().includes("/api/cart") && r.request().method() === "POST",
   );
+  await page.getByRole("button", { name: "أضف إلى السلة" }).click();
+  await cartResponse;
   await page.goto("/checkout", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 }

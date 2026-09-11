@@ -87,12 +87,13 @@ test("sort dropdown shows translated labels in Arabic", async ({ page }) => {
 test("checkout shows validation errors for bad input", async ({ page }) => {
   await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
+  const cartResponse = page.waitForResponse(
+    (r) => r.url().includes("/api/cart") && r.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   // The cart cookie is set by an async POST /api/cart; wait for it so the
   // hard navigation below cannot cancel the sync mid-flight.
-  await page.waitForResponse(
-    (r) => r.url().includes("/api/cart") && r.request().method() === "POST",
-  );
+  await cartResponse;
   await page.goto("/checkout", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 

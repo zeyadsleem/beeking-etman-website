@@ -37,12 +37,13 @@ async function buySeededProduct(page: Page, fillShipping: ShippingFiller): Promi
   // to be on the first unfiltered /honey page (catalog order/pagination).
   await page.goto("/honey/sidr/honey-sidr-1kg", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
+  const cartResponse = page.waitForResponse(
+    (r) => r.url().includes("/api/cart") && r.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "أضف إلى السلة" }).click();
   // The cart cookie is set by an async POST /api/cart; wait for it so the hard
   // navigation below cannot cancel the sync mid-flight (same guard as store.e2e.ts).
-  await page.waitForResponse(
-    (r) => r.url().includes("/api/cart") && r.request().method() === "POST",
-  );
+  await cartResponse;
   await page.goto("/cart", { waitUntil: "domcontentloaded" });
   await page.getByRole("link", { name: "إتمام الشراء" }).click();
   await expect(page).toHaveURL(/\/checkout/);
