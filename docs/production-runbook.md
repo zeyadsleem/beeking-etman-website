@@ -45,20 +45,22 @@ Key guarantees baked into the workflow:
 - **Single owner of migration + deploy.** The Pages git integration is
   off, so only this workflow mutates production D1 and the deployed Pages
   artifact.
-- **Same checked build, no drift.** `test` uploads `.svelte-kit/cloudflare`,
-  `.svelte-kit/output/server`, and `.svelte-kit/cloudflare-tmp`
-  as an artifact; both `e2e` and `deploy-prod` download that exact same
-  artifact instead of rebuilding. E2E sets `E2E_USE_BUILD=1`; local runs
-  still build by default.
-- **Explicit E2E runtime bindings.** `scripts/e2e-server.mjs` launches the
-  installed Wrangler CLI directly with the isolated `.dev.vars` file via
-  `--env-file`. Sourcing that file into a shell does not bind its values
-  to the Worker. Playwright waits for `/api/health` (including a D1 query),
-  and prints both server output streams so startup failures are visible.
+- **Same checked build, no drift.** `test` runs the E2E suite against the
+  `.svelte-kit` build it just produced, then uploads `.svelte-kit/cloudflare`,
+  `.svelte-kit/output/server`, and `.svelte-kit/cloudflare-tmp` as an
+  artifact; `deploy-prod` downloads that exact same artifact instead of
+  rebuilding. E2E sets `E2E_USE_BUILD=1`; local runs still build by default.
+- **Isolated E2E runtime bindings.** `scripts/e2e-server.mjs` launches the
+  installed Wrangler CLI from a throwaway runtime dir in the OS temp
+  directory where `scripts/e2e-setup.mjs` copied `wrangler.jsonc` and wrote
+  an isolated `.dev.vars`, so `wrangler pages dev` loads our generated test
+  secrets from the config dir instead of any real `.dev.vars`. Playwright
+  waits for `/api/health` (including a D1 query) and prints both server
+  output streams so startup failures are visible.
 - **Race-free ordering.** `migrate-prod` runs before `deploy-prod` in the
-  same workflow and only after both `test` and `e2e` succeed, so the new
-  Worker code never starts against an old schema and no migration ships
-  against a failed suite.
+  same workflow and only after `test` succeeds, so the new Worker code never
+  starts against an old schema and no migration ships against a failed
+  suite.
 - **One deploy at a time.** Top-level
   `concurrency: { group: production, cancel-in-progress: false }`
   queues concurrent merges and never abandons an in-flight deploy.

@@ -19,6 +19,8 @@ minimumReleaseAgeExclude:
   - "@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.9"
   - "@voidzero-dev/vite-plus-win32-x64-msvc@0.2.9"
   - vite-plus@0.2.9
+  - miniflare@5.20260910.0-alpha
+  - wrangler@4.131.0
 overrides:
   vite: "catalog:"
   vitest: "catalog:"

@@ -22,9 +22,9 @@ permissions:
 
 jobs:
   test:
-    name: Lint, typecheck, unit, build
+    name: Lint, typecheck, unit, build, E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -45,6 +45,9 @@ jobs:
         env:
           DATABASE_URL: file:/tmp/migration-replay.db
       - run: pnpm run build
+      - run: pnpm exec playwright test
+        env:
+          E2E_USE_BUILD: "1"
       # Same checked-out build is consumed by deploy-production (no rebuild).
       - uses: actions/upload-artifact@v4
         with:
@@ -59,42 +62,11 @@ jobs:
           retention-days: 7
           include-hidden-files: true
 
-  e2e:
-    name: Playwright E2E (chromium)
-    needs: [test]
-    runs-on: ubuntu-latest
-    # Full serialized suite ran ~17min locally; CI runners are slower and
-    # failed tests retried twice can chain, so budget generously and rely on
-    # the per-test timeout rather than the job timeout as the real guard.
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.21.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # Gate on the full browser install so the suite runs end-to-end on a
-      # clean runner; without --with-deps the first launch fails on missing
-      # system libs.
-      - run: pnpm exec playwright install --with-deps chromium
-      # Exercise the exact artifact that deploy-production will publish.
-      - uses: actions/download-artifact@v4
-        with:
-          name: cloudflare-build
-          path: .svelte-kit
-      - run: pnpm exec playwright test
-        env:
-          E2E_USE_BUILD: "1"
       # if: always() so a job-timeout cancel still uploads the report; the
       # list reporter defers error details to end-of-run, which a timeout
       # would otherwise swallow.
       - name: Upload Playwright report + traces
         if: always()
-
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
@@ -105,7 +77,7 @@ jobs:
 
   migrate-production:
     name: Apply D1 migrations to production
-    needs: [test, e2e]
+    needs: [test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -134,7 +106,7 @@ jobs:
 
   deploy-production:
     name: Deploy Pages (same checked-out build as test job)
-    needs: [test, e2e, migrate-production]
+    needs: [test, migrate-production]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 20

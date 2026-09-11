@@ -2,8 +2,9 @@
 
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
+import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,7 +18,7 @@ if (!Number.isInteger(PORT) || PORT < 1024 || PORT > 65535) throw new Error("Inv
 const E2E_DIR = resolve(root, ".e2e");
 const E2E_DB = resolve(E2E_DIR, `${RUN_ID}.db`);
 const E2E_SEED = resolve(E2E_DIR, `${RUN_ID}-seed.sql`);
-const E2E_RUNTIME = resolve(E2E_DIR, RUN_ID);
+const E2E_RUNTIME = resolve(tmpdir(), "beeking-e2e", RUN_ID);
 const E2E_VARS = resolve(E2E_RUNTIME, ".dev.vars");
 const E2E_STATE = resolve(root, ".wrangler", "state", "e2e", RUN_ID);
 
@@ -120,6 +121,7 @@ run("wrangler d1 execute", "pnpm", [
 ]);
 
 mkdirSync(E2E_RUNTIME, { recursive: true });
+copyFileSync(resolve(root, "wrangler.jsonc"), resolve(E2E_RUNTIME, "wrangler.jsonc"));
 writeFileSync(
   E2E_VARS,
   [

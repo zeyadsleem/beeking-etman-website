@@ -929,7 +929,7 @@ exiting mid-run.
   of 4.125; miniflare 5-alpha affected too; downgrading wrangler breaks our
   compatibility_date). Instead of pinning versions, `src/routes/e2e-utils.ts`
   exports a Playwright fixture whose `page.goto` retries through ~15–30s
-  restart windows; local retries raised to 2. Store guest-checkout reaches
+  restart windows. Store guest-checkout reaches
   checkout via the cart page because the drawer button unmounts its own anchor
   mid-click and can swallow the navigation.
 - **pnpm-workspace:** resolved the pending `sharp` build decision to `false`
