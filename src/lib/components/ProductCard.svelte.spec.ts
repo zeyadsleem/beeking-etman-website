@@ -4,6 +4,34 @@ import { render } from "vitest-browser-svelte";
 import ProductCard from "./ProductCard.svelte";
 
 describe("ProductCard", () => {
+  it("does not label an available product sold out when its first size is unavailable", async () => {
+    render(ProductCard, {
+      lang: "en",
+      product: {
+        id: "mixed-stock",
+        name: "Sidr honey",
+        slug: "sidr",
+        description: "Honey",
+        image: "",
+        images: [],
+        categoryId: "cat",
+        categorySlug: "sidr",
+        department: "honey",
+        featured: 0,
+        createdAt: 0,
+        minPrice: 10000,
+        variants: [
+          { id: "small", name: "Small", price: 10000, stock: 0, image: "", sortOrder: 0 },
+          { id: "large", name: "Large", price: 20000, stock: 10, image: "", sortOrder: 1 },
+        ],
+      },
+    });
+    await expect.element(page.getByText("Out of stock", { exact: true })).not.toBeInTheDocument();
+    await expect
+      .element(page.getByRole("link", { name: /Sidr honey/, exact: false }).last())
+      .toBeVisible();
+  });
+
   it("renders product name and formatted price", async () => {
     render(ProductCard, {
       product: {

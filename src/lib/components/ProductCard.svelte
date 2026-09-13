@@ -13,6 +13,7 @@
 
   const href = $derived(productPath(product));
   const imageSrc = $derived(productPhotos(product)[0]);
+  const stock = $derived(product.variants.reduce((total, variant) => total + variant.stock, 0));
 
   let imageEl = $state<HTMLImageElement>();
   let added = $state(false);
@@ -56,18 +57,18 @@
         />
       {/if}
     </AspectRatio.Root>
-    {#if product.variants[0]?.stock === 0}
-      <span class="badge-out absolute bottom-4 start-1/2 -translate-x-1/2">{t(lang, "product.outOfStock")}</span>
-    {:else if product.variants[0] && product.variants[0].stock <= 5}
-      <span class="badge-warn absolute bottom-4 start-1/2 -translate-x-1/2">{t(lang, "product.lowStock")}</span>
+    {#if stock === 0}
+      <span class="badge-out absolute bottom-3 start-3 end-3 justify-center text-center">{t(lang, "product.outOfStock")}</span>
+    {:else if stock <= 5}
+      <span class="badge-warn absolute bottom-3 start-3 end-3 justify-center text-center">{t(lang, "product.lowStock")}</span>
     {/if}
   </a>
-  <div class="flex flex-1 flex-col gap-2 p-4">
-    <h2 class="card-title text-base leading-snug text-cocoa-900"><a href={href}>{product.name}</a></h2>
+  <div class="flex flex-1 flex-col gap-3 p-3 sm:p-4">
+    <h2 class="card-title text-sm leading-relaxed text-cocoa-900 sm:text-base"><a href={href}>{product.name}</a></h2>
     <div class="mt-auto flex flex-col gap-3">
       <div class="flex w-full flex-col gap-0.5">
         {#if product.variants.length > 1}
-          <span class="flex items-center gap-1.5 text-xs font-semibold text-cocoa-400">
+          <span class="flex items-center gap-1.5 text-xs font-semibold text-cocoa-600">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-honey-600" aria-hidden="true"></span>
             {t(lang, "product.startsFrom")}
           </span>
@@ -84,7 +85,7 @@
           aria-label={t(lang, "product.chooseSizeAria", { name: product.name })}
         >
           {t(lang, "product.chooseSize")}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+           <svg class="shrink-0 rtl:rotate-180" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </a>
