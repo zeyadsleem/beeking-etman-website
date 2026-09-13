@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import { tick } from "svelte";
   import { clearCart } from "$lib/cart-store.svelte";
   import { formatEGP } from "$lib/currency";
   import { isBlendItem, itemId, lineTotal } from "$lib/cart";
@@ -84,7 +85,12 @@
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
+<nav class="mt-6 flex items-center gap-3 text-sm text-cocoa-600" aria-label={lang === "ar" ? "خطوات الطلب" : "Checkout steps"}>
+  <a href="/cart" class="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-honey-800">{t(lang, "cart.title")}</a>
+  <span aria-hidden="true">/</span>
+  <span aria-current="step" class="font-semibold text-cocoa-900">{t(lang, "checkout.shippingTitle")}</span>
+</nav>
+<div class="mt-4 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
   <form
     method="post"
     action="?/submit"
@@ -96,10 +102,14 @@
           new URL(result.location, window.location.origin).searchParams.get("replayed") !== "1"
         ) clearCart();
         submitting = false;
-        update();
+        await update();
+        if (result.type === "failure") {
+          await tick();
+          document.querySelector<HTMLInputElement | HTMLSelectElement>('[aria-invalid="true"]')?.focus();
+        }
       };
     }}
-    class="space-y-5 rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-sm sm:p-8"
+    class="min-w-0 space-y-5 rounded-2xl border border-cocoa-200 bg-parchment p-4 sm:p-8"
   >
     <input type="hidden" name="nonce" value={data.nonce} />
 
@@ -137,38 +147,38 @@
     <div class="grid gap-4 sm:grid-cols-2">
       <label class="field-label">
         {t(lang, "checkout.name")}
-        <input name="name" bind:value={name} autocomplete="name" class="field mt-1" />
-        {#if error("name")}<span class="field-error">{error("name")}</span>{/if}
+        <input name="name" bind:value={name} autocomplete="name" aria-required="true" aria-invalid={!!error("name")} aria-describedby={error("name") ? "checkout-name-error" : undefined} class="field mt-1" />
+        {#if error("name")}<span id="checkout-name-error" class="field-error">{error("name")}</span>{/if}
       </label>
       <label class="field-label">
         {t(lang, "checkout.email")}
-        <input name="email" type="email" value={value("email")} autocomplete="email" class="field mt-1" />
-        {#if error("email")}<span class="field-error">{error("email")}</span>{/if}
+        <input name="email" type="email" value={value("email")} autocomplete="email" aria-required="true" aria-invalid={!!error("email")} aria-describedby={error("email") ? "checkout-email-error" : undefined} class="field mt-1" />
+        {#if error("email")}<span id="checkout-email-error" class="field-error">{error("email")}</span>{/if}
       </label>
       <label class="field-label">
         {t(lang, "checkout.phone")}
-        <input name="phone" inputmode="tel" bind:value={phone} autocomplete="tel" class="field mt-1" />
-        {#if error("phone")}<span class="field-error">{error("phone")}</span>{/if}
+        <input name="phone" type="tel" inputmode="tel" bind:value={phone} autocomplete="tel" aria-required="true" aria-invalid={!!error("phone")} aria-describedby={error("phone") ? "checkout-phone-error" : undefined} class="field mt-1" />
+        {#if error("phone")}<span id="checkout-phone-error" class="field-error">{error("phone")}</span>{/if}
       </label>
       <label class="field-label">
         {t(lang, "checkout.city")}
-        <input name="city" bind:value={city} class="field mt-1" />
-        {#if error("city")}<span class="field-error">{error("city")}</span>{/if}
+        <input name="city" bind:value={city} autocomplete="address-level2" aria-required="true" aria-invalid={!!error("city")} aria-describedby={error("city") ? "checkout-city-error" : undefined} class="field mt-1" />
+        {#if error("city")}<span id="checkout-city-error" class="field-error">{error("city")}</span>{/if}
       </label>
     </div>
     <label class="field-label">
       {t(lang, "checkout.governorate")}
-      <select name="governorate" bind:value={governorate} class="field mt-1" data-testid="governorate">
+      <select name="governorate" bind:value={governorate} autocomplete="address-level1" aria-invalid={!!error("governorate")} aria-describedby={error("governorate") ? "checkout-governorate-error" : undefined} class="field mt-1" data-testid="governorate">
         {#each data.governorates as code (code)}
           <option value={code}>{t(lang, `shipping.zone.${code}`)}</option>
         {/each}
       </select>
-      {#if error("governorate")}<span class="field-error">{error("governorate")}</span>{/if}
+      {#if error("governorate")}<span id="checkout-governorate-error" class="field-error">{error("governorate")}</span>{/if}
     </label>
     <label class="field-label">
       {t(lang, "checkout.address")}
-      <input name="address" bind:value={address} autocomplete="street-address" class="field mt-1" />
-      {#if error("address")}<span class="field-error">{error("address")}</span>{/if}
+      <input name="address" bind:value={address} autocomplete="street-address" aria-required="true" aria-invalid={!!error("address")} aria-describedby={error("address") ? "checkout-address-error" : undefined} class="field mt-1" />
+      {#if error("address")}<span id="checkout-address-error" class="field-error">{error("address")}</span>{/if}
     </label>
 
     {#if data.isLoggedIn && savedChoice === "new"}
@@ -192,7 +202,7 @@
     >{submitting ? t(lang, "checkout.submitting") : t(lang, "checkout.submit")}</Button>
   </form>
 
-  <aside class="h-fit rounded-2xl border border-cocoa-100 bg-parchment p-5 shadow-warm-sm">
+  <aside class="min-w-0 rounded-2xl border border-cocoa-200 bg-parchment p-5 lg:sticky lg:top-28">
     <h2 class="headline text-xl text-cocoa-900">{t(lang, "cart.summary")}</h2>
     <ul class="mt-4 space-y-3">
       {#each data.items as item (itemId(item))}
@@ -223,6 +233,6 @@
       {/each}
     </ul>
     <CartTotals totals={liveTotals} {lang} />
-    <p class="mt-4 text-xs text-cocoa-400">{t(lang, "checkout.agree")}</p>
+    <p class="mt-4 text-sm leading-relaxed text-cocoa-600">{t(lang, "checkout.agree")}</p>
   </aside>
 </div>

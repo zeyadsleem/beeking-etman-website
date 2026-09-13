@@ -30,7 +30,8 @@
   let mobileOpen = $state(false);
 
   const q = $derived(String(page.url.searchParams.get("q") ?? ""));
-  const showHeaderSearch = true;
+  const storeSearchPaths = new Set(["/products", "/honey", "/equipment"]);
+  const showHeaderSearch = $derived(!storeSearchPaths.has(page.url.pathname));
 
   $effect(() => {
     count = cartCount();
@@ -84,26 +85,27 @@
   }
 </script>
 
-<header class="sticky top-0 z-30 border-b border-honey-100 bg-paper/90 backdrop-blur">
-  <div class="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3">
-    <div class="col-start-1 flex min-w-0 items-center gap-5 justify-self-start">
-      <a href="/" class="relative flex items-center gap-3 transition-opacity hover:opacity-90" aria-label={t(lang, "brand.tagline")}>
-        <Logo alt={t(lang, "brand.tagline")} class="h-14 w-14 shrink-0" />
+<header class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper">
+  <div class="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-4 py-3">
+    <div class="col-start-1 flex min-w-0 items-center gap-4 justify-self-start lg:gap-5">
+      <a href="/" class="flex shrink-0 items-center transition-opacity hover:opacity-90" aria-label={t(lang, "brand.tagline")}>
+        <Logo alt={t(lang, "brand.tagline")} class="h-11 w-11 lg:h-14 lg:w-14" />
       </a>
 
-      <nav class="hidden items-center gap-4 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>
+      <nav class="hidden min-w-0 items-center gap-3 text-sm font-semibold text-cocoa-700 lg:flex xl:gap-4" aria-label={t(lang, "nav.main")}>
         {#each NAV_ITEMS as item (item.href)}
           {@const active = item.href === "/" ? page.url.pathname === "/" : page.url.pathname.startsWith(item.href)}
           <a
             href={item.href}
-            class="shrink-0 transition-colors hover:text-honey-700 {active ? "font-bold text-honey-700 hover:text-honey-800" : ""}"
+            aria-current={active ? "page" : undefined}
+            class="inline-flex min-h-11 shrink-0 items-center border-b-2 transition-colors hover:text-honey-700 {active ? "border-honey-700 font-bold text-honey-700" : "border-transparent"}"
           >{t(lang, item.labelKey)}</a>
         {/each}
       </nav>
     </div>
 
-    {#if showHeaderSearch}
-      <div class="col-start-2 hidden w-full max-w-sm min-w-40 justify-self-center lg:block">
+      {#if showHeaderSearch}
+      <div class="col-span-3 row-start-2 w-full min-w-0 max-lg:hidden lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:max-w-sm lg:justify-self-start">
         <SearchSuggestions
           lang={lang}
           initial={q}
@@ -115,7 +117,7 @@
           onSelect={(value) => goto(value)}
         />
       </div>
-    {/if}
+      {/if}
 
     <div class="col-start-3 flex items-center gap-2 justify-self-end">
       <Button
@@ -160,7 +162,7 @@
         </Button>
       {/if}
 
-      <Button variant="primary" type="button" onclick={openDrawer} class="relative px-5 py-2.5" aria-label={t(lang, "cart.open")}>
+      <Button variant="primary" type="button" onclick={openDrawer} class="relative h-11 w-11 shrink-0 px-0 py-0" aria-label={t(lang, "cart.open")}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M3 6h2l1.2 8.1A2 2 0 0 0 8.2 16h8.4a2 2 0 0 0 2-1.6L20 8H5"
@@ -172,10 +174,9 @@
           <circle cx="10" cy="20" r="1.4" fill="currentColor" />
           <circle cx="17" cy="20" r="1.4" fill="currentColor" />
         </svg>
-        {t(lang, "cart.title")}
         {#if count > 0}
           <span
-            class="absolute -top-1.5 -end-1.5 grid h-6 min-w-6 place-items-center rounded-full bg-honey-700 px-1.5 text-xs font-bold text-parchment shadow-warm-sm"
+            class="absolute -top-1 -end-1 grid h-5 min-w-5 place-items-center rounded-full bg-honey-700 px-1 text-xs font-bold text-parchment ring-2 ring-paper"
             data-testid="cart-count"
           >
             {count}
@@ -211,7 +212,7 @@
           <Logo alt={t(lang, "brand.tagline")} class="h-11 w-11" />
         </a>
         <Dialog.Close
-          class="grid h-9 w-9 place-items-center rounded-full text-cocoa-400 transition-colors hover:bg-cocoa-100 hover:text-cocoa-900"
+          class="grid h-11 w-11 place-items-center rounded-full text-cocoa-600 transition-colors hover:bg-cocoa-100 hover:text-cocoa-900"
           aria-label={t(lang, "nav.closeMenu")}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -221,6 +222,7 @@
       </header>
 
       <div class="flex-1 overflow-y-auto p-4">
+        {#if showHeaderSearch}
         <SearchSuggestions
           lang={lang}
           initial={q}
@@ -231,6 +233,7 @@
           onSearch={onMobileSearch}
           onSelect={onMobileSelect}
         />
+        {/if}
 
         <nav class="mt-4 flex flex-col" aria-label={t(lang, "nav.main")}>
         {#each NAV_ITEMS as item (item.href)}
@@ -238,6 +241,7 @@
           <a
             href={item.href}
             onclick={closeMobile}
+            aria-current={active ? "page" : undefined}
             class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800 {active ? "bg-honey-50 font-bold text-honey-700" : ""}"
           >{t(lang, item.labelKey)}</a>
         {/each}

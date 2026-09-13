@@ -382,7 +382,7 @@
                   <div class="mt-2 inline-flex items-center justify-between">
                     <button
                       type="button"
-                      class="grid h-9 w-9 place-items-center rounded-full bg-cocoa-100 text-lg font-bold text-cocoa-700 transition hover:bg-cocoa-200 disabled:opacity-30"
+                      class="grid h-11 w-11 place-items-center rounded-full bg-cocoa-100 text-lg font-bold text-cocoa-700 transition hover:bg-cocoa-200 disabled:bg-cocoa-50 disabled:text-cocoa-400 disabled:hover:bg-cocoa-50"
                       aria-label={t(data.lang, "blends.game.action.doseRemove")}
                       disabled={game.doses[key] <= 0}
                       onclick={() => game.removeDose(key)}
@@ -391,7 +391,7 @@
                     <span class="min-w-8 text-center font-bold text-honey-700">{game.doses[key]}</span>
                     <button
                       type="button"
-                      class="grid h-9 w-9 place-items-center rounded-full bg-honey-500 text-lg font-bold text-cocoa-950 transition hover:bg-honey-400 active:scale-90"
+                      class="grid h-11 w-11 place-items-center rounded-full bg-honey-500 text-lg font-bold text-cocoa-950 transition hover:bg-honey-400 active:scale-90"
                       aria-label={t(data.lang, "blends.game.action.doseAdd")}
                       onclick={() => {
                         game.addDose(key);

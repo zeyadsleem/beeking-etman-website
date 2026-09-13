@@ -16,9 +16,6 @@
   const itemHref = $derived(
     isBlendItem(item) ? "/blends" : productPath({ department: item.department, categorySlug: item.categorySlug, slug: item.slug }),
   );
-  const removeButton = $derived(
-    isDrawer ? "grid h-8 w-8 place-items-center rounded-full" : "grid h-9 w-9 place-items-center rounded-full",
-  );
   const detailClass = $derived(
     isDrawer ? "mt-0.5 line-clamp-2 text-[11px] font-medium" : "line-clamp-2 text-sm font-medium",
   );
@@ -44,7 +41,7 @@
     {#if isPlaceholderImage(item.image)}
       <ProductArt department={artInfo.department} categorySlug={artInfo.categorySlug} />
     {:else}
-      <img src={item.image} alt={item.name} class="h-full w-full object-cover" />
+      <img src={item.image} alt={item.name} class="h-full w-full bg-parchment object-contain" />
     {/if}
   </a>
   <div class="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -60,7 +57,7 @@
       </a>
       <button
         type="button"
-        class="{removeButton} shrink-0 text-cocoa-400 transition-colors hover:bg-clay-50 hover:text-clay-600"
+        class="grid h-11 w-11 shrink-0 place-items-center rounded-full text-cocoa-600 transition-colors hover:bg-clay-50 hover:text-clay-600"
         onclick={() => removeFromCart(itemId(item))}
         aria-label={t(lang, "cart.remove")}
       >
@@ -81,7 +78,7 @@
           : t(lang, "cart.itemLine", { variantName: item.variantName, price: formatEGP(item.price, lang) })}
       </span>
     {/if}
-    <div class="mt-auto flex items-center justify-between gap-2 pt-1.5">
+    <div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1.5">
       {#if isBlendItem(item)}
         <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setBlendQuantity(item.id, q)} />
       {:else}

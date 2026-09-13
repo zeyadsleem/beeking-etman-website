@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Select, ToggleGroup } from "bits-ui";
   import Button from "$lib/components/Button.svelte";
-  import Breadcrumb from "$lib/components/Breadcrumb.svelte";
   import HoneycombIcon from "$lib/components/HoneycombIcon.svelte";
   import ProductCard from "$lib/components/ProductCard.svelte";
   import SearchSuggestions from "$lib/components/SearchSuggestions.svelte";
@@ -131,7 +130,7 @@
 </div>
 
 {#if data.products.length === 0}
-  <div class="mt-14 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-cocoa-200 bg-parchment p-14 text-center">
+  <div class="empty-state">
     <HoneycombIcon size={52} stroke="#dcd8d0" />
     <p class="text-lg font-semibold text-cocoa-600">{t(lang, "products.empty")}</p>
     <Button variant="outline" type="button" onclick={() => selectCategory(null)} class="mt-1 text-sm">{t(lang, "products.showAll")}</Button>

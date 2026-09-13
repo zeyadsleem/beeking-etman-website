@@ -148,6 +148,7 @@
 
 html {
   scrollbar-gutter: stable;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -701,4 +702,63 @@ html.has-nav .animate-float-delay {
 
 html[lang="ar"] .eyebrow {
   letter-spacing: 0;
+}
+
+.skip-link {
+  position: fixed;
+  inset-block-start: 0.75rem;
+  inset-inline-start: 1rem;
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  background: var(--color-ink-950);
+  color: var(--color-parchment);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.storefront {
+  padding-bottom: 3rem;
+  scroll-margin-top: 9rem;
+}
+
+.storefront :is(.btn-primary, .btn-outline, .btn-ghost, .chip),
+header :is(.btn-primary, .btn-outline, .btn-ghost) {
+  min-height: 2.75rem;
+}
+
+.storefront .field,
+header .field {
+  min-height: 2.75rem;
+  font-size: 1rem;
+  caret-color: var(--color-honey-800);
+}
+
+.storefront .field::placeholder,
+header .field::placeholder {
+  color: var(--color-cocoa-600);
+}
+
+.storefront :is(h1, h2, h3) {
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.storefront ::selection {
+  background: var(--color-honey-200);
+  color: var(--color-cocoa-950);
+}
+
+.storefront .empty-state {
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+}
+
+@media (max-width: 639px) {
+  .storefront .btn-outline,
+  .storefront .btn-primary {
+    padding-inline: 0.75rem;
+  }
 }

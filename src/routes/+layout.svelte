@@ -108,8 +108,9 @@
   {#if isAdminRoute}
     {@render children()}
   {:else}
+    <a href="#main-content" class="skip-link">{data.lang === "ar" ? "انتقل إلى المحتوى" : "Skip to content"}</a>
     <Header user={data.user} lang={data.lang} />
-    <main class="mx-auto w-full max-w-7xl flex-1 px-4">
+    <main id="main-content" tabindex="-1" class="storefront mx-auto w-full max-w-7xl flex-1 px-4">
       {@render children()}
     </main>
     <Footer lang={data.lang} />
