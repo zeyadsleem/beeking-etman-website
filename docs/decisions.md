@@ -1507,3 +1507,66 @@ own reviewed migration rather than resurrected silently.
 tables because drizzle no longer tracks them — such statements must be
 deleted from generated SQL before applying; the generator never overrides
 owner data-retention rules.
+
+## 2026-09-13: Commerce platform program roadmap
+
+**Context:** The storefront is live, bilingual, and holds a real catalog (191
+products), but it is pre-production where it matters: checkout simulates payment
+(no provider), transactional email silently marks outbox rows `sent` with no
+provider binding, order-status/inventory schema carries dual authority and
+float-kilogram precision, and ops gaps remain (no enforced CSP, no deploy health
+gate, no auth throttling, no restore drill). Six companion design specs drafted
+2026-09-13 needed arbitration on migrations, ownership, and ordering.
+
+**Decision:** Complete the platform on the existing SvelteKit 2 + Svelte 5 +
+Cloudflare Pages/D1/KV stack; WooCommerce (or any replatform) is rejected. The
+program is the master roadmap at
+`docs/superpowers/specs/2026-09-13-commerce-platform-roadmap-design.md`, which
+freezes the following for all companion specs:
+
+- **Sub-projects:** `2026-09-13-email-delivery-pipeline-design.md` (EM),
+  `2026-09-13-order-lifecycle-payments-design.md` (PAY),
+  `2026-09-13-data-integrity-hardening-design.md` (DI),
+  `2026-09-13-ops-security-hardening-design.md` (OPS),
+  `2026-09-13-commerce-parity-design.md` (COM),
+  `2026-09-13-i18n-routing-design.md` (I18N) — all under
+  `docs/superpowers/specs/`.
+- **Migration allocation:** 0018 email delivery (EM, first), 0019 payments
+  (PAY, after 0018), 0020 email-verified backfill (OPS, after 0018 and a live
+  verification deploy), 0021 order-status default (DI, only if payments are not
+  yet applied; otherwise folded into 0019), 0022 inventory integrity (DI D2),
+  0023 legacy product-column drop (DI D4, drain-gated); staged
+  `drizzle/staged/after_drain_status_backfill.sql` is pre-payments only.
+  COM/I18N reserve no numbers.
+- **Single-owner arbitration:** EM owns outbox/email Worker; PAY owns
+  `runPaymentJobs`, the order-status vocabulary, and `refundOrder`; DI owns the
+  single `store_order` rebuild and inventory/constraints; OPS owns CI shape,
+  secret preflight, and reset-email rendering; COM owns the commerce features;
+  I18N owns routing and page cache. The roadmap outranks companion specs on
+  numbering, ownership, sequencing, and phase placement.
+- **Phase order:** M0 production correctness (EM + OPS + DI D2) → M1 real
+  payments (PAY + the DI D1 fold) → M2 commerce core (COM W0) → M3 commerce
+  parity (COM W1/W2) → M4 admin parity → M5 reliability → M6 path-based i18n
+  and page cache. Critical path: EM 0018/drain/worker → OPS deploy gates → PAY
+  0019/adapter/webhook/refunds → launch verification. One phase in flight.
+- **Locked program decisions:** Paymob only, cards + Egyptian wallets, redirect
+  Unified Checkout; cash on delivery permanently removed; blends stay
+  first-class (server-side expansion, per-component stock deduction); integer
+  piasters everywhere; guest checkout with capability cookies stays; private
+  routes unprefixed; public pages on a free-tier-cacheable anonymous layout.
+  Full owner list (D01–D42) is roadmap §7; defaults unless the owner objects.
+- **Business blockers (owner actions, parallel to code):** Paymob onboarding;
+  sender domain + SPF/DKIM/DMARC + provider verification; custom-domain
+  decision; VAT registration (tax ships `active = 0`); encrypted backup storage.
+- **Execution protocol:** spec → plan → TDD → quality gate → commit → ADR/docs.
+  Frozen migration numbers; no push to `main` without owner say-so; reversals
+  require a new dated entry here.
+
+**Consequences:** The six specs become one ordered program instead of parallel
+ambitions. The 2026-09-02 decisions that deferred Paymob and retained the
+Cloudflare Email Service pipeline are superseded for direction: Paymob is the
+central M1 deliverable, and the delivery pipeline (outbox +
+`workers/email-sender/`) must land before payments. Companion specs are amended
+only to match roadmap §3. M0's docs truth pass is a defect fix: the Pages Git
+integration is already disconnected and `/api/health` already exists, so the ops
+work is extension and enforcement, not greenfield.

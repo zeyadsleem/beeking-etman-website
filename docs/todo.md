@@ -1,480 +1,336 @@
-# Todo
-
-Ordered work items with status.
-
-## Roadmap (2026-08-25) — SUPERSEDED ORDERING 2026-09-02
-
-Owner-approved reordering after the full store-completeness audit (2026-08-25):
-polish + SEO of what already exists comes first, PostHog analytics lands early,
-the catalog expands into TWO storefronts (honey retail + beekeeping supplies,
-203-item owner price list captured at
-`docs/catalog/pricing-list-2026-08-25.md`), and the real payment gateway moves
-to LAST by explicit owner decision. Work phases strictly top to bottom; each
-phase keeps its own spec → plan → implementation cycle.
-
-> **2026-09-02:** This ordering is **superseded** for the items below by the
-> owner-approved priority overhaul — see `docs/plan-2026-09-02-priority-overhaul.md`
-> and the `docs/decisions.md` entry of the same date. Payments move from LAST to
-> a critical priority (Phase 1 of the new plan), COD is removed permanently,
-> email is hardened, and dev hydration is a blocking Phase 0. The phases below
-> remain valid as the components of the new plan's Phase 5 reconciliation; the
-> two-storefront expansion and remaining items are re-slotted relative to the
-> new priority phases there.
-
-### Phase 1 — SEO & polish of what exists (top priority) — SHIPPED 2026-08-26
-
-1. [x] Meta description (AR/EN): home + store via `meta.*.description` i18n
-       keys; product detail derives from the description (`metaDescription()`).
-2. [x] Open Graph + Twitter card tags via shared `Seo.svelte`
-       (home, store, detail, blends; private routes get `noindex` instead).
-3. [x] JSON-LD: Product/Offer + BreadcrumbList on detail pages,
-       Organization + WebSite on home. SearchAction deferred until site
-       search is a first-class landing page.
-4. [x] Dynamic `/sitemap.xml` (static entries + all products, lastmod from
-       createdAt) + robots.txt sitemap pointer and private-path disallows.
-5. [x] Canonical URLs via `PUBLIC_SITE_URL` (defaults to pages.dev origin).
-       hreflang NOT applicable: language is cookie-based, not path-based —
-       revisit only if AR/EN get distinct URLs.
-6. [x] Arabic FTS normalization: `arabic.ts` (TS + SQL REPLACE mirror),
-       migration 0010 rebuilds index with normalized triggers, query path
-       normalizes tokens + category LIKE; sync tests prove TS/SQL/migration
-       never drift.
-7. [x] Media route already emitted `Cache-Control: immutable` (verified;
-       audit item was stale). Prerendering deferred — pages are per-cookie
-       (lang/user), so prerender needs an anonymous-layout split first.
-8. [x] No stray test DBs remained in git (audit item was stale);
-       `.gitignore` now blocks `*.db` / `*.sqlite` / `*.db-journal`.
-
-Quality gate: `vp check` 0 errors, `vp test` 438/438, `vp build` clean.
-
-### Phase 2 — PostHog product analytics
-
-1. [ ] posthog-js wired through SvelteKit, key from Pages env; input masking
-       on; `lang` recorded as a person property.
-2. [ ] Event taxonomy: `product_view`, `add_to_cart`, `remove_from_cart`,
-       `begin_checkout`, `purchase` (total + item count), `search`
-       (query length + result count). Purchase capture stays mock-aware until
-       Phase 6.
-3. [ ] Funnel dashboard (view → cart → checkout → success) as the baseline
-       before any marketing spend.
-
-### Phase 3 — Catalog expansion: honey store + beekeeping-tools store
-
-Seed source of truth: `docs/catalog/pricing-list-2026-08-25.md`. Cleanup pass
-FIRST (issues flagged in that file): fix the negative price, park wholesale
-"بالكمية" per-unit rows, resolve near-duplicate jar/container names, promote
-`[1001]`/`[1002]`/`[300]` codes to real SKUs, drop the `XXX` typo prefix.
-
-1. [ ] Schema migration: department dimension on category (`honey` |
-       `equipment`) or parentId; `product.sku` unique-nullable;
-       `product.published` flag; optional `costPrice`/`salePrice`; optional
-       `weightGrams` (future zone shipping depends on it).
-2. [ ] Category tree: عسل (برسيم/موالح/سدر/حبة البركة/بردقوش/خلطات
-       ومكسرات/منتجات الخلية) + أدوات النحالين (خلايا وأجزاؤها/فرازات
-       واستخراج/ملابس وقاية/أدوات تشغيل/تعبئة وتغليف/شمع أساس/علاج فاروا).
-3. [ ] Seed pipeline importing the ~200 new sellable lines as products +
-       variants; bilingual `nameEn` pass (currently empty for seeds).
-4. [ ] Storefront split UX: department switcher + landing routes sharing ONE
-       cart/checkout; blends studio untouched.
-5. [ ] Admin: department filter + bulk-import review screen.
-
-### Phase 4 — Transactional email (support flows unblocked)
-
-Order confirmation + status-change emails (Cloudflare Email Service or
-Resend), password reset via Better Auth SMTP (reset is currently impossible),
-and a Cron Trigger skeleton reserved for abandoned-cart recovery.
-
-> **2026-09-02:** Absorbed into `docs/plan-2026-09-02-priority-overhaul.md`
-> Phase 2 (critical). Decided: **keep Cloudflare Email Service + harden it** —
-> durable outbox + retry Cron, admin new-order/payment notifications, Better Auth
-> password reset. NOT moving to Resend/SendGrid unless a real deliverability
-> failure is proven in production.
-
-### Phase 5 — Operations hardening
-
-Invoice PDF (basic), admin CSV export, Cairo-timezone reporting buckets (the
-dashboard's UTC day bucketing splits the business day), admin audit log,
-KV media guardrails (cache headers + usage alerts against free-tier caps).
-
-### Phase 6 — Real payment gateway — SUPERSEDED 2026-09-02 (see new Phase 1)
-
-~~Paymob/Fawry evaluation for EGP, COD toggle, separate `paymentStatus` vs
-`fulfillmentStatus`, idempotent webhook handling, refund policy. Revisit
-stock-decrement semantics (at-order vs at-payment) during spec.~~
-
-Superseded by `docs/plan-2026-09-02-priority-overhaul.md` Phase 1: **Paymob
-committed** (cards + Egyptian wallets), **COD removed permanently** (no toggle),
-the `paymentStatus`/`fulfillmentStatus` split and idempotent HMAC webhooks and
-refunds are specified there, and the stock-decrement at-order-vs-at-payment
-decision is reopened there. No separate evaluation needed.
-
-### Superseded
-
-- ~~Roadmap (2026-08-22)~~: items 1 (customer account area) and 2 (admin
-  dashboard) shipped; items 3 (email) and 4 (payments) are absorbed above as
-  Phases 4 and 6 respectively.
-
-## Post-merge follow-ups (admin dashboard, 2026-08-23)
-
-Agreed at the `feat/admin-dashboard` final review; none block the merge.
-
-### Before production deploy
-
-Nothing remains in this section — merge is the only step left.
-
-- [x] Pre-check duplicate `(issuer, account_id)` pairs before migration 0008
-      runs against production data — **passed 2026-08-24**: prod D1 is still at
-      migration 0006, `user`/`account` tables are empty (0 rows each), so 0007 + 0008 apply cleanly with zero collision risk. Note: `issuer` itself is
-      added by 0008 (`DEFAULT 'local:credential'` backfill); the pre-0008
-      collision surface is duplicate `account_id` values, of which there are
-      none.
-- [x] Media storage enablement — **superseded 2026-08-24 by the R2→KV pivot**
-      (see `docs/decisions.md`): R2 ToS acceptance needed a payment card the
-      owner does not have, so product media moved to Workers KV instead. The
-      free-tier KV namespace `beeking-media`
-      (`8b48e8ac78804d37bd07d229de466821`) was created via API and is bound as
-      `MEDIA` in `wrangler.jsonc`; no `MEDIA_PUBLIC_BASE_URL` exists anymore —
-      images are served by the first-party `/media/[...key]` route.
-
-### One-liner batch
-
-- [ ] `.finite()` + `MAX_SAFE_INTEGER` cap on the `?page` schemas in the admin
-      orders/products loaders.
-- [ ] Vanished-product image upload returns `fail(404)` instead of a false
-      success.
-- [ ] Corrupt stored order status logs `console.error` on the write path.
-- [x] `not_found` transition results map to 404 (see decisions 2026-08-23 #5).
-- [ ] Slug-issue mapping exact-matches both constants.
-- [ ] Pasted image URLs restricted to `https:`.
-- [ ] `deleteVariant` scoped by `productId`.
-
-### Named follow-ups
-
-- [ ] Native-speaker pass on new Arabic copy.
-- [ ] E2E cases: authenticated-non-admin guard + dashboard KPI render.
-- [ ] Shared client-side `STATUS_ORDER` constant.
-- [ ] `lowStock` query LIMIT.
-- [ ] Move the third copy of `retryOnBusy` into `$lib/server/sqlite`.
-- [ ] Surface form failure messages inside dialog content (house-wide).
-
-Incident note (2026-08-22): production outage (Error 1101) — security commit
-`6749196` added fail-hard `ORDER_ACCESS_SECRET` validation while the Pages
-secret held an invalid value; fixed by rotating the secret via API and
-redeploying (run 32549189649). Lesson: validate secrets in CI before deploy.
-
-## Shipped
-
-### Honey storefront
-
-- [x] Task 1 — Schema, auth tables, seed, DB scripts (`94bc959`)
-- [x] Task 2 — Currency + cart + checkout helpers (`e2b038d`)
-- [x] Task 3 — Signed cart cookie + API endpoint (`7d7006a`)
-- [x] Task 4 — Store queries + transactional order service (`0634ae6`)
-- [x] Task 5 — Design system, components, cart store, RTL shell
-- [x] Task 6 — Home page (`d879381`)
-- [x] Task 7 — Catalog listing + product detail (`bc0c332`, `000ce92`)
-- [x] Task 8 — Cart page (`301d697`)
-- [x] Task 9 — Checkout flow, mock payment, success page (`845c211`)
-- [x] Task 9 review fixes — double-submit + card-echo hardening,
-      cache/ordering, `CheckoutFail` type (`9615469`)
-- [x] Task 10 — Auth pages + account orders (`22dd284`)
-- [x] Task 11 — E2E tests, docs, quality gate
-
-### مملكة النحل redesign
-
-- [x] Task 1 — Variant schema migration (`2003fe9`)
-- [x] Task 2 — Variant-keyed cart core, cookie, store (`421c7c9`)
-- [x] Task 3 — Store queries with variants + minPrice (`568bb9c`)
-- [x] Task 4 — Variant order service + checkout server (`cfd5828`)
-- [x] Task 5 — Product detail variant selector (`0f387c6`)
-- [x] Task 6 — Variant-aware product cards (`193486d`)
-- [x] Task 7 — Variant display in cart/checkout/success (`9f43f9b`)
-- [x] Task 8 — Real catalog: 6 categories, 21 products, 43 variants,
-      researched EGP prices, verified real photos (`fdc2f89`)
-- [x] Task 9 — مملكة النحل brand + view transitions (`342f388`)
-- [x] Task 10 — Royal Kingdom design tokens + animations (`d993192`)
-- [x] Task 11 — Hero, marquee, stats, reveals, benefit rails (`5894e5a`)
-- [x] Task 12 — E2E variant checkout flow (`ade1bcb`)
-- [x] Task 13 — Quality gate + docs
-- [x] Catalog flattening: 43 sellable lines → one product each with
-      per-container expressive imagery (glass/plastic/squeeze/comb/can/nuts),
-      renamed مكسرات بالعسل, rails + hero + e2e updated
-
-### bits-ui adoption + RTL/flash fixes (`2026-08-16`)
-
-- [x] Flash fix: `::view-transition-old(root)` frozen, `new(root)` fades in
-      over it (no white background spike); verified via luminance sampling.
-- [x] Entrance animations gated to first load: `html.has-nav` kills
-      `animate-fade-up/float/spin-slow` replays on client-side navigation.
-- [x] RTL search dropdown: `Combobox.Content` gets explicit `dir="rtl"`
-      (bits-ui floating layers default to `ltr` and don't auto-detect).
-- [x] `CartDrawer` rewritten with bits-ui `Dialog` (bind:open + Portal/
-      Overlay/Content/Title/Description/Close), replacing ~60 lines of
-      hand-rolled focus-trap/Escape/scroll-lock a11y code.
-- [x] `ToggleGroup` variant selector (product detail) + sort/category chips
-      (products page); "الكل" uses an explicit `"all"` sentinel so an empty
-      selection still highlights the default item.
-- [x] `AspectRatio.Root` for product images (ProductCard, product detail, Hero
-      desktop main + secondary + mobile main).
-- [x] Shared `Breadcrumb` component (uses `Separator.Root` for dividers)
-      replacing duplicated breadcrumb markup.
-- [x] Shared `Button` wrapper over bits-ui `Button.Root` mapping
-      variant→`.btn-primary/outline/ghost`; adopted site-wide.
-- [x] Dead CSS removed (`wordmark`, `rule-flourish`); `@utility chip-active`
-      moved out of `@layer components` (Tailwind v4 forbids nesting).
-- [x] Fixed pre-existing `vp check` warning: `withVariants` is sync, dropped
-      the redundant `await` in `getProductWithVariants`.
-- [x] Hardened `verify.e2e.ts` cross-page test: waits for the initial `load`
-      event before capturing `fullLoads` (was racy under slow preview start).
-
-### Review fixes + scalability (2026-08-16)
-
-- [x] Checkout rate limit: `createDbRateLimiter` (10/60s, keyed `checkout:${ip}`)
-      guards the submit action before order creation.
-- [x] Order-number collision retry: `generateOrderNumber()` regenerated inside
-      the retry loop; `isOrderNumberConflict` retries with a fresh number;
-      `isNonceConflict` tightened to require the `store_order.nonce` message.
-- [x] Cart HMAC secret hardening: `getCartSecret` throws in production when
-      `BETTER_AUTH_SECRET` is unset (no silent `dev-secret`).
-- [x] Rate limiter resilience: `SQLITE_BUSY` retry on `allow()` + opportunistic
-      global pruning of abandoned buckets (2h window, ~1% per call).
-- [x] Cross-tab cart sync via the `storage` event.
-- [x] `resolveCartItems` returns `{ items, missing }`; checkout prunes missing
-      variants from the client cart so deleted variants don't linger silently.
-- [x] Server-side pagination + sort for `/products` (`listProductsPage`,
-      `MIN(price)` variant subquery for price sort); TanStack table removed.
-- [x] SQLite FTS5 search (migration `0003_fts_search.sql`: virtual table +
-      sync triggers + backfill) powering product listing and suggestions.
-- [x] Bilingual i18n layer (`src/lib/i18n/messages.ts`, `lang` cookie, language
-      switcher in header, `dir`/`lang` on `<html>`, localized server messages).
-      Default Arabic; DB catalog content stays Arabic-only (documented follow-up).
-- [x] Removed `@tanstack/svelte-table` dependency.
-
-### Blends custom blend studio (2026-08-17)
-
-- [x] `/blends` game page: 4 steps (هدف → عسل+حجم → خلط → نجاح) with step
-      indicator, native HTML5 drag-and-drop onto the jar + tap-to-add fallback,
-      live price bar, confetti success screen with the chosen honey's jar image.
-- [x] 5 goal presets (قوة وحيوية/مناعة/أطفال/معدة وأمعاء/طاقة وتركيز) auto-fill
-      recommended additive doses, editable up to `MAX_DOSE` (3).
-- [x] Blend sold as ONE cart line (`BlendLine`/`BlendCartItem` union in the cart
-      model); server re-derives every price from the DB at resolve/order time.
-- [x] `orders.ts` expands a blend into base-honey + additive order units with
-      per-variant stock decrement.
-- [x] Cart drawer, cart page, and checkout render blends with their additive
-      composition; Header/Footer gained a "الخلطات" nav link.
-- [x] i18n: ~40 `blends.*` keys in ar + en.
-- [x] Unit + e2e coverage: cart/cookie/store/orders blend tests; `blends.e2e.ts`
-      composes a blend end-to-end (goal → honey → mix → success → cart).
-
-### Customer account area
-
-- [x] Task 1 — `store_address` table + migration 0007, no-FK per spec (`93e21f2`)
-- [x] Task 2 — Address service: 10-address cap, single default with atomic
-      batch promotion, ownership-scoped queries (`c84ced1`)
-- [x] Task 3 — Profile hub: name change, password change, sign-out (`219b6b3`)
-- [x] Task 4 — Saved-address CRUD page (`4f0cd93`)
-- [x] Task 5 — Order detail page, ownership-gated (404 on cross-user) (`d12333e`)
-- [x] Task 6 — Checkout saved-address picker + optional save-after-order (`69cac95`)
-- [x] Task 7 — E2E journey incl. IDOR negative; clean-run webServer chain (`e97fe7b`)
-
-### Blends game engine migration
-
-- [x] Threlte/Three.js 3D lab replaced by a single Phaser 3 game for every
-      device (`Phaser.AUTO`: WebGL with automatic Canvas fallback) — no more
-      `?force2d` wizard fork.
-- [x] Procedural art only (Graphics + canvas textures); Threlte scene,
-      fallback wizard, WebGL probe, and `static/hdr/studio.hdr` deleted;
-      three/@threlte deps removed.
-- [x] Typed Svelte↔Phaser bridge: snapshots pushed Svelte→Phaser via `$effect`,
-      Phaser→Svelte via direct `BlendsGame` calls + inspect events; initial
-      snapshot applied on scene create (boot race fixed).
-- [x] Accessible DOM action bar (`ActionBar.svelte`) mirrors every canvas
-      action for keyboard + e2e; `blends.e2e.ts` rewritten against it,
-      `blends-3d.e2e.ts` deleted.
-- [ ] Art pack candidate: procedural Graphics read fine but hand-drawn
-      sprite sheets (jars, cups, spoon) would lift visual quality — needs an
-      artist pass before swapping `textures.ts`.
-
-### Discovered
-
-- [ ] SEO: `/blends` is SSR spinner-only (the Phaser game boots client-side),
-      so crawlers see just the loading shell — acceptable
-      tradeoff for now; revisit with static fallback content if /blends
-      becomes a search entry point.
-- [ ] Multi-jar cart epic: the order panel adds N identical quantity-1 blend
-      lines because `addBlend`'s schema keys a line by its composition;
-      merging into one line with quantity N needs a store/schema change
-      (`cart-store.svelte.ts` + `sanitizeCartLines`) — deliberate scope cut.
-- [ ] Owner-editable benefit texts: goal/benefit copy lives in
-      `src/lib/blend-lab/benefits.ts`; move to DB/CMS if non-devs must edit it
-      without a deploy.
-- [ ] Investigate dev-mode hydration: `vp dev` serves HTML without client
-      entry scripts (no hydration, clicks dead) in this environment; `vp
-preview` works. `vp env doctor` passes. **Investigation (2026-08-27)**:
-      Config chain is `vite.config.ts` → `lazyPlugins(() => [tailwindcss(),
-sveltekit({ adapter: adapter(), ... })])`. No `svelte.config.js` exists;
-      Vite+ handles SvelteKit config inline. `package.json` "preview" runs
-      `wrangler pages dev .svelte-kit/cloudflare` (bypasses Vite entirely),
-      while `vp dev` starts Vite's dev server with the SvelteKit plugin.
-      Likely root cause: Cloudflare adapter (`@sveltejs/adapter-cloudflare`)
-      may inject page scripts differently in Vite dev mode vs production
-      build; or `lazyPlugins` defers plugin init past Vite's HMR setup window.
-      Confirm root cause before relying on dev-mode smoke tests.
-- [x] Production rate-limit persistence: rate limiting is now DB-backed —
-      fixed-window buckets in `store_rate_limit` via `createDbRateLimiter`;
-      counts survive restarts and scale to multi-instance.
-- [x] Idempotency nonce for order creation: checkout issues a per-load
-      `crypto.randomUUID()` nonce (hidden form field, UUID-validated);
-      `createOrder` pre-checks the nonce and re-checks on a UNIQUE violation,
-      so a replayed submit returns the existing order instead of duplicating.
-- [x] Card expiry past-date check: `checkoutSchema` refines `MM/YY` to reject
-      dates before the end of the expiry month.
-- [x] Cloudflare Pages + D1: adapter-cloudflare, lazy D1/libsql driver,
-      wrangler.jsonc, d1 migrations/seed, CI deploy via wrangler-action,
-      `.dev.vars` for local Pages dev (2026-08-19).
-- [x] Env boot validation: `src/lib/server/env.ts` fails fast in production on
-      missing/short `BETTER_AUTH_SECRET` or missing `ORIGIN`.
-- [x] Auth JSON-API rate limiting: `src/hooks.server.ts` limits
-      `/api/auth/sign-in/email` (10/60s) and `/api/auth/sign-up/email`
-      (5/hour), matching the form-action limits.
-- [ ] `store_product.price` / `store_product.stock` / `store_product.image`
-      column drop deferred: columns marked `@deprecated` in schema.ts; kept for
-      migration safety. **Write paths still active**: `admin/product-form.ts`
-      L167 writes `image` when admin uploads/pastes a product cover (reads the
-      existing value as fallback at L152). **Read paths**: `store.ts`
-      `productListColumns.image` (L111), search-suggestion `price`/`image`
-      (L415–416), admin list `price` (L107). Removal needs a reviewed
-      hand-written SQLite migration that first rewires all writes to
-      `store_product_variant.image` / variant price, then drops the columns
-      (table-recreate risk across three FK relationships).
-- [ ] E2E/unit gap noted in review: e2e covers the guest happy path and
-      validation errors; unit coverage exists for cart/cookie/orders/currency
-      helpers but not for page components (e.g. checkout form behavior).
-- [x] Third-party product imagery: all catalog photos now self-hosted under
-      `static/images/Beeking Etman/` and served from Pages' unmetered CDN;
-      seed + live D1 fully synced (2026-08-21, see cutover record below).
-- [ ] `pnpm audit` flags 5 vulnerabilities (lodash ×3, esbuild) in transitive
-      dev tooling (drizzle-kit/tsx/vite); pre-existing, dev-only — revisit
-      when updating the toolchain. `pnpm audit --prod` is clean.
-  - [x] Resolved (2026-08-21): better-auth ^1.7.1 killed the lodash chain;
-        pnpm-workspace overrides pin cookie/lodash/esbuild; `pnpm audit` clean.
-- [x] SQLITE_BUSY hardening: `createDbRateLimiter.allow()` now retries on
-      `SQLITE_BUSY` via the shared `src/lib/server/sqlite.ts` helpers.
-- [x] `store_rate_limit` rows for abandoned keys are now opportunistically
-      pruned globally (2h window, ~1% per `allow()` call, best-effort).
-- [x] Catalog content i18n: bilingual `name_en`/`description_en` columns on
-      category/product/variant, rebuilt FTS for English search, `lang`-aware
-      store queries, and cart-name refresh — English mode is now fully
-      translated (2026-08-17).
-- [x] Container data persistence resolved: D1 is a managed Cloudflare
-      database; no volume mounts needed. Local dev uses `.wrangler/state`
-      persistence.
-
-## Done: post-audit hardening (2026-08-21)
-
-Full security/performance pass closing every finding from the post-vibe-coding
-audit (security review: 0 blockers; code review majors fixed):
-
-- [x] IDOR on guest order success page closed (HMAC capability cookie +
-      owner-session gate, uniform 404s, minimal column projection).
-- [x] Checkout card fields removed (PCI scope dropped); dead i18n keys deleted.
-- [x] `ORDER_ACCESS_SECRET` env validation (fail-hard in prod); examples +
-      `.dev.vars` updated — set it in Cloudflare Pages settings before deploy.
-- [x] Atomic checkout via single `db.batch` + post-commit affected-row
-      verification with compensating batch on lost stock races (+ BUSY retries).
-- [x] Search hardened: 40-byte query cap, FTS ids ≤ 64, clamped limits,
-      parallel variant/image loads, list-path projection (no description TEXT).
-- [x] Rate limits: `/api/search/suggestions` and `/api/cart` GET+POST.
-- [x] Migration 0006: order FK + `(user_id, created_at)` index, four FK
-      indexes, UNIQUE(product_id, name) after dedup; dead `task` table gone.
-- [x] Account orders paginated server-side (12/page).
-- [x] `minPasswordLength: 8`; better-auth ^1.7.1; audit-clean deps.
-
-## Admin operations upgrade (2026-09-02) — PLAN APPROVED-PENDING
-
-Owner asked for a complete documented plan for admin operations after a
-product-image change failed to reflect on the storefront: image preview +
-drag-drop, search across all admin sections, full edit/update of every element,
-complete permissions, and confirmation + tests that everything works. Full plan:
-`docs/plan-2026-09-02-admin-ops.md` (Parts 1-4, Phases A-F, decision points
-D1-D4). ADR: `docs/decisions.md` 2026-09-02 entry. Ticket breakout lives in the
-plan's Part 4; open items are moved here when the owner approves the phases.
-
-Root cause (locked): admin image upload writes only the deprecated
-`store_product.image` column while the storefront renders `variant.image` +
-`store_product_image` gallery — see plan §1.1.
-
-Phase order: A image repair+gallery → B upload UX → C global search →
-D full CRUD (+`/admin/users`) → E permissions → F confirmation & tests.
-
-## Done: free-tier image cutover (2026-08-21)
-
-Executed after user approval, in the planned order:
-
-1. Commit `6e32f59` (`feat(store): self-host catalog imagery & document
-free-tier cost posture`) pushed to `main`; CI run 32490427853 green
-   (test + e2e + deploy).
-2. New image URLs confirmed 200 on production Pages.
-3. Live D1 re-seeded via the D1 HTTP import API (`init` → R2 upload →
-   `ingest`, MD5-verified): 246 statements, 760 rows written.
-4. Verified: 0 external URLs across `store_product`,
-   `store_product_variant`, `store_product_image`; counts match seed
-   (43 products / 43 variants / 8 categories); live product page HTML
-   references only first-party paths and returns 200.
-
-The site now runs entirely on Cloudflare Free with no third-party image
-dependencies; monitoring guidance is in `docs/architecture.md`.
-
-## Done: production-readiness pass (2026-09-09)
-
-Shipped this pass (see `docs/decisions.md` 2026-09-09 entries for rationale):
-
-- **Order hardening (0016):** trigger-owned stock reservation/restock gated by
-  `store_order.stock_version` (`atomic`/`legacy`) for a safe old/new overlap;
-  `payment_status` split; `variant_id` + CHECK constraints on order items;
-  legacy `paid` rows display as `placed` and the admin `placed` filter matches
-  both; legacy cancels with unresolvable variants are refused instead of
-  silently restocking nothing; migration replays cleanly on libsql and D1
-  (duplicate-index bug fixed, snapshot present).
-- **Checkout integrity:** per-nonce signed proof cookies (copied nonces are
-  worthless), replay skips cart-clear/address-save/confirmation-email, admin
-  dashboard KPI relabeled "Gross bookings (simulated payment)".
-- **Referential safety:** variant deletion refuses order/conversion-referenced
-  variants (typed 409); D1 seed exporter keeps referenced variants.
-- **Inventory atomicity:** raw→packaged conversion is one all-or-nothing batch
-  (no more partial commits or unguarded material decrements).
-- **oRPC boundary:** contract-first search suggestions at `/api/rpc`, typed
-  client consumed by the storefront; old endpoint deleted.
-- **Invoice correctness:** renders the stored `shipping_cost` snapshot.
-- **CI/E2E:** single deploy owner (test → e2e → migrate-production →
-  deploy-production on the same artifact); E2E replays the real migration
-  chain into isolated per-run D1 state; workerd crash flake absorbed by a
-  bounded restart (documented, not masked); racy logout assertion fixed.
-- Full suite green at end of pass: `vp check` 0 errors (7 pre-existing
-  reactivity warnings), 480+ unit tests, `vp build`, 40 E2E tests, migration
-  replay on libsql + D1.
-
-## Remaining (non-blocking, explicitly out of scope)
-
-- **Real payment gateway** — owner-deferred; `payment_status`/`stock_version`
-  architecture is ready without touching checkout/orders structure.
-- **Transactional email in production** — the `EMAIL` binding is omitted from
-  the Pages config (unsupported binding there); outbox rows accumulate as
-  `pending`. Needs a Workers-based sender or external SMTP decision.
-- **Old-instance drain** — after the first deploy of 0016, channel old app
-  instances through a scheduled drain before administratively cancelling new
-  (`atomic`) orders; then a future migration can rewrite `paid` → `placed`
-  and drop the legacy path.
-- **Deprecated `store_product` price/stock/image columns** — runtime code no
-  longer reads or writes them. Migration `0017_catalog_authority` (already in
-  the journal) backfills legacy covers into the gallery and triggers future
-  old-app cover writes into the gallery during the overlap window. The final
-  drop lives in `drizzle/staged/0017_drop_legacy_product_columns.sql` (NOT in the
-  journal): apply it via `wrangler d1 execute --remote --file` only after old
-  instances are fully drained — the drop removes the bridge triggers and the
-  columns, and a pre-drain apply would crash the old build.
-- **External deployment setup** — disable the Pages Git integration, set
-  `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` secrets, configure the
-  `production` environment reviewers (checklist in
-  `docs/production-runbook.md`).
+# Program Task Board — Commerce Platform
+
+**Project:** beeking-etman-website (SvelteKit 2 + Svelte 5 runes, Cloudflare Pages + D1 + KV, Drizzle, Better Auth)
+**Date:** 2026-09-13
+**Status:** M0 not started; all phases below not started. Baseline verified 2026-09-13: 191 products / 0 orders / 0 notifications in production D1.
+**Roadmap:** [Commerce Platform Program Roadmap](superpowers/specs/2026-09-13-commerce-platform-roadmap-design.md) — authoritative for phase order, migration numbers, file ownership, and sequencing. Companion specs: EM, PAY, DI, OPS, COM, I18N (see phase headers).
+**Phase order:** M0 production correctness → M1 real payments → M2 commerce core (COM W0) → M3 commerce parity (COM W1/W2) → M4 admin parity → M5 reliability → M6 performance & cost; Phase 6 polish is a spec-gated backlog.
+
+**How to use this board.** One phase in flight; a phase starts only after its predecessor's exit
+gate is recorded. Per task: read the cited spec, write a plan in `docs/superpowers/plans/`,
+implement test-first, run the quality gate (`vp check`, `vp test --run`, `vp run test:e2e` where
+available, migration replay), append an ADR, and commit conventional (`type(scope): subject`).
+Migration numbers 0018–0023 are frozen; new migrations take the next free tag from
+`drizzle/meta/_journal.json` — never renumber or reuse. Never push to `main` without the owner's
+say-so. Move a task to Archive only after its evidence is recorded. Specs carry full descriptions;
+this board carries IDs, status, and essential dependency notes.
+
+## Frozen migration allocation (roadmap §3.1)
+
+| #      | File                                             | Owner      | Constraint                                                                                                                                   |
+| ------ | ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0018   | `0018_email_delivery.sql`                        | EM         | First. Outbox rebuild (`attempt_count`, `next_attempt_at`, `last_error`, `provider_message_id`, `locked_at`) + indexes.                      |
+| 0019   | `0019_payments.sql`                              | PAY        | After 0018. Order/payment schema, events, refunds, status vocabulary, triggers.                                                              |
+| 0020   | `0020_email_verified_backfill.sql`               | OPS        | After 0018. Backfill only; requires the verification deploy already live (OPS-19).                                                           |
+| 0021   | `0021_order_status_default.sql`                  | DI (D1)    | Only if payments are not yet applied; otherwise folded into PAY's 0019 rebuild (C2). Never two `store_order` rebuilds in one release window. |
+| 0022   | `0022_inventory_integrity.sql`                   | DI (D2)    | Independent of payments.                                                                                                                     |
+| 0023   | `0023_drop_legacy_product_columns.sql`           | DI (D4)    | Drain-gated; only after old-instance drain evidence (OPS health SHA + canary).                                                               |
+| staged | `drizzle/staged/after_drain_status_backfill.sql` | DI (D3)    | Pre-payments only: `paid` → `placed` backfill. Superseded once PAY lands; never run post-PAY.                                                |
+| —      | COM / I18N migrations                            | COM / I18N | No numbers reserved. Each COM sub-spec takes the next free tag at implementation time; I18N has no migrations.                               |
+
+Rules: never reuse a tag; never renumber after a file lands on `main`; confirm the next free index
+at generation time; hand-review generated SQL (`store_coupon`, `store_return`, `store_review` are
+not in `schema.ts` and may be proposed for drop — never commit that blindly).
+
+## M0 — Production correctness
+
+**Goal:** Make the live site safe and honest before any new feature.
+**Exit gate:** No email path marks a row `sent` without a provider message id; CSP enforced;
+reset/verification throttled; deploy impossible unless `verify-production` confirms SHA + health +
+headers; secret preflight runs before migrations; inventory in grams with named CHECKs; no known
+stale doc claims.
+**Gate commands:** `vp check`; `vp test --run`; `vp run test:e2e`; migration replay (0018, 0020);
+`verify-production` green; restore drill evidence recorded.
+
+### EM — email delivery pipeline (spec §9)
+
+- [ ] EM-1 — Schema + migration 0018 (outbox rebuild, columns, indexes, CHECK), schema mirror, replay spec (EM §9.1)
+- [ ] EM-2 — Provider adapter (`email-provider.ts`, Resend fetch impl, result mapping) + unit specs (EM §9.2; needs D01)
+- [ ] EM-3 — `outbox.ts` enqueue + `outbox-drain.ts` claim/lease/backoff/dead/park + libsql unit specs (EM §9.3; after 0018)
+- [ ] EM-4 — `workers/email-sender/` scaffold: wrangler cron (email + PAY entries), health endpoint, `scheduled()` drain + `runPaymentJobs` hook, tsconfig, `test:worker` (EM §9.4)
+- [ ] EM-5 — App rewiring: `sendOrderConfirmation`/`sendOrderStatusUpdate` enqueue-only; delete `flushOutbox`; spec updates; temporary flag shim (EM §9.5)
+- [ ] EM-6 — Password reset through the outbox in `auth.ts` + test (EM §9.6; after OPS-2)
+- [ ] EM-7 — Env validation (`EMAIL_FROM` fail, remove stale warnings) + `.dev.vars.example`/runbook (EM §9.7)
+- [ ] EM-8 — CI worker typecheck, `test:worker`, worker deploy job, token permission check (EM §9.8; `ci.yml` edits serialized with OPS)
+- [ ] EM-9 — `/admin/emails` + resend/retry-all + audit + E2E (EM §9.9)
+- [ ] EM-10 — Alerting (`ops_alert` thresholds/throttle) + prune job + health check (EM §9.10)
+- [ ] EM-11 — E2E: checkout enqueue assertion, admin resend flow (EM §9.11)
+- [ ] EM-12 — Rollout: migration → DRY_RUN worker → app → provider enable; runbook + todo correction; ADR (EM §9.12; gated by business blockers)
+
+### OPS — ops & security hardening (spec §8)
+
+- [ ] OPS-0 — Runbook/architecture/todo truth pass + ADRs for this spec (OPS §8.0; may run first or last, must precede the M0 gate)
+- [ ] OPS-1 — `src/lib/html.ts` shared `escapeHtml` + specs; replace private copy in `email.ts` (OPS §8.1)
+- [ ] OPS-2 — Extract `renderPasswordResetEmail` from `auth.ts` + escaping specs (OPS §8.2; before EM-6)
+- [ ] OPS-3 — Extend `AUTH_RATE_LIMITS`/hook map: per-IP + per-account, new paths, GET paths, `Retry-After` (OPS §8.3)
+- [ ] OPS-4 — Auth throttle unit + e2e tests (OPS §8.4)
+- [ ] OPS-5 — `kit.version.name` (`GITHUB_SHA`) + health route version/`no-store` + spec update (OPS §8.5)
+- [ ] OPS-6 — `verify-production` job + `src/lib/ci/verify-production.ts` + unit specs + local dry run (OPS §8.6)
+- [ ] OPS-7 — Pages env preflight script + spec + wire into `migrate-production` (OPS §8.7)
+- [ ] OPS-8 — Confirm/extend `CLOUDFLARE_API_TOKEN` scope for Pages Read (OPS §8.8; manual)
+- [ ] OPS-9 — Security-header module + hook nonce injection (report-only) + root `_headers` (OPS §8.9)
+- [ ] OPS-10 — Header/CSP unit + e2e console-violation watch; flip `CSP_MODE=enforce` (OPS §8.10)
+- [ ] OPS-11 — `pnpm audit --prod --audit-level=high` in the `test` job (OPS §8.11)
+- [ ] OPS-12 — `.github/dependabot.yml` (npm + actions) + Dependabot enablement (OPS §8.12)
+- [ ] OPS-13 — CodeQL workflow (JS/TS, `security-extended`, build-mode none) (OPS §8.13)
+- [ ] OPS-14 — SHA-pin all actions in `ci.yml` + CodeQL workflow (OPS §8.14; after OPS-10–13)
+- [ ] OPS-15 — `scripts/d1-backup.mjs` + manifest/spec + KV backup decision (OPS §8.15)
+- [ ] OPS-16 — Restore drill runbook + one local drill; encrypt/store baseline (OPS §8.16; needs backup storage blocker)
+- [ ] OPS-17 — `observability` config + Pages notifications + backup runbook section (OPS §8.17)
+- [ ] OPS-18 — Scheduled `production-probe` workflow (Telegram/GitHub issue on 2× failure) (OPS §8.18)
+- [ ] OPS-19 — Enable Better Auth email verification + resend/verify UI + tests (OPS §8.19; after EM outbox live)
+- [ ] OPS-20 — Migration 0020 `email_verified` backfill + replay assertion (OPS §8.20; requires OPS-19 deploy live)
+- [ ] OPS-21 — Require verified email in `promoteAdminByEmail` + reset gating + tests (OPS §8.21; after OPS-20)
+- [ ] OPS-22 — Secret scanning/push protection toggle; `PRODUCTION_URL` var; Telegram secrets (OPS §8.22; manual)
+
+### DI — data integrity, D2 + D4 prep (spec §9)
+
+- [ ] DI-2 — `src/lib/units.ts` + specs (grams/kg conversion, formatting, caps) (DI §9.2)
+- [ ] DI-5 — D2 (0022): inventory schema + `check()` declarations; hand-edit conversion/backfill/recon-guard/triggers; fractional-kg replay + guard mutation test (DI §9.5)
+- [ ] DI-6 — Inventory service updates in grams, typed transfer payloads, `completeTransfer` single-transaction, error mapping (DI §9.6)
+- [ ] DI-7 — Admin inventory UI/i18n/test-id updates (reports, alerts, transfers) (DI §9.7)
+- [ ] DI-8 — Seed/tooling: exporter cleanup prepared, `inventory.spec.ts` DDL, no batch seed rows (DI §9.8)
+- [ ] DI-9 — Constraint test suite `src/lib/server/db/constraints.spec.ts` (every CHECK/trigger failure path) (DI §9.9)
+- [ ] DI-10 — Observability: constraint mapping helper, reconciliation queries R1–R3, log conventions (DI §9.10)
+- [ ] DI-11 — E2E additions: checkout → safe status; inventory pages smoke; transfer validation (DI §9.11)
+- [ ] DI-12 — Drain evidence runbook + production runbook section (health-SHA revision check, canary checksum, export/bookmark) (DI §9.12; uses OPS-5 once landed)
+
+**M0 sequencing.** EM-1 → EM-3 → {EM-4, EM-5, EM-6, EM-9}; OPS-1→2 precede EM-6; OPS-19→20→21
+after EM's outbox is live (C3); DI D2 runs independently; `ci.yml` edits (EM-8, OPS-6/7/11–14)
+land sequentially.
+
+## M1 — Real payments
+
+**Goal:** Replace simulated payment with Paymob cards + Egyptian wallets; the webhook is sole truth.
+**Exit gate:** Sandbox card + wallet journeys complete; webhook HMAC-verified and idempotent;
+expiry/reconciliation live on the shared cron; one real refund exercised; manual mark-paid is
+guarded; `PAYMENTS_PROVIDER=simulated` refused in production.
+**Gate commands:** `vp check`; `vp test --run`; migration replay (0019; trigger + default tests);
+mock-Paymob e2e (`E2E_USE_BUILD=1`); Paymob sandbox checklist in the PR; `verify-production`.
+
+### PAY — order lifecycle & payments (spec §9)
+
+- [ ] PAY-1 — Approve spec; ADR in `docs/decisions.md` + todo update (PAY §9 P1)
+- [ ] PAY-2 — Migration 0019 + snapshot + replay spec + the 8 spec DDL copies (PAY §9 P2; after 0018)
+- [ ] PAY-3 — Payment domain core (`lifecycle.ts`, `types.ts`): enums, aliases, transition guards, normalized apply (PAY §9 P3)
+- [ ] PAY-4 — Paymob adapter (`paymob.ts`): intention, auth token, inquiry, refund, HMAC verify (PAY §9 P4)
+- [ ] PAY-5 — Webhook route + `store_payment_event` idempotency + route tests (PAY §9 P5)
+- [ ] PAY-6 — Checkout integration: pending order + simulated adapter + pay redirect + copy (PAY §9 P6)
+- [ ] PAY-7 — Pay page + status endpoint + return handling + retry UX + rate limits (PAY §9 P7)
+- [ ] PAY-8 — Email triggers + copy split (remove blanket simulated line) + admin notify on payment (PAY §9 P8)
+- [ ] PAY-9 — Expiry release + reconciliation functions + wire into EM's Cron worker (PAY §9 P9; after EM-4 or its stub)
+- [ ] PAY-10 — Admin orders list: payment column/filter + export label updates (PAY §9 P10)
+- [ ] PAY-11 — Admin order detail: payment panel, `mark_paid`, refund, `cancel_refund` + audit (PAY §9 P11)
+- [ ] PAY-12 — Admin `/admin/payments` reconciliation view (PAY §9 P12)
+- [ ] PAY-13 — Env validation + `.dev.vars.example` + runbook/secret setup (PAY §9 P13)
+- [ ] PAY-14 — E2E: mock Paymob server + paid journey + webhook negative/replay tests (PAY §9 P14)
+- [ ] PAY-15 — Security review pass + fixes (HMAC, rate limits, logging redaction, IDOR) (PAY §9 P15)
+- [ ] PAY-16 — Paymob sandbox verification with owner credentials + go-live checklist (PAY §9 P16; needs Paymob blocker)
+- [ ] PAY-17 — Docs: architecture/data-model updates, runbook go-live/rollback, staged `placed`→`paid` cleanup (PAY §9 P17)
+
+### DI — D1 fold + shared vocabulary (spec §9)
+
+- [ ] DI-1 — ADR + pre-flight checklist (production rows re-checked, boundaries acknowledged, frozen journal confirmed) (DI §9.1; gates D1)
+- [ ] DI-3 — D1: capture live `store_order` triggers, edit default + `check()`, fold into 0019 (or ship 0021 if PAY is not applied), sync 8 fixture DDLs (DI §9.3; C2)
+- [ ] DI-4 — Order error mapping + shared `stock_version` vocabulary; also closes the carried corrupt-status-logging and shared `STATUS_ORDER` items (DI §9.4)
+
+**M1 notes.** Payment triggers call the same `enqueueEmail`; OPS-21 output is consumed where payment
+flows touch account state; `PAYMOB_*` preflight extends OPS-7. Carried test gap: checkout-form
+page-component unit coverage (PAY-14 covers the journey end-to-end).
+
+## M2 — Commerce core (COM W0)
+
+**Goal:** Ship order-snapshot primitives that must exist before real orders accumulate; no money movement.
+**Exit gate:** Archived products invisible everywhere; SKU conflicts are typed admin errors;
+checkout shipping estimate matches the stored snapshot; tax math integer-exact; Cairo day
+boundaries correct across DST; no cash-on-delivery option anywhere.
+**Gate commands:** `vp check`; `vp test --run`; `vp run test:e2e`; migration replay; COM §4.2 W0 exit checklist.
+
+- [ ] COM-W0-1 — Variant `cost_price`/`sale_price`/`weight_grams` columns + `sku` partial unique index + migration + DDL copies (COM §7 3h-1)
+- [ ] COM-W0-2 — `published` enforcement in listing/featured/search/sitemap + admin publish/archive toggle + tests (COM §7 3h-2)
+- [ ] COM-W0-3 — Extend product/variant admin schemas + `ProductForm.svelte` + conflict mapping + i18n; also closes the carried slug-issue exact-match item (COM §7 3h-3)
+- [ ] COM-W0-4 — Seed/backfill (weights, costs) + e2e (archived hidden, SKU conflict) + docs/ADR (COM §7 3h-4)
+- [ ] COM-W0-5 — Shipping v2 tables + seed parity (7 zones/standard rates) + snapshot columns + DDL copies (COM §7 3b-1)
+- [ ] COM-W0-6 — `resolveShipping` service + weight computation + estimate resolution + unit specs (COM §7 3b-2)
+- [ ] COM-W0-7 — Checkout load/submit integration (method select, estimates) + cart total wiring + i18n (COM §7 3b-3)
+- [ ] COM-W0-8 — `/admin/shipping` rate editor + audit + quote preview (COM §7 3b-4)
+- [ ] COM-W0-9 — `ShipmentProvider` interface + manual adapter + docs/ADR/e2e (COM §7 3b-5)
+- [ ] COM-W0-10 — `store_tax_setting` + order/item snapshot columns + migration + DDL copies (COM §7 3c-1; `active = 0` until VAT confirmed)
+- [ ] COM-W0-11 — Integer inclusive tax math (rounding) + invoice render + unit specs (COM §7 3c-2)
+- [ ] COM-W0-12 — `/admin/settings/tax` + audit + monthly summary query/export (COM §7 3c-3)
+- [ ] COM-W0-13 — Checkout/invoice e2e + docs/ADR (COM §7 3c-4)
+- [ ] COM-W0-14 — Cairo-time helper + dashboard/report SQL range filters + DST tests (COM §7 3g-1)
+
+## M3 — Commerce parity (COM W1/W2)
+
+**Goal:** Reach WooCommerce-level capability once the money layer is trusted.
+**Exit gate:** Coupon apply/cap/exhausted/cancel-release e2e green; manual order reaches
+`pending_payment` and is marked paid only through the guarded path; every order/customer edit
+writes before/after audit rows; reviews gated by verified purchase + moderation; CSV dry-run makes
+zero writes and re-import is idempotent by SKU; partial return with damaged vs good quantities
+exercises refund + restock correctly.
+**Gate commands:** `vp check`; `vp test --run`; `vp run test:e2e`; per-area migration replays;
+COM §7 area checklists.
+
+### W1 — with/after payments schema (after 0019; 3h done)
+
+- [ ] COM-W1-1 — `store_coupon*` rebuild + redemption + snapshot columns + migration + DDL copies (COM §7 3a-1)
+- [ ] COM-W1-2 — Coupon resolve/validate/allocate service + typed errors + unit specs (COM §7 3a-2)
+- [ ] COM-W1-3 — Coupon preview endpoint + authoritative `createOrder` integration + idempotent redemption + i18n (COM §7 3a-3)
+- [ ] COM-W1-4 — `/admin/coupons` CRUD + redemption report/CSV + audit (COM §7 3a-4)
+- [ ] COM-W1-5 — Coupon e2e (apply, cap, exhausted, cancel release) + docs/ADR (COM §7 3a-5)
+- [ ] COM-W1-6 — Manual order creation + `source`/`created_by` + payment-link action + audit (COM §7 3g-4)
+- [ ] COM-W1-7 — Order/customer edit + before/after audit + notes table + `AuditTargetType` extension (COM §7 3g-3)
+- [ ] COM-W1-8 — Review + rating tables rebuild, aggregate triggers + migration + DDL copies (COM §7 3e-1)
+- [ ] COM-W1-9 — Review submission + verified-buyer check + abuse controls + rate limits + i18n (COM §7 3e-2)
+- [ ] COM-W1-10 — Product-page display + paged list + `Seo.svelte` aggregateRating + e2e (COM §7 3e-3)
+- [ ] COM-W1-11 — `/admin/reviews` moderation queue + bulk actions + approval email + audit (COM §7 3e-4)
+- [ ] COM-W1-12 — Review tests (trigger math, eligibility, spam) + docs/ADR (COM §7 3e-5)
+- [ ] COM-W1-13 — CSV import/export + `store_import_batch` + dry-run + injection guard + e2e (COM §7 3g-5; after 3h)
+
+### W2 — after production refunds verified
+
+- [ ] COM-W2-1 — Return/return_item/evidence schema rebuild + migration + `returns/` media prefix + DDL copies (COM §7 3d-1)
+- [ ] COM-W2-2 — Customer return request flow (eligibility, quantities, evidence upload, rate limit, status page) (COM §7 3d-2)
+- [ ] COM-W2-3 — Admin return queue/detail + guarded workflow + refund allocation + restock via 3g-2 (COM §7 3d-3)
+- [ ] COM-W2-4 — Return notifications + order-detail panel + evidence serving policy (COM §7 3d-4)
+- [ ] COM-W2-5 — Return DB workflow tests + e2e (partial, damaged vs good, refund-failure retry) + docs/ADR (COM §7 3d-5)
+- [ ] COM-W2-6 — Notification matrix constants + renderer checklist + key/type mapping (COM §7 3f-1)
+- [ ] COM-W2-7 — Wire each area's events + ops-alert boundaries (COM §7 3f-2)
+- [ ] COM-W2-8 — Delivery-evidence e2e (enqueue assertions per event) + docs (COM §7 3f-3)
+- [ ] COM-W2-9 — Stock adjustments service + `/admin/inventory/adjustments` + movement reason CHECK (COM §7 3g-2; may land earlier with DI/COM W0)
+
+**M3 boundaries.** Returns never precede working refunds; no COD anywhere; reason codes are COM-owned and read by PAY refund/audit surfaces.
+
+## M4 — Admin parity
+
+**Goal:** No fragmented admin surface, no unaudited mutation, no missing operational view left by M0–M3.
+**Exit gate:** Audit coverage query returns no unaudited admin mutation route; each admin area has
+an e2e happy path + at least one guard test; admin i18n AR/EN key parity holds.
+**Gate commands:** `vp check`; `vp test --run`; admin e2e suite; audit coverage query recorded in the close-out PR.
+
+- [ ] M4-1 — Enumerate every admin mutation route; prove each writes `logAdminAction` with target type + before/after (Roadmap §4.5)
+- [ ] M4-2 — List/filter/export parity + e2e happy path + guard test per area: orders, payments, customers, inventory, emails, coupons, reviews, returns; closes the carried admin-guard/KPI e2e item (Roadmap §4.5)
+- [ ] M4-3 — Close slipped COM §7 rows (order/customer edits, inventory adjustments) by executing their specs, never by inventing scope (Roadmap §4.5)
+- [ ] M4-4 — Dashboard aggregates reflect collected vs simulated money, Cairo buckets, reliability counters (Roadmap §4.5)
+
+Carried admin fixes (no spec task yet; old board items):
+
+- [ ] M4-5 — Vanished-product image upload returns `fail(404)` instead of a false success
+- [ ] M4-6 — Pasted image URLs restricted to `https:`
+- [ ] M4-7 — `deleteVariant` scoped by `productId`
+- [ ] M4-8 — `lowStock` query `LIMIT`
+- [ ] M4-9 — Move the third copy of `retryOnBusy` into `$lib/server/sqlite`
+- [ ] M4-10 — Surface form failure messages inside dialog content (house-wide)
+
+## M5 — Reliability
+
+**Goal:** Failures surface and recover without a developer at a keyboard.
+**Exit gate:** A deliberate failure produces an alert within two cycles and a recovery alert after
+fix; restore drill evidence stored; notification matrix has zero unowned rows; runbook covers
+worker deploy/rollback, secret rotation, backup/restore, incident triage.
+**Gate commands:** `vp check`; `vp test --run`; drill evidence file; alert fire/recover transcript.
+
+- [ ] M5-1 — Notification matrix verification: every event enqueues through EM's outbox; zero unowned rows (Roadmap §4.6; COM-3f-2/3)
+- [ ] M5-2 — Dead-letter operations: `/admin/emails` resend/retry-all with audit; dead rows alerted; 30-day prune verified (Roadmap §4.6; EM-9/10)
+- [ ] M5-3 — Reconciliation monitoring: expiry/reconciliation counts logged; stuck manual payments surfaced; alert thresholds documented (Roadmap §4.6; PAY-9/12)
+- [ ] M5-4 — Backup/restore rehearsal: local drill, encrypted off-repo baseline, manifest hashes, Time Travel bookmark (Roadmap §4.6; OPS-16)
+- [ ] M5-5 — Alert drill: two-consecutive-failure fire + recovery proof (Roadmap §4.6; OPS-18)
+- [ ] M5-6 — Runbook close-out: worker deploy/rollback, secret rotation, backup/restore, incident triage (Roadmap §4.6)
+- [ ] M5-7 — Carried: KV/media free-tier usage alert (old board item; no spec task yet)
+
+## M6 — Performance & cost (I18N)
+
+**Goal:** Public pages become cacheable and localizable on the free tier; polish stays spec-gated.
+**Exit gate:** ≥70% page-cache hit share after warm-up; 60–85% D1 read reduction on public paths at
+flat traffic; 404/redirect-loop rates at or below baseline; catalog-edit freshness ≤5 min;
+scheduled canary green; legacy URLs 301 to the correct locale; private routes and cookie scopes
+unchanged.
+**Gate commands:** `vp check`; `vp test --run`; `vp run test:e2e` (i18n suite); canary workflow;
+before/after D1 metrics recorded in the close-out PR.
+
+- [ ] I18N-1 — Baseline metrics snapshot + `src/lib/i18n/routes.ts` + `src/params/lang.ts` + unit specs (I18N §9.1)
+- [ ] I18N-2 — Move public routes under `[lang=lang]`; public layout without cookies; root branch; delete unused `getCategories`; `<html lang>` transform (I18N §9.2)
+- [ ] I18N-3 — Legacy 301 redirect hook + map + specs (I18N §9.3)
+- [ ] I18N-4 — Localize URL builders + Header/Footer/Hero/CartDrawer/error/account/success links + switcher link (I18N §9.4)
+- [ ] I18N-5 — SEO: alternates/canonical/`og:locale`, localized JSON-LD, sitemap locale × urls (I18N §9.5)
+- [ ] I18N-6 — E2E migration: helper + updated specs + `tests/i18n-routing.e2e.ts` (I18N §9.6; after I18N-2–5)
+- [ ] I18N-7 — Anonymous split completion: client session enhancement in `Header` + public-layout no-session test (I18N §9.7)
+- [ ] I18N-8 — `page-cache.ts` + hook wiring + public `Cache-Control` + `X-Page-Cache` + unit specs (I18N §9.8; after I18N-7)
+- [ ] I18N-9 — Admin purge hooks (products/categories) + unit/E2E verification within TTL (I18N §9.9)
+- [ ] I18N-10 — Prerender `[lang]/about` + build assertion (I18N §9.10)
+- [ ] I18N-11 — Observability after-metrics + docs (ADR, architecture routing/cost, todo statuses) (I18N §9.11)
+- [ ] I18N-12 — (Conditional) custom domain: `PUBLIC_SITE_URL`, Search Console, Cache Rules + purge-by-URL (I18N §9.12; needs custom-domain decision)
+
+**M6 ordering.** Default after M5; pull earlier only on measured free-tier pressure or a forced SEO/campaign date (C7). Private routes stay unprefixed (I18N §8.4).
+
+## Gated & backlog
+
+**Wall-clock gated (post-drain evidence; not launch-blocking, R4):**
+
+- [ ] DI-13 — Catalog drop: after evidence, generate D4 (0023) + schema/exporter/d1-seed cleanup + grep gate + post-drop smoke (DI §9.13)
+- [ ] DI-14 — After-drain status backfill script + run (pre-payments only; once PAY lands verify PAY's `placed`→`paid` cleanup instead) (DI §9.14)
+- [ ] DI-15 — Docs close-out: architecture (grams/units/authority), todo statuses incl. the stale legacy-column entry, ADR, cross-spec numbering notes (DI §9.15; after DI-3–14)
+
+**Deferred with spec:** OPS-23 — Sentry evaluation against the OPS §7.2 trigger (deferred; revisit after OPS-17).
+
+**Phase 6 polish (each needs its own spec + plan; roadmap §4.7):**
+
+- [ ] PostHog analytics: wiring, event taxonomy/funnel (old board Phase 2; COM §1.4 places it here)
+- [ ] Invoice PDF export (COM §1.4 deferral)
+- [ ] Blends: hand-drawn art pack, `/blends` SEO fallback after I18N-5, multi-jar cart merge, owner-editable benefit texts
+- [ ] Native-speaker pass on Arabic copy added across EM/PAY/COM/I18N
+
+## Business blockers (owner actions)
+
+- [ ] **[OWNER]** Paymob merchant onboarding: KYB/approval, sandbox + production keys, HMAC secret, integration IDs — gates M1 launch (Paymob §3.3, P16; roadmap §6)
+- [ ] **[OWNER]** Sender domain + DNS: register a dedicated domain, SPF/DKIM/DMARC, Resend account + domain verification, `RESEND_API_KEY`, `ADMIN_NOTIFY_EMAILS` — gates EM-12 and M0's no-lost-email proof (EM §9 external)
+- [ ] **[OWNER]** Custom-domain decision — gates zone HSTS/Cache Rules, hreflang validation, and the M6 invocation-reduction half (OPS §7.4; I18N-12; D37)
+- [ ] **[OWNER]** VAT registration status — tax stays `active = 0` until confirmed (COM §6.1; COM-W0-10)
+- [ ] **[OWNER]** Encrypted backup storage + passphrase handling — OPS-16/M5-4 cannot run without it (OPS §3.7)
+
+## Owner decisions (full list: roadmap §7, D01–D42)
+
+All items default to the roadmap's recommendation unless the owner objects; an objection opens an
+ADR and may change a plan, not a phase gate. Top blocking decisions:
+
+- [ ] D01 — Email provider (recommended: Resend; fallback Workers Paid + Cloudflare Email Service)
+- [ ] D02 — Sender domain acquisition (recommended: dedicated domain verified before provider enable)
+- [ ] D28 — Default locale redirect (recommended: deterministic 301 → `/ar`; no negotiation)
+- [ ] D20 — Tax mode (recommended: inclusive `rate_bp = 1400`, `active = 0` until VAT confirmed)
+- [ ] D08 — Reservation timing (recommended: reserve at placement; 30-min expiry + 5-min grace)
+- [ ] D09 / D41 — Paymob checkout mode + CSP (recommended: redirect to Unified Checkout; no CSP change)
+
+## Archive
+
+**Shipped 2026-09-02 — storefront (commit `dd07776`).** Governorate shipping (7 zones,
+free-shipping threshold 600_00, `computeShipping`) + durable email outbox
+(`enqueueEmail`/`flushOutbox`, admin notify digests); i18n AR/EN keys; spec DDLs patched. Paymob
+was deferred at that point — superseded by this program (M1). See `docs/decisions.md` 2026-09-02.
+
+**Shipped 2026-09-09 — production-readiness pass.** Migration 0016 order hardening (trigger-owned
+stock, `stock_version`, `payment_status`, legacy `paid`→`placed` display) + 0017 catalog authority
+(legacy columns bridged, staged drop outside the journal); checkout nonce proof cookies; oRPC
+search boundary; single CI deploy owner (test → e2e → migrate → deploy, same artifact); 480+ unit /
+40 e2e green. See `docs/decisions.md` 2026-09-09.
+
+**Shipped 2026-09-13 — storefront UX/a11y.** Commits `732b99a` (availability badge from variant
+stock), `6bed2dc` (storefront a11y, touch targets, mobile layout), `1dddff5` (e2e skip link,
+mobile search, form a11y).
+
+**Resolved / no longer open.** Dev-mode hydration investigation closed (2026-09-13): `vp dev`
+hydration works; the raw-HTML check was misleading. `.finite()`/`MAX_SAFE_INTEGER` caps on admin
+page params already implemented (DI Appendix B). `pnpm audit` clean (2026-08-21 overrides);
+rate-limit persistence, checkout idempotency nonce, third-party imagery cutover, and SQLITE_BUSY
+retries shipped. Card-expiry validation is moot (PCI card fields removed). The old "disable Pages
+Git integration / set secrets" item is stale: the integration is already disconnected and
+production env keys are set (roadmap §1.2).
+
+**Superseded / unavailable.** `docs/plan-2026-09-02-priority-overhaul.md` and
+`docs/plan-2026-09-02-admin-ops.md` are deleted/unavailable (not in the repo) — do not link them as
+live; their surviving content is absorbed by the 2026-09-02 ADRs and this program. The 2026-08-25
+roadmap ordering and old roadmap sections are superseded by the 2026-09-13 program.
+
+**Incident lesson (2026-08-22).** Production 1101 outage from an invalid `ORDER_ACCESS_SECRET` at
+deploy. Closed by OPS-7 (secret preflight before migrations) and OPS-6 (`verify-production`
+SHA/health/header gate).
