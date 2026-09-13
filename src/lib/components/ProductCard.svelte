@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { productPhotos } from "$lib/product-media";
   import { AspectRatio } from "bits-ui";
   import { addToCart } from "$lib/cart-store.svelte";
   import { regularItemPayload } from "$lib/cart";
   import Price from "./Price.svelte";
   import ProductArt from "./ProductArt.svelte";
-  import { formatEGP } from "$lib/currency";
   import { t, type Lang } from "$lib/i18n/messages";
   import type { ProductSummary } from "$lib/server/store";
   import { isPlaceholderImage, productPath } from "$lib/storefront";
@@ -12,7 +12,7 @@
   let { lang = "ar", product }: { lang?: Lang; product: ProductSummary } = $props();
 
   const href = $derived(productPath(product));
-  const imageSrc = $derived(product.variants[0]?.image ?? product.image);
+  const imageSrc = $derived(productPhotos(product)[0]);
 
   let imageEl = $state<HTMLImageElement>();
   let added = $state(false);
@@ -28,7 +28,10 @@
     if (product.variants.length === 0) return;
     const v = product.variants[0];
     if (v.stock <= 0) return;
-    addToCart(regularItemPayload(product, v));
+    addToCart({
+      ...regularItemPayload(product, v),
+      image: productPhotos(product, v.image)[0] ?? "",
+    });
     // Flash the "added" state
     added = true;
     clearTimeout(addedTimer);
@@ -39,17 +42,17 @@
 </script>
 
 <section class="group flex flex-col overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment transition-all duration-300 hover:-translate-y-0.5 hover:border-cocoa-200 hover:shadow-warm">
-  <a href={href} class="relative block overflow-hidden bg-cocoa-100" onclick={beginImageTransition}>
+  <a href={href} class="relative block overflow-hidden bg-white" onclick={beginImageTransition}>
     <AspectRatio.Root ratio={4 / 3} class="overflow-hidden">
       {#if isPlaceholderImage(imageSrc)}
-        <ProductArt department={product.department} categorySlug={product.categorySlug} />
+        <ProductArt {lang} department={product.department} categorySlug={product.categorySlug} />
       {:else}
         <img
           bind:this={imageEl}
           src={imageSrc}
           alt={product.name}
           loading="lazy"
-          class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          class="h-full w-full object-contain p-3 transition duration-500 group-hover:scale-105"
         />
       {/if}
     </AspectRatio.Root>
@@ -60,13 +63,13 @@
     {/if}
   </a>
   <div class="flex flex-1 flex-col gap-2 p-4">
-    <h2 class="card-title text-base leading-snug text-cocoa-900">{product.name}</h2>
-    <div class="mt-auto flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <h2 class="card-title text-base leading-snug text-cocoa-900"><a href={href}>{product.name}</a></h2>
+    <div class="mt-auto flex flex-col gap-3">
       <div class="flex w-full flex-col gap-0.5">
         {#if product.variants.length > 1}
           <span class="flex items-center gap-1.5 text-xs font-semibold text-cocoa-400">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-honey-600" aria-hidden="true"></span>
-            {t(lang, "product.startsFrom")} {formatEGP(product.minPrice, lang)}
+            {t(lang, "product.startsFrom")}
           </span>
           <Price amount={product.minPrice} lang={lang} className="text-lg font-extrabold text-cocoa-900" />
         {:else}
@@ -77,7 +80,7 @@
         <a
           href={href}
           onclick={beginImageTransition}
-          class="btn-outline w-full shrink-0 px-4 py-2 sm:w-auto"
+          class="btn-outline w-full shrink-0 px-4 py-2"
           aria-label={t(lang, "product.chooseSizeAria", { name: product.name })}
         >
           {t(lang, "product.chooseSize")}
@@ -88,8 +91,8 @@
       {:else}
         <button
           type="button"
-          class="btn-primary w-full shrink-0 px-4 py-2 sm:w-auto {added ? '!bg-olive-600 !text-white' : ''}"
-          disabled={product.variants[0]?.stock === 0}
+          class="btn-primary w-full shrink-0 px-4 py-2 {added ? '!bg-olive-600 !text-white' : ''}"
+          disabled={!product.variants[0] || product.variants[0].stock <= 0}
           onclick={handleAdd}
           data-testid="add-to-cart"
         >

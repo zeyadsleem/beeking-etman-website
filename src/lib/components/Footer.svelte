@@ -5,7 +5,6 @@
   let { lang = "ar" }: { lang?: Lang } = $props();
 
   const year = new Date().getFullYear();
-  const seal = $derived(lang === "en" ? "/images/etman-wax-en.png" : "/images/etman-wax-ar.png");
 </script>
 
 <footer class="mt-16 border-t border-honey-100 bg-cream">
@@ -16,11 +15,9 @@
         <Logo alt={t(lang, "brand.tagline")} class="h-16 w-16 shrink-0" />
         <span class="flex flex-col leading-none">
           <span class="font-display text-xl font-bold text-cocoa-900">{t(lang, "brand.name")}</span>
-          <span class="mt-1.5 text-[11px] font-semibold tracking-[0.2em] text-honey-700">{t(lang, "hero.since")}</span>
         </span>
       </a>
-      <p class="mt-4 max-w-xs text-sm leading-relaxed text-cocoa-600">{t(lang, "footer.tagline")}</p>
-      <img src={seal} alt="" class="seal mt-6 h-20 w-20 opacity-90" />
+      <p class="mt-4 max-w-xs text-sm leading-relaxed text-cocoa-600">{lang === "ar" ? "عسل ومنتجات خلية النحل، وأدوات لكل مرحلة في المنحل." : "Honey, hive products and equipment for every stage of beekeeping."}</p>
     </div>
 
     <!-- Site links -->
@@ -37,7 +34,7 @@
     <!-- About -->
     <div class="flex flex-col gap-2.5 text-sm">
       <span class="mb-1 font-bold text-cocoa-800">{t(lang, "footer.aboutTitle")}</span>
-      <p class="max-w-xs leading-relaxed text-cocoa-600">{t(lang, "footer.aboutBody")}</p>
+      <p class="max-w-xs leading-relaxed text-cocoa-600">{lang === "ar" ? "تعرّف على قصتنا وخبرتنا في العسل وتجهيز المناحل." : "Discover our story and experience in honey and apiary supplies."}</p>
       <a href="/about" class="mt-1 inline-flex w-fit items-center gap-1 font-semibold text-honey-700 transition-colors hover:text-honey-800">
         {t(lang, "footer.about")}
       </a>

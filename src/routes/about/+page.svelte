@@ -1,5 +1,4 @@
 <script lang="ts">
-  import Breadcrumb from "$lib/components/Breadcrumb.svelte";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import Seo from "$lib/components/Seo.svelte";
@@ -9,7 +8,6 @@
   let { data }: { data: PageData } = $props();
 
   const lang = $derived(data.lang);
-  const seal = $derived(lang === "en" ? "/images/etman-wax-en.png" : "/images/etman-wax-ar.png");
 
   const timeline = $derived([
     {
@@ -93,20 +91,11 @@
   siteName={t(lang, "brand.name")}
 />
 
-<div class="mx-auto max-w-7xl px-4 pt-6 lg:px-6">
-  <Breadcrumb
-    lang={lang}
-    items={[
-      { label: t(lang, "nav.home"), href: "/" },
-      { label: t(lang, "footer.about") },
-    ]}
-  />
-</div>
+
 
 <!-- Hero -->
 <section class="relative start-1/2 -ms-[50vw] w-screen overflow-x-clip bg-gradient-to-b from-paper via-paper to-cream">
   <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-    <div class="honeycomb absolute inset-0 opacity-50"></div>
     <div class="absolute -top-32 end-[-6rem] h-[26rem] w-[26rem] rounded-full bg-honey-200/40 blur-3xl"></div>
     <div class="absolute bottom-[-8rem] start-[-6rem] h-[20rem] w-[20rem] rounded-full bg-clay-100/40 blur-3xl"></div>
   </div>
@@ -120,7 +109,6 @@
     <p class="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-cocoa-600">
       {t(lang, "about.heroSubtitle")}
     </p>
-    <img src={seal} alt={t(lang, "brand.tagline")} class="seal mx-auto mt-10 h-32 w-32 sm:h-40 sm:w-40" />
   </div>
 </section>
 
@@ -129,7 +117,7 @@
   <div class="mx-auto grid max-w-4xl grid-cols-1 gap-4 px-4 py-8 text-center sm:grid-cols-3 sm:px-6">
     {#each stats as item (item.label)}
       <div class="flex items-center justify-center gap-3 sm:flex-col sm:gap-0">
-        <span class="hex-frame grid h-12 w-12 shrink-0 place-items-center bg-honey-100 text-honey-800">
+        <span class="rounded-full grid h-12 w-12 shrink-0 place-items-center bg-honey-100 text-honey-800">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d={item.icon} stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -165,7 +153,7 @@
     <ol class="space-y-8">
       {#each timeline as item (item.year)}
         <li class="relative flex gap-5">
-          <span class="hex-frame relative z-10 grid h-12 w-12 shrink-0 place-items-center bg-gradient-to-br from-honey-400 to-honey-700 text-[11px] font-bold text-cocoa-950">
+          <span class="rounded-full relative z-10 grid h-12 w-12 shrink-0 place-items-center bg-gradient-to-br from-honey-400 to-honey-700 text-[11px] font-bold text-cocoa-950">
             {item.year}
           </span>
           <div class="flex-1 rounded-2xl border border-honey-100 bg-parchment p-5 shadow-warm-sm">
@@ -186,7 +174,7 @@
   <div class="mt-10 grid gap-6 sm:grid-cols-3">
     {#each ecosystem as item (item.title)}
       <div class="rounded-3xl border border-honey-100 bg-parchment p-6 shadow-warm-sm">
-        <span class="hex-frame grid h-12 w-12 place-items-center bg-honey-100 text-honey-800">
+        <span class="rounded-full grid h-12 w-12 place-items-center bg-honey-100 text-honey-800">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d={item.icon} stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -206,7 +194,7 @@
   <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
     {#each values as item (item.title)}
       <div class="rounded-3xl border border-honey-100 bg-parchment p-6 text-center shadow-warm-sm">
-        <span class="hex-frame mx-auto grid h-14 w-14 place-items-center bg-honey-50 text-honey-700">
+        <span class="rounded-full mx-auto grid h-14 w-14 place-items-center bg-honey-50 text-honey-700">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d={item.icon} stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -221,13 +209,11 @@
 <!-- CTA -->
 <section class="mx-auto mt-20 max-w-7xl px-4 lg:px-6">
   <div class="relative overflow-hidden rounded-3xl border border-honey-200 bg-gradient-to-br from-honey-100 via-cream to-cream-deep p-8 text-center sm:p-14">
-    <div class="honeycomb pointer-events-none absolute inset-0 opacity-50" aria-hidden="true"></div>
     <div class="relative mx-auto max-w-2xl">
-      <img src={seal} alt="" class="seal mx-auto h-24 w-24" />
       <p class="eyebrow mt-4">{t(lang, "about.ctaEyebrow")}</p>
       <h2 class="headline mt-3 text-3xl text-cocoa-900">{t(lang, "about.ctaTitle")}</h2>
       <p class="mt-3 text-cocoa-600">{t(lang, "about.ctaBody")}</p>
-      <Button variant="primary" href="/contact" class="mt-6 px-7 py-3">{t(lang, "about.ctaButton")}</Button>
+      <Button variant="primary" href="/products" class="mt-6 px-7 py-3">{lang === "ar" ? "تسوق المنتجات" : "Shop products"}</Button>
     </div>
   </div>
 </section>

@@ -11,9 +11,7 @@ describe("Hero", () => {
     await expect
       .element(page.getByTestId("hero-brand-img"))
       .toHaveAttribute("src", "/images/etman-wax-ar.png");
-    await expect
-      .element(page.getByTestId("hero-brand-img-inline"))
-      .toHaveAttribute("src", "/images/etman-wax-ar.png");
+    await expect.element(page.getByTestId("hero-brand-img-inline")).not.toBeInTheDocument();
   });
 
   it("renders the English wax seal image for the English locale", async () => {
@@ -22,8 +20,6 @@ describe("Hero", () => {
     await expect
       .element(page.getByTestId("hero-brand-img"))
       .toHaveAttribute("src", "/images/etman-wax-en.png");
-    await expect
-      .element(page.getByTestId("hero-brand-img-inline"))
-      .toHaveAttribute("src", "/images/etman-wax-en.png");
+    await expect.element(page.getByTestId("hero-brand-img-inline")).not.toBeInTheDocument();
   });
 });

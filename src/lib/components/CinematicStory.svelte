@@ -4,12 +4,12 @@
 
   let { lang = "ar" }: { lang?: Lang } = $props();
 
-  const chapters = [
+  const chapters = $derived([
     { key: 1, aria: t(lang, "story.ch.1.title") },
     { key: 2, aria: t(lang, "story.ch.2.title") },
     { key: 3, aria: t(lang, "story.ch.3.title") },
     { key: 4, aria: t(lang, "story.ch.4.title") },
-  ];
+  ]);
 
   const image = "/images/Beeking Etman/برطمان السدر المصرى.jpg";
 

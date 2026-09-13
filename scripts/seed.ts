@@ -63,16 +63,6 @@ const IMG = {
 // Placeholder (logo) for products without a product-specific image
 const PLACEHOLDER_IMG = "/images/logo.png";
 
-const GALLERY: Record<string, (keyof typeof IMG)[]> = {
-  flowers: ["glassLight", "glassPale", "dipper"],
-  sidr: ["glassDark", "glassLight", "dipper"],
-  vib: ["glassPale", "glassLight", "dipper"],
-  "nuts-honey": ["nutsInHoney", "nutsCan", "blackseed"],
-  comb: ["combFrame", "combFrameCitrus", "combChunks"],
-  "bee-supplements": ["royalJelly", "propolis", "beePollen", "honeySpoons"],
-  nuts: ["nutsCan", "hazelnut", "pistachio", "mixedNuts"],
-};
-
 // ---------------------------------------------------------------------------
 // Legacy product data — the original 43 products, kept for backward compat.
 // Slugs are preserved so existing orders remain linked. The seed will upsert
@@ -947,24 +937,13 @@ async function seed(): Promise<void> {
     })),
   );
 
-  // Images: legacy products get gallery shots; catalog products get a 3-image
-  // gallery (their single image repeated 3×, or the logo when none is set).
-  const imageValues = ALL_PRODUCTS.flatMap((p) => {
-    const productId = requireId(productIds, p.slug);
-    // Only legacy products (those in LEGACY_PRODUCTS) get their own gallery shots
-    const isLegacy = LEGACY_PRODUCTS.some((lp) => lp.slug === p.slug);
-    if (isLegacy) {
-      const shots = (GALLERY[p.category] ?? []).map((k) => IMG[k]);
-      return [...new Set([IMG[p.image], ...shots])].slice(0, 4).map((url, sortOrder) => ({
-        productId,
-        url,
-        sortOrder,
-      }));
-    }
-    // Catalog products: single image repeated across 3 gallery slots
-    const url = IMG[p.image] ?? PLACEHOLDER_IMG;
-    return [0, 1, 2].map((sortOrder) => ({ productId, url, sortOrder }));
-  });
+  // Only distinct photos attached to this exact product/variant. Never
+  // repeat a photo or borrow a different product to fill gallery slots.
+  const imageValues = ALL_PRODUCTS.flatMap((p) =>
+    [...new Set([IMG[p.image], ...p.variants.map((v) => IMG[v.image])])]
+      .filter((url) => url && url !== PLACEHOLDER_IMG)
+      .map((url, sortOrder) => ({ productId: requireId(productIds, p.slug), url, sortOrder })),
+  );
 
   for (const chunkRows of chunk(variantValues, INSERT_CHUNK_SIZE))
     await db.insert(schema.productVariant).values(chunkRows);

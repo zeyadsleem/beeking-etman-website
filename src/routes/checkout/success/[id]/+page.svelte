@@ -8,7 +8,6 @@
   let { data }: { data: PageData } = $props();
 
   const lang = $derived(data.lang);
-  const seal = $derived(lang === "en" ? "/images/etman-wax-en.png" : "/images/etman-wax-ar.png");
 
   $effect(() => {
     const itemCount = data.items.reduce((sum, i) => sum + i.quantity, 0);
@@ -23,7 +22,6 @@
 
 <div class="mx-auto max-w-2xl pt-10 motion-safe:animate-fade-up">
   <div class="relative overflow-hidden rounded-3xl border border-honey-100 bg-gradient-to-br from-paper via-cream to-cream-deep px-6 py-10 text-center">
-    <div class="honeycomb pointer-events-none absolute inset-0"></div>
     <div class="relative">
       <div class="mx-auto grid h-20 w-20 place-items-center rounded-full border border-honey-200 bg-honey-50">
         <div class="grid h-12 w-12 place-items-center rounded-full bg-honey-600 text-2xl text-white">✓</div>
@@ -33,7 +31,6 @@
         {t(lang, "success.orderNumber")} <span class="badge-ok px-4 py-1 font-extrabold" data-testid="order-number">{data.order.number}</span>
       </p>
       <p class="mt-2 text-sm text-cocoa-400">{t(lang, "success.simulated")}</p>
-      <img src={seal} alt="" aria-hidden="true" class="seal mx-auto mt-4 h-20 w-20" />
     </div>
   </div>
 

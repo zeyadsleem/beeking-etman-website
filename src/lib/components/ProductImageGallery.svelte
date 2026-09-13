@@ -105,10 +105,10 @@
 
 {#if images.length > 0}
   <figure class="relative">
-    <div class="absolute -inset-3 rounded-3xl border border-cocoa-200/70" aria-hidden="true"></div>
+
 
     <div
-      class="relative overflow-hidden rounded-2xl bg-cocoa-100"
+      class="relative overflow-hidden rounded-2xl bg-white border border-cocoa-100"
       onclick={onGalleryClick}
       onpointerdown={onSwipeStart}
       onpointermove={onSwipeMove}
@@ -126,7 +126,7 @@
               src={images[activeIndex]}
               alt={productName}
               style="view-transition-name: {viewTransitionName}; view-transition-class: product-img;"
-              class="h-full w-full object-cover"
+              class="h-full w-full object-contain p-3"
             />
           </div>
         {/key}
@@ -151,13 +151,13 @@
             role="tab"
             aria-selected={index === activeIndex}
             aria-label={t(lang, "gallery.thumbnailAria", { name: productName, index: index + 1 })}
-            class="w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-cocoa-100 transition-all duration-200 {index === activeIndex
+            class="w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-white border border-cocoa-100 transition-all duration-200 {index === activeIndex
               ? 'border-honey-600 ring-2 ring-honey-600/25'
               : 'border-cocoa-200 opacity-75 hover:border-cocoa-400 hover:opacity-100'}"
             onclick={() => (activeIndex = index)}
           >
             <AspectRatio.Root ratio={1}>
-              <img src={image} alt="" loading="lazy" class="h-full w-full object-cover" />
+              <img src={image} alt="" loading="lazy" class="h-full w-full object-contain p-3" />
             </AspectRatio.Root>
           </button>
         {/each}

@@ -30,8 +30,7 @@
   let mobileOpen = $state(false);
 
   const q = $derived(String(page.url.searchParams.get("q") ?? ""));
-  const isHome = $derived(page.url.pathname === "/");
-  const showHeaderSearch = $derived(isHome);
+  const showHeaderSearch = true;
 
   $effect(() => {
     count = cartCount();
@@ -90,13 +89,9 @@
     <div class="col-start-1 flex min-w-0 items-center gap-5 justify-self-start">
       <a href="/" class="relative flex items-center gap-3 transition-opacity hover:opacity-90" aria-label={t(lang, "brand.tagline")}>
         <Logo alt={t(lang, "brand.tagline")} class="h-14 w-14 shrink-0" />
-        <span class="hidden flex-col leading-none sm:flex">
-          <span class="font-display text-lg font-bold text-cocoa-900">{t(lang, "brand.name")}</span>
-          <span class="mt-1 text-[10px] font-semibold tracking-[0.2em] text-honey-700">{t(lang, "hero.since")}</span>
-        </span>
       </a>
 
-      <nav class="hidden items-center gap-5 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>
+      <nav class="hidden items-center gap-4 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>
         {#each NAV_ITEMS as item (item.href)}
           {@const active = item.href === "/" ? page.url.pathname === "/" : page.url.pathname.startsWith(item.href)}
           <a
@@ -108,7 +103,7 @@
     </div>
 
     {#if showHeaderSearch}
-      <div class="col-start-2 hidden w-full max-w-2xl justify-self-center lg:block">
+      <div class="col-start-2 hidden w-full max-w-sm min-w-40 justify-self-center lg:block">
         <SearchSuggestions
           lang={lang}
           initial={q}

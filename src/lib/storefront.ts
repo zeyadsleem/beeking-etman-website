@@ -27,5 +27,5 @@ const PLACEHOLDER_IMAGE = "/images/logo.png";
 
 /** True when a product has no real photo and should fall back to category art. */
 export function isPlaceholderImage(src: string | null | undefined): boolean {
-  return !src || src.endsWith(PLACEHOLDER_IMAGE);
+  return !src || src.endsWith(PLACEHOLDER_IMAGE) || src.includes("etman-wax");
 }

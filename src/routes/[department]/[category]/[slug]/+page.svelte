@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { PackageCheck, Truck, Layers } from "@lucide/svelte";
+  import { productPhotos } from "$lib/product-media";
   import { AspectRatio, ToggleGroup } from "bits-ui";
   import Breadcrumb from "$lib/components/Breadcrumb.svelte";
   import Button from "$lib/components/Button.svelte";
@@ -15,7 +17,7 @@
   import { formatEGP } from "$lib/currency";
   import { trackProductView } from "$lib/analytics-events";
   import { t } from "$lib/i18n/messages";
-  import { categoryPath, departmentPath, productPath, isPlaceholderImage } from "$lib/storefront";
+  import { categoryPath, departmentPath, productPath } from "$lib/storefront";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -49,14 +51,8 @@
 
   // The gallery leads with the selected variant's photo, followed by the
   // product-wide gallery shots, without duplicates.
-  let galleryImages = $derived(
-    [selectedVariant.image, ...data.product.images].filter(
-      (url, index, all) => all.indexOf(url) === index,
-    ),
-  );
-
-  const galleryIsPlaceholder = $derived(galleryImages.every(isPlaceholderImage));
-  const seal = $derived(lang === "en" ? "/images/etman-wax-en.png" : "/images/etman-wax-ar.png");
+  const galleryImages = $derived(productPhotos(data.product, selectedVariant.image));
+  const galleryIsPlaceholder = $derived(galleryImages.length === 0);
 
   function selectVariant(id: string) {
     const v = data.product.variants.find((x) => x.id === id);
@@ -68,7 +64,13 @@
 
   function handleAdd() {
     adding = true;
-    addToCart(regularItemPayload(data.product, selectedVariant), quantity);
+    addToCart(
+      {
+        ...regularItemPayload(data.product, selectedVariant),
+        image: galleryImages[0] ?? "",
+      },
+      quantity,
+    );
     setTimeout(() => { adding = false; }, 1500);
   }
 </script>
@@ -115,7 +117,7 @@
     {#if galleryIsPlaceholder}
       <div class="overflow-hidden rounded-3xl border border-honey-100 shadow-warm">
         <AspectRatio.Root ratio={1}>
-          <ProductArt department={data.product.department} categorySlug={data.product.categorySlug} />
+          <ProductArt {lang} department={data.product.department} categorySlug={data.product.categorySlug} />
         </AspectRatio.Root>
       </div>
     {:else}
@@ -132,8 +134,7 @@
   <div class="flex flex-col gap-5">
     <div>
       <div class="flex items-center gap-3">
-        <p class="eyebrow">{t(lang, "detail.eyebrow")}</p>
-        <img src={seal} alt="" aria-hidden="true" class="seal h-10 w-10" />
+        <p class="eyebrow">{data.categoryName}</p>
       </div>
       <h1 class="headline mt-2 text-4xl leading-tight text-cocoa-900">{data.product.name}</h1>
     </div>
@@ -188,29 +189,15 @@
       <p class="text-sm font-semibold text-cocoa-500">{t(lang, "detail.total", { total: formatEGP(selectedVariant.price * quantity, lang) })}</p>
     {/if}
 
-    <div class="mt-4 grid grid-cols-3 gap-3 border-t border-cocoa-100 pt-5 text-center">
-      <div>
-        <svg class="mx-auto h-7 w-7 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 4.5c2.6 0 4.5 1.9 4.5 4.5h-9C7.5 6.4 9.4 4.5 12 4.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-          <path d="M7.5 9h9v1.5a4.5 4.5 0 0 1-9 0V9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-          <path d="M12 15v3.5M9.5 18.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-        </svg>
-        <p class="mt-1.5 text-xs font-semibold text-cocoa-700">{t(lang, "detail.benefitRaw")}</p>
-      </div>
-      <div>
-        <svg class="mx-auto h-7 w-7 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 3l2.1 4.3 4.7.7-3.4 3.3.8 4.7L12 13.9l-4.2 2.1.8-4.7L5.2 8l4.7-.7L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-        </svg>
-        <p class="mt-1.5 text-xs font-semibold text-cocoa-700">{t(lang, "detail.benefitPure")}</p>
-      </div>
-      <div>
-        <svg class="mx-auto h-7 w-7 text-honey-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M3 6h11v9H3zM14 9h3l3 3v3h-6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-          <circle cx="7" cy="18.5" r="1.8" stroke="currentColor" stroke-width="1.6" />
-          <circle cx="17" cy="18.5" r="1.8" stroke="currentColor" stroke-width="1.6" />
-        </svg>
-        <p class="mt-1.5 text-xs font-semibold text-cocoa-700">{t(lang, "detail.benefitFast")}</p>
-      </div>
+    <dl class="mt-3 divide-y divide-cocoa-100 rounded-2xl border border-cocoa-100 bg-cocoa-50 px-5 text-sm">
+      <div class="flex justify-between gap-4 py-4"><dt class="text-cocoa-500">{lang === "ar" ? "القسم" : "Category"}</dt><dd><a href={catPath} class="font-semibold text-honey-800">{data.categoryName}</a></dd></div>
+      <div class="flex justify-between gap-4 py-4"><dt class="text-cocoa-500">{lang === "ar" ? "الاختيار الحالي" : "Selected option"}</dt><dd class="font-semibold">{selectedVariant.name}</dd></div>
+      <div class="flex justify-between gap-4 py-4"><dt class="text-cocoa-500">{lang === "ar" ? "سعر الوحدة" : "Unit price"}</dt><dd class="font-semibold">{formatEGP(selectedVariant.price, lang)}</dd></div>
+    </dl>
+    <div class="grid gap-3 border-t border-cocoa-100 pt-5 text-sm text-cocoa-600">
+      <p class="flex items-center gap-3"><Truck size={19} class="text-honey-700" />{lang === "ar" ? "احسب تكلفة التوصيل لمحافظتك عند إتمام الطلب." : "Delivery is calculated for your governorate at checkout."}</p>
+      <p class="flex items-center gap-3"><PackageCheck size={19} class="text-honey-700" />{lang === "ar" ? "راجع المقاس أو الوزن والكمية قبل الإضافة للسلة." : "Check your selected size or weight and quantity before adding."}</p>
+      <p class="flex items-center gap-3"><Layers size={19} class="text-honey-700" />{lang === "ar" ? "الصور المعروضة للاختيارات المتاحة من هذا المنتج." : "Photos show available options of this product."}</p>
     </div>
   </div>
 </div>

@@ -1,4 +1,4 @@
-import { getFeaturedProducts, listProducts } from "$lib/server/store";
+import { listProducts } from "$lib/server/store";
 import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
 import type { PageServerLoad } from "./$types";
@@ -8,9 +8,9 @@ import type { PageServerLoad } from "./$types";
 // data, so +page.svelte keeps reading data.categories.
 export const load: PageServerLoad = async (event) => {
   const lang = getLang(event);
-  const [featured, products] = await Promise.all([
-    getFeaturedProducts(db, 8, lang),
-    listProducts(db, { limit: 100 }, lang),
+  const [honey, equipment] = await Promise.all([
+    listProducts(db, { department: "honey", limit: 40 }, lang),
+    listProducts(db, { department: "equipment", limit: 40 }, lang),
   ]);
-  return { featured, products };
+  return { honey, equipment };
 };
