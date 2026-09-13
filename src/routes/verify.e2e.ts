@@ -149,9 +149,10 @@ test("hash link updates the URL fragment", async () => {
   await expect(page.locator("h1").first()).toBeVisible();
   await page.waitForTimeout(800);
 
-  await page.locator('a[href="#categories"]').click();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
   await page.waitForTimeout(800);
-  expect(page.url()).toMatch(/#categories$/);
+  expect(page.url()).toMatch(/#main-content$/);
 
   await browser.close();
 });

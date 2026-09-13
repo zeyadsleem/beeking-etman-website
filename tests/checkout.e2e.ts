@@ -28,6 +28,11 @@ test("checkout shows validation errors when submitting empty form", async ({ pag
   // Phone and email validation errors should appear.
   await expect(page.getByText("رقم هاتف مصري غير صالح")).toBeVisible();
   await expect(page.getByText("بريد إلكتروني غير صالح")).toBeVisible();
+  await expect(page.locator('input[name="phone"]')).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator('input[name="phone"]')).toHaveAccessibleDescription(
+    "رقم هاتف مصري غير صالح",
+  );
+  await expect(page.locator('input[name="name"]')).toBeFocused();
 });
 
 test("checkout rejects invalid phone number format", async ({ page }) => {
