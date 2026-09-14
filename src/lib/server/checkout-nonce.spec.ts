@@ -69,6 +69,17 @@ describe("checkout nonce cookies", () => {
     expect(await verifyCheckoutNonce(cookies, nonce, "secret")).toBe(false);
   });
 
+  it("accepts a checkout proof issued under the legacy cookie prefix", async () => {
+    const { cookies, values } = cookieJar();
+    const nonce = crypto.randomUUID();
+    const expires = Date.now() + 60 * 60 * 1000;
+    values.set(
+      `honey_checkout_${nonce}`,
+      await signOrderToken(`checkout:${nonce}:${expires}`, "secret"),
+    );
+    expect(await verifyCheckoutNonce(cookies, nonce, "secret")).toBe(true);
+  });
+
   it("does not interchange checkout proofs and order access tokens", async () => {
     const { cookies, values } = cookieJar();
     const nonce = await issueCheckoutNonce(cookies, "secret");

@@ -182,7 +182,3 @@ export function generateInvoiceHtml(order: InvoiceOrder, items: InvoiceItem[]): 
 </body>
 </html>`;
 }
-
-export function getInvoiceUrl(orderId: string): string {
-  return `/admin/orders/${orderId}/invoice`;
-}

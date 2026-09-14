@@ -324,26 +324,6 @@ export async function getDepartmentCounts(
   return counts;
 }
 
-export async function getFeaturedProducts(
-  db: LibSQLDatabase<typeof schema>,
-  limit = 8,
-  lang: Lang = "ar",
-): Promise<ProductSummary[]> {
-  const rows = await db
-    .select(productListColumns)
-    .from(schema.product)
-    .where(eq(schema.product.featured, 1))
-    .orderBy(desc(schema.product.createdAt))
-    .limit(clampLimit(limit, 8, 24));
-  const ids = rows.map((r) => r.id);
-  const [variants, images, categorySlugs] = await Promise.all([
-    loadVariantsForProducts(db, ids),
-    loadImagesForProducts(db, ids),
-    loadCategorySlugs(db, ids),
-  ]);
-  return withVariants(rows, variants, images, lang, categorySlugs);
-}
-
 function toFtsQuery(query: string): string {
   // Tokens are normalized with the same folding the FTS triggers apply at
   // index time (arabic.ts), so undiacritized/alef-unified user input matches.

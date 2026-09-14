@@ -1,7 +1,5 @@
 export type Lang = "ar" | "en";
 
-export const LANGS: readonly Lang[] = ["ar", "en"];
-
 export const LANG_COOKIE_NAME = "lang";
 
 export function isLang(value: unknown): value is Lang {

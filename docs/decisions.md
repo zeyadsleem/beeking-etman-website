@@ -1570,3 +1570,39 @@ central M1 deliverable, and the delivery pipeline (outbox +
 only to match roadmap §3. M0's docs truth pass is a defect fix: the Pages Git
 integration is already disconnected and `/api/health` already exists, so the ops
 work is extension and enforcement, not greenfield.
+
+## 2026-09-13: Cookie namespace rename to `beeking_*` + dead-code cleanup
+
+**Context:** The storefront launched honey-only and named its client state
+after the product (`honey_cart` cookie, `honey_cart_v2` localStorage key,
+`honey_checkout_*` proof cookies, `honey_order_access`). The catalog now spans
+honey, beekeeping equipment, and blend ingredients, so the `honey_` namespace
+misleads about scope. A parallel audit of unreferenced code found several
+superseded artifacts (the retired cinematic/WebGL direction, a flat-shipping
+constant predating zoned pricing, dead helpers, and two orphaned scripts).
+
+**Decision:**
+
+- Rename the runtime names to a brand namespace: `beeking_cart`,
+  `beeking_cart_v2`, `beeking_checkout_*`, `beeking_order_access`. The lang
+  cookie stays `lang` (no prefix, already generic).
+- Keep **read compatibility** for one release so in-flight guest carts and
+  emailed order links survive: readers fall back to the legacy name, writers
+  set the new name and delete the legacy one (`cart-cookie.ts`,
+  `order-access.ts`, `checkout-nonce.ts`, `cart-store.svelte.ts`
+  localStorage migration). Compatibility shims are removed after the 30-day
+  cookie lifetime elapses (tracked in `docs/todo.md`).
+- Delete verified-dead code: `src/lib/actions/countup.svelte.ts`,
+  `CinematicStory.svelte`, `SHIPPING_COST`, `blendSignature`, `JAR_LABELS`,
+  `LANGS`, `getInvoiceUrl`, `getFeaturedProducts`, `TRANSFER_STATUSES`,
+  `STOCK_ALERT_VERSION`, `updateTransferStatus`, `scripts/migrate.mjs`,
+  `scripts/topo-seed.mjs`, the stale `EMAIL_API_KEY`/`SMTP_HOST` env warnings,
+  and the 2026-09-03 cinematic spec/plan docs it superseded.
+- Keep `listAuditLogs` (M4 admin viewer will use it) and
+  `store_product.weight_grams` (COM shipping v2 will consume it).
+
+**Consequences:** New code reads `beeking_*` only; the legacy literals exist
+solely in the compat paths and their regression tests. Any ad-hoc query or
+runbook referencing `honey_cart` is stale after the compat window. Historical
+entries above that mention `honey_cart`, `SHIPPING_COST`, or `countup` remain
+accurate as history and are not rewritten.

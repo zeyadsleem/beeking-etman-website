@@ -4,7 +4,10 @@ import type { Cookies } from "@sveltejs/kit";
 import { isAdditiveKey } from "$lib/blends";
 import type { BlendLineAdditive, CartEntry, CartLine } from "$lib/cart";
 
-export const CART_COOKIE_NAME = "honey_cart";
+export const CART_COOKIE_NAME = "beeking_cart";
+// Pre-rename cookie name, still read (and retired on write) so carts created
+// before the rename keep working until their 30-day lifetime expires.
+const LEGACY_CART_COOKIE_NAME = "honey_cart";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
 function sign(secret: string, body: string): string {
@@ -76,7 +79,7 @@ export function readCartFromString(raw: string, secret: string): CartEntry[] {
 }
 
 export function readCartCookie(cookies: Cookies, secret: string): CartEntry[] {
-  const raw = cookies.get(CART_COOKIE_NAME);
+  const raw = cookies.get(CART_COOKIE_NAME) ?? cookies.get(LEGACY_CART_COOKIE_NAME);
   if (!raw) return [];
   return readCartFromString(raw, secret);
 }
@@ -88,10 +91,12 @@ export function setCartCookie(cookies: Cookies, secret: string, lines: CartEntry
     sameSite: "lax",
     maxAge: COOKIE_MAX_AGE,
   });
+  cookies.delete(LEGACY_CART_COOKIE_NAME, { path: "/" });
 }
 
 export function clearCartCookie(cookies: Cookies): void {
   cookies.delete(CART_COOKIE_NAME, { path: "/" });
+  cookies.delete(LEGACY_CART_COOKIE_NAME, { path: "/" });
 }
 
 export function getCartSecret(env: typeof import("$env/dynamic/private").env): string {

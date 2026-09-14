@@ -47,13 +47,26 @@ describe("order-access tokens", () => {
 });
 
 describe("order-access cookie", () => {
+  const LEGACY_COOKIE_NAME = "honey_order_access";
+
   function cookiesWith(raw: string | undefined): { get: (name: string) => string | undefined } {
-    return { get: (name: string) => (name === ORDER_ACCESS_COOKIE_NAME ? raw : undefined) };
+    return {
+      get: (name: string) =>
+        name === ORDER_ACCESS_COOKIE_NAME || name === LEGACY_COOKIE_NAME ? raw : undefined,
+    };
   }
 
   it("grants access when the cookie matches the order", async () => {
     const raw = await signOrderToken(ORDER_ID, SECRET);
     expect(await readOrderAccessCookie(cookiesWith(raw), ORDER_ID, SECRET)).toBe(true);
+  });
+
+  it("grants access to a token stored under the legacy cookie name", async () => {
+    const raw = await signOrderToken(ORDER_ID, SECRET);
+    const legacyOnly = {
+      get: (name: string) => (name === LEGACY_COOKIE_NAME ? raw : undefined),
+    };
+    expect(await readOrderAccessCookie(legacyOnly, ORDER_ID, SECRET)).toBe(true);
   });
 
   it("denies access without a cookie or for another order", async () => {

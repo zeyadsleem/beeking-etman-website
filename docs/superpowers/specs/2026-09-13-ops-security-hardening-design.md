@@ -153,12 +153,12 @@ Rationale / evidence per directive:
   dynamically imported from the app bundle (`src/lib/analytics.ts:24-25`), so it is served
   same-origin under `'self'`. `%sveltekit.nonce%` is **not** usable inside components, which is
   why the hook injects the nonce post-render.
-- `style-src 'self' 'unsafe-inline'` — required today by 8 server-rendered `style="…"`
-  attributes in `ProductImageGallery.svelte`, `CinematicStory.svelte` (5), and
+- `style-src 'self' 'unsafe-inline'` — required today by 3 server-rendered `style="…"`
+  attributes in `ProductImageGallery.svelte` and
   `admin/+page.svelte` (2), and is the SvelteKit-documented requirement for Svelte transitions
   (`KitConfig.csp` note). **Do not add a nonce or hash to `style-src`**: per CSP3, a nonce/hash
   causes `'unsafe-inline'` to be ignored, which would block style attributes. Follow-up hardening
-  (optional): refactor the 8 attributes to classes, then drop `'unsafe-inline'`.
+  (optional): refactor the 3 attributes to classes, then drop `'unsafe-inline'`.
 - `img-src 'self' data: blob:` — `data:` for Vite-inlined small assets; `blob:` for the admin
   image preview (`src/lib/components/admin/ImageUpload.svelte:34`).
 - `font-src 'self'` — self-hosted `static/fonts/`.

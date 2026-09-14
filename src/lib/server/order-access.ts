@@ -5,7 +5,10 @@ import type { Cookies } from "@sveltejs/kit";
 // HttpOnly cookie set at checkout completion. The success page grants
 // access only to the owning user or a bearer of this token, so guest
 // delivery details cannot be reached by guessing order URLs.
-export const ORDER_ACCESS_COOKIE_NAME = "honey_order_access";
+export const ORDER_ACCESS_COOKIE_NAME = "beeking_order_access";
+// Pre-rename cookie name, still read so links opened before the rename keep
+// working until the cookie's 30-day lifetime expires.
+const LEGACY_ORDER_ACCESS_COOKIE_NAME = "honey_order_access";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
 const encoder = new TextEncoder();
@@ -59,6 +62,7 @@ export async function setOrderAccessCookie(
     secure: !dev,
     maxAge: COOKIE_MAX_AGE,
   });
+  cookies.delete(LEGACY_ORDER_ACCESS_COOKIE_NAME, { path: "/checkout/success" });
 }
 
 export async function readOrderAccessCookie(
@@ -66,7 +70,7 @@ export async function readOrderAccessCookie(
   orderId: string,
   secret: string,
 ): Promise<boolean> {
-  const raw = cookies.get(ORDER_ACCESS_COOKIE_NAME);
+  const raw = cookies.get(ORDER_ACCESS_COOKIE_NAME) ?? cookies.get(LEGACY_ORDER_ACCESS_COOKIE_NAME);
   if (!raw) return false;
   return verifyOrderToken(raw, orderId, secret);
 }

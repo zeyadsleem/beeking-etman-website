@@ -33,8 +33,9 @@ BlendCartItem`, so a composed blend rides the cart as one line
   `MAX_DOSE`, `isAdditiveKey`, `presetDoses`.
 - `src/lib/cart-store.svelte.ts` — Svelte 5 client cart store, syncs to the
   signed cookie via `POST /api/cart`.
-- `src/lib/server/cart-cookie.ts` — signed `honey_cart` cookie (HMAC, HttpOnly,
-  SameSite=Lax, 30-day max age); `sanitizeCartLines` validates every external
+- `src/lib/server/cart-cookie.ts` — signed `beeking_cart` cookie (HMAC, HttpOnly,
+  SameSite=Lax, 30-day max age; the pre-rename `honey_cart` name is still read
+  and retired on write); `sanitizeCartLines` validates every external
   cart payload; `getCartSecret(env)`.
 - `src/lib/i18n/messages.ts` — bilingual message catalogs (`ar` + `en`,
   `Record<MessageKey, string>` parity enforced by types), `t(lang, key, params)`
@@ -48,7 +49,8 @@ BlendCartItem`, so a composed blend rides the cart as one line
   governorate, address); messages via i18n. Card fields are deliberately
   absent — payment is simulated out of PCI scope.
 - `src/lib/server/checkout-nonce.ts` — per-checkout nonce proof cookies
-  (`honey_checkout_<nonce>`): the load action issues a signed, expiring
+  (`beeking_checkout_<nonce>`, legacy `honey_checkout_*` still accepted): the
+  load action issues a signed, expiring
   HttpOnly cookie bound to each nonce, and the submit action refuses any
   nonce the caller cannot prove. Keeps the count bounded (8) and makes a
   copied guest nonce worthless to a third party.

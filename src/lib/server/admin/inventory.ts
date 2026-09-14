@@ -22,8 +22,6 @@ export const INVENTORY_PAGE_SIZE = 20;
 export const EXPIRY_ALERT_DAYS = 90;
 /** A batch is "low" once remaining mass drops to this share of its initial kg. */
 export const BATCH_LOW_SHARE = 0.2;
-/** Versions the alert payload consumers can rely on. */
-export const STOCK_ALERT_VERSION = 1;
 
 export interface WarehouseRow {
   id: string;
@@ -373,13 +371,6 @@ function parseTransferStatus(value: string): TransferStatus | null {
     : null;
 }
 
-export const TRANSFER_STATUSES: readonly TransferStatus[] = [
-  "pending",
-  "outbound",
-  "completed",
-  "cancelled",
-] as const;
-
 export interface TransferItemInput {
   itemType: "variant" | "batch" | "material";
   itemId: string;
@@ -640,5 +631,3 @@ export async function completeTransfer(
 
   return { ok: true, id: transferId };
 }
-
-export { completeTransfer as updateTransferStatus };

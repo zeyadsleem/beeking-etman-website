@@ -53,8 +53,9 @@ There is no provider message id anywhere in the schema or the code, so "sent" to
 3. **No send is idempotent.** A crash between provider acceptance and the status update would
    resend on the next drain, because neither `flushOutbox` nor the provider call carries an
    idempotency key (schema has no message id — `src/lib/server/db/schema.ts:352-371`).
-4. **`EMAIL_API_KEY` / `SMTP_HOST` warnings are misleading.** `src/lib/server/env.ts:44-51` warns
-   about two variables that no code reads (grep: only `env.ts` mentions them).
+4. **`EMAIL_API_KEY` / `SMTP_HOST` warnings were misleading and are already removed.** The
+   `src/lib/server/env.ts` cleanup (2026-09-13) deleted the two warnings about variables that no
+   code read. The real delivery env surface (`EMAIL_FROM`, provider key) is specified in §3.7.
 5. **Recovery is impossible for the lost rows.** The outbox did not store a provider message id, so
    past sends cannot be audited or resent; the payload survives but the delivery evidence does not.
 
@@ -391,7 +392,7 @@ workers/email-sender/
 | `src/routes/admin/orders/[id]/+page.server.ts:64-69` | `sendOrderStatusUpdate` is enqueue-only; keep try/catch (audit log must still run).                                                                                                                                                                     |
 | `src/lib/server/auth.ts:28-83`                       | `sendResetPassword` **awaits** `enqueueEmail(db, …, { type: "password_reset" })` instead of calling `sendEmail` fire-and-forget. Rationale in §8.3. On enqueue failure it logs and rethrows so Better Auth returns an error rather than a silent no-op. |
 | `src/lib/server/email.ts`                            | `sendEmail` + `flushOutbox` deleted; HTML builders stay here (or move to `email-templates.ts` if the worker needs them — it does not today).                                                                                                            |
-| `src/lib/server/env.ts:44-51`                        | Replace the `EMAIL_API_KEY`/`SMTP_HOST` warnings with: fail in production if `EMAIL_FROM` is missing or contains `pages.dev`; warn if `ADMIN_NOTIFY_EMAILS` is empty.                                                                                   |
+| `src/lib/server/env.ts`                              | Add: fail in production if `EMAIL_FROM` is missing or contains `pages.dev`; warn if `ADMIN_NOTIFY_EMAILS` is empty. (The stale `EMAIL_API_KEY`/`SMTP_HOST` warnings were removed in the 2026-09-13 cleanup.)                                            |
 
 ### 3.8 Password reset ownership
 

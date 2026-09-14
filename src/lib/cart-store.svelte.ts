@@ -14,7 +14,9 @@ import { ADDITIVE_KEYS, JAR_SIZES, type AdditiveKey } from "./blends";
 import type { BlendCartItem, CartEntry, CartItem, CartTotals, RegularCartItem } from "./cart";
 import { trackAddToCart, trackRemoveFromCart } from "./analytics-events";
 
-const STORAGE_KEY = "honey_cart_v2";
+const STORAGE_KEY = "beeking_cart_v2";
+// Pre-rename localStorage key, migrated to STORAGE_KEY on first load.
+const LEGACY_STORAGE_KEY = "honey_cart_v2";
 
 const AdditiveKeySchema = z.enum([...ADDITIVE_KEYS] as [AdditiveKey, ...AdditiveKey[]]);
 const JarSizeSchema = z.enum(JAR_SIZES);
@@ -153,9 +155,13 @@ function bindCrossTabSync(): void {
   if (syncBound || !browser) return;
   syncBound = true;
   window.addEventListener("storage", (event) => {
-    if (event.key !== STORAGE_KEY || event.newValue === null) return;
+    if ((event.key !== STORAGE_KEY && event.key !== LEGACY_STORAGE_KEY) || event.newValue === null)
+      return;
     const parsed = CartItemSchema.array().safeParse(JSON.parse(event.newValue));
     state.items = parsed.success ? parsed.data : [];
+    if (event.key === LEGACY_STORAGE_KEY) {
+      migrateLegacyStorage(event.newValue);
+    }
     void fetch("/api/cart", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -164,15 +170,26 @@ function bindCrossTabSync(): void {
   });
 }
 
+function migrateLegacyStorage(raw: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, raw);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // Storage unavailable; the legacy key stays readable.
+  }
+}
+
 export function loadCart(): void {
   if (!browser) return;
   bindCrossTabSync();
   bindUnloadFlush();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const current = localStorage.getItem(STORAGE_KEY);
+    const raw = current ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     if (raw) {
       const parsed = CartItemSchema.array().safeParse(JSON.parse(raw));
       state.items = parsed.success ? parsed.data : [];
+      if (parsed.success && !current) migrateLegacyStorage(raw);
     }
   } catch {
     state.items = [];

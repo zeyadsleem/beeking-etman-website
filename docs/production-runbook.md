@@ -108,9 +108,9 @@ Repository or environment-level secrets (Settings → Secrets and variables
 | `CLOUDFLARE_ACCOUNT_ID` | `migrate-prod`, `deploy-prod` | Account ID of the Cloudflare account that owns the Pages project.                                                                                               |
 
 No other secrets are needed at the workflow level: production secrets
-(BETTER_AUTH_SECRET, ORDER_ACCESS_SECRET, ORIGIN, ADMIN_EMAIL,
-EMAIL_API_KEY, SMTP_HOST) live in the Pages project's **Settings →
-Variables and Secrets** and are not visible to the workflow.
+(BETTER_AUTH_SECRET, ORDER_ACCESS_SECRET, ORIGIN, ADMIN_EMAIL) live in the
+Pages project's **Settings → Variables and Secrets** and are not visible to
+the workflow.
 
 ### 3. Configure the `production` environment with required reviewers
 

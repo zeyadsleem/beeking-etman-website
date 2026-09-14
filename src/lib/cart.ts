@@ -123,7 +123,6 @@ export interface CartTotals {
   total: number;
 }
 
-export const SHIPPING_COST = 60_00;
 export const FREE_SHIPPING_THRESHOLD = 600_00;
 
 export interface CartTotalsInput {
@@ -153,23 +152,6 @@ export function addItem(
   return items.map((i) =>
     !isBlendItem(i) && i.variantId === product.variantId ? { ...i, quantity: next } : i,
   );
-}
-
-/**
- * Produces a deterministic string key from a blend's composition (base
- * variant, jar size, and sorted additives). Two blends with the same
- * ingredients in any order yield the same signature.
- */
-export function blendSignature(
-  baseVariantId: string,
-  jarSize: JarSize,
-  additives: readonly BlendLineAdditive[],
-): string {
-  const sorted = [...additives]
-    .sort((a, b) => a.key.localeCompare(b.key) || a.variantId.localeCompare(b.variantId))
-    .map((a) => `${a.variantId}:${a.qty}`)
-    .join(",");
-  return `${baseVariantId}:${jarSize}:${sorted}`;
 }
 
 /**

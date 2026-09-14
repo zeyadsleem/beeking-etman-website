@@ -60,11 +60,6 @@ export const BLEND_GOALS: readonly BlendGoal[] = [
   },
 ] as const;
 
-export const JAR_LABELS: Record<JarSize, { ar: string; en: string }> = {
-  half: { ar: "نص كيلو", en: "Half kg" },
-  full: { ar: "كيلو", en: "1 kg" },
-};
-
 export interface BaseHoneyOption {
   id: "clover" | "citrus" | "marjoram" | "sidr" | "blackseed";
   nameAr: string;
