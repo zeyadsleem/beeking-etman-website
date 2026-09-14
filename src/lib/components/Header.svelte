@@ -3,6 +3,7 @@
   import { goto, invalidateAll } from "$app/navigation";
   import { Dialog } from "bits-ui";
   import { cartCount, openDrawer } from "$lib/cart-store.svelte";
+  import { edgeForDir, isEdgeSwipe } from "$lib/edge-swipe";
   import { getDir, t, type Lang } from "$lib/i18n/messages";
   import Button from "./Button.svelte";
   import GlobeIcon from "./GlobeIcon.svelte";
@@ -28,6 +29,34 @@
 
   let count = $state(0);
   let mobileOpen = $state(false);
+  let touchStart: { x: number; y: number } | null = $state(null);
+  const LG_BREAKPOINT = 1024;
+
+  function onTouchStart(event: TouchEvent) {
+    if (mobileOpen || window.innerWidth >= LG_BREAKPOINT || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    touchStart = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function onTouchEnd(event: TouchEvent) {
+    const start = touchStart;
+    touchStart = null;
+    if (!start || mobileOpen) return;
+    const touch = event.changedTouches[0];
+    if (
+      touch &&
+      isEdgeSwipe(start, { x: touch.clientX, y: touch.clientY }, {
+        edge: edgeForDir(getDir(lang)),
+        viewportWidth: window.innerWidth,
+      })
+    ) {
+      mobileOpen = true;
+    }
+  }
+
+  function onTouchCancel() {
+    touchStart = null;
+  }
 
   const q = $derived(String(page.url.searchParams.get("q") ?? ""));
   const storeSearchPaths = new Set(["/products", "/honey", "/equipment"]);
@@ -84,6 +113,8 @@
     await switchLanguage();
   }
 </script>
+
+<svelte:window ontouchstart={onTouchStart} ontouchend={onTouchEnd} ontouchcancel={onTouchCancel} />
 
 <header class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper">
   <div class="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-4 py-3">
@@ -204,7 +235,7 @@
     <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
     <Dialog.Content
       dir={getDir(lang)}
-      class="fixed inset-y-0 start-0 z-50 flex w-80 max-w-[85vw] flex-col border-e border-cocoa-100 bg-parchment shadow-warm-lg focus:outline-none"
+      class="fixed inset-y-0 end-0 z-50 flex w-80 max-w-[85vw] flex-col border-s border-cocoa-100 bg-parchment shadow-warm-lg focus:outline-none"
     >
       <Dialog.Title class="sr-only">{t(lang, "nav.main")}</Dialog.Title>
       <header class="flex items-center justify-between border-b border-cocoa-200 px-4 py-3">
