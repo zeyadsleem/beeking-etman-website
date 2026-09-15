@@ -95,6 +95,15 @@ export const actions: Actions = {
     if (!(raw instanceof File) || raw.size === 0)
       return fail(400, { message: t(lang, "errors.unexpected") });
 
+    // Check the product before uploading: a vanished product must not leave
+    // an orphan KV blob behind the 404 (M1).
+    const existing = await db
+      .select({ id: schema.product.id })
+      .from(schema.product)
+      .where(eq(schema.product.id, event.params.id))
+      .get();
+    if (!existing) return fail(404, { message: t(lang, "errors.unexpected") });
+
     const platform = event.platform;
     if (!platform) return fail(503, { message: t(lang, "errors.storageUnavailable") });
     const upload = await saveProductImage(platform.env.MEDIA, raw);
@@ -102,13 +111,6 @@ export const actions: Actions = {
       const failure = productFormFailure(upload.reason);
       return fail(failure.status, { message: t(lang, failure.messageKey) });
     }
-
-    const existing = await db
-      .select({ id: schema.product.id })
-      .from(schema.product)
-      .where(eq(schema.product.id, event.params.id))
-      .get();
-    if (!existing) return fail(404, { message: t(lang, "errors.unexpected") });
 
     await setCoverUrl(db, event.params.id, upload.url);
     return { uploaded: t(lang, "admin.products.uploadedImage") };
