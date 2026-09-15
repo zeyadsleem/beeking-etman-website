@@ -9,7 +9,12 @@ vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
-import { LOW_STOCK_THRESHOLD, getDashboardStats, type DashboardStats } from "./stats";
+import {
+  cairoTodayMidnightMs,
+  LOW_STOCK_THRESHOLD,
+  getDashboardStats,
+  type DashboardStats,
+} from "./stats";
 
 const DB_FILE = "admin-stats-test.db";
 const DAY_MS = 86_400_000;
@@ -186,19 +191,16 @@ async function seedItem(
  * Epoch ms for Cairo noon on the Cairo day containing wall-clock now.
  * Anchoring ~12h away from any Cairo day boundary means a midnight crossing
  * between this capture and the code under test cannot change the reference
- * day, so the suite is deterministic regardless of when CI runs.
+ * day, so the suite is deterministic regardless of when CI runs. Derived
+ * from the same DST-aware midnight the implementation uses.
  */
 function cairoNoonAnchor(): number {
-  const refDay = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
-  return Date.parse(`${refDay}T12:00:00+02:00`);
+  return cairoTodayMidnightMs() + 12 * 60 * 60 * 1000;
 }
 
 /** Cairo calendar key of the day `days` before the Cairo day containing `nowMs`. */
 function dayKeyDaysAgo(days: number, nowMs: number): string {
-  // Compute Cairo midnight for the reference day, then subtract days.
-  const refDay = new Date(nowMs).toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
-  const refMidnightMs = Date.parse(`${refDay}T00:00:00+02:00`);
-  return new Date(refMidnightMs - days * DAY_MS).toLocaleDateString("en-CA", {
+  return new Date(cairoTodayMidnightMs(nowMs) - days * DAY_MS).toLocaleDateString("en-CA", {
     timeZone: "Africa/Cairo",
   });
 }
@@ -215,6 +217,18 @@ beforeEach(() => {
 describe("LOW_STOCK_THRESHOLD", () => {
   it("is 5 so the boundary variant (stock 5) is alerted", () => {
     expect(LOW_STOCK_THRESHOLD).toBe(5);
+  });
+});
+
+describe("cairoTodayMidnightMs", () => {
+  it("uses the Cairo summer offset (DST) for day boundaries", () => {
+    const midnight = cairoTodayMidnightMs(Date.UTC(2026, 6, 15, 12, 0, 0));
+    expect(new Date(midnight).toISOString()).toBe("2026-07-14T21:00:00.000Z");
+  });
+
+  it("uses the Cairo winter offset for day boundaries", () => {
+    const midnight = cairoTodayMidnightMs(Date.UTC(2026, 0, 15, 12, 0, 0));
+    expect(new Date(midnight).toISOString()).toBe("2026-01-14T22:00:00.000Z");
   });
 });
 

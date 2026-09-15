@@ -58,13 +58,33 @@ function cairoDayKey(ms: number): string {
   return new Date(ms).toLocaleDateString("en-CA", { timeZone: CAIRO_TZ });
 }
 
+/** Milliseconds of the UTC offset Cairo applies at the given instant. */
+function cairoOffsetMs(instant: number): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CAIRO_TZ,
+    timeZoneName: "longOffset",
+  }).formatToParts(instant);
+  const name = parts.find((part) => part.type === "timeZoneName")?.value ?? "GMT+02:00";
+  const match = /^GMT([+-])(\d{2}):(\d{2})$/.exec(name);
+  if (!match) return 2 * 3_600_000;
+  const sign = match[1] === "-" ? -1 : 1;
+  return sign * (Number(match[2]) * 3_600_000 + Number(match[3]) * 60_000);
+}
+
 /**
- * Returns the epoch-ms of Cairo midnight for today. Works by formatting
- * the current instant as a Cairo calendar date, then parsing it back.
+ * Epoch-ms of Cairo midnight for the day containing `now`. The offset comes
+ * from the timezone database per instant, so Egypt's DST (reinstated 2023)
+ * is honoured instead of assuming a fixed UTC+2.
  */
-function cairoTodayMidnightMs(): number {
-  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: CAIRO_TZ });
-  return Date.parse(`${todayStr}T00:00:00+02:00`);
+export function cairoTodayMidnightMs(now: number = Date.now()): number {
+  const todayStr = new Date(now).toLocaleDateString("en-CA", { timeZone: CAIRO_TZ });
+  const [year, month, day] = todayStr.split("-").map(Number);
+  const utcGuess = Date.UTC(year!, month! - 1, day!);
+  // The offset at the candidate instant, corrected once: the switch happens
+  // at local midnight, so the first guess can sit one offset away on a
+  // transition day.
+  const firstPass = utcGuess - cairoOffsetMs(utcGuess);
+  return utcGuess - cairoOffsetMs(firstPass);
 }
 
 /**
