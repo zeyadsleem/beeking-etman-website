@@ -24,7 +24,7 @@
   <Dialog.Portal>
     <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
     <Dialog.Content
-      class="fixed inset-y-0 start-0 z-50 flex w-80 max-w-[85vw] flex-col border-e border-cocoa-100 bg-parchment shadow-warm-lg focus:outline-none"
+      class="fixed inset-y-0 end-0 z-50 flex w-[88vw] max-w-[24rem] flex-col border-s border-cocoa-100 bg-parchment shadow-warm-lg focus:outline-none sm:w-96 sm:max-w-none lg:w-[27rem]"
       data-testid="cart-drawer"
     >
       <header class="flex items-center justify-between border-b border-cocoa-200 bg-parchment px-4 py-3">

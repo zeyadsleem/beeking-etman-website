@@ -21,6 +21,45 @@ for (const lang of ["en", "ar"]) {
   });
 }
 
+for (const lang of ["en", "ar"]) {
+  test(`${lang} cart drawer opens from the cart button side`, async ({ page }) => {
+    await page.request.post(`/api/lang?lang=${lang}`);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/");
+    const cartButton = page.getByRole("button", {
+      name: lang === "en" ? "Open cart" : "فتح سلة التسوق",
+    });
+    const buttonBox = await cartButton.boundingBox();
+    await cartButton.click();
+    const drawer = page.getByTestId("cart-drawer");
+    await expect(drawer).toBeVisible();
+    const drawerBox = await drawer.boundingBox();
+    expect(buttonBox).not.toBeNull();
+    expect(drawerBox).not.toBeNull();
+    if (!buttonBox || !drawerBox) return;
+    const onLeftHalf = (box: { x: number; width: number }) => box.x + box.width / 2 < 1280 / 2;
+    expect(onLeftHalf(drawerBox)).toBe(onLeftHalf(buttonBox));
+    expect(drawerBox.width).toBeGreaterThanOrEqual(400);
+    await page.keyboard.press("Escape");
+    await expect(drawer).not.toBeVisible();
+  });
+
+  test(`${lang} cart drawer is wider on mobile`, async ({ page }) => {
+    await page.request.post(`/api/lang?lang=${lang}`);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page
+      .getByRole("button", { name: lang === "en" ? "Open cart" : "فتح سلة التسوق" })
+      .click();
+    const drawer = page.getByTestId("cart-drawer");
+    await expect(drawer).toBeVisible();
+    const drawerBox = await drawer.boundingBox();
+    expect(drawerBox).not.toBeNull();
+    if (!drawerBox) return;
+    expect(drawerBox.width).toBeGreaterThanOrEqual(390 * 0.86);
+  });
+}
+
 for (const [lang, edge] of [
   ["en", "right"],
   ["ar", "left"],
