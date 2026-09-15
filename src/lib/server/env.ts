@@ -34,10 +34,16 @@ export function validateProductionEnv(vars: Record<string, string | undefined>):
   }
   if (!vars.ORIGIN) throw new Error("ORIGIN is not set (required in production)");
   // A typo'd ORIGIN silently changes the Better Auth base URL and the host in
-  // password-reset links, so require an absolute https URL (T10).
+  // password-reset links, so require an absolute https URL (T10). Loopback
+  // over plain HTTP is allowed for the local preview and the e2e suite
+  // (scripts/e2e-setup.mjs sets ORIGIN=http://localhost:<port>).
   let originOk = false;
   try {
-    originOk = new URL(vars.ORIGIN).protocol === "https:";
+    const origin = new URL(vars.ORIGIN);
+    originOk =
+      origin.protocol === "https:" ||
+      (origin.protocol === "http:" &&
+        (origin.hostname === "localhost" || origin.hostname === "127.0.0.1"));
   } catch {
     originOk = false;
   }

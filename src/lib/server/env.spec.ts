@@ -53,6 +53,15 @@ describe("validateProductionEnv required vars", () => {
       validateProductionEnv(productionVars({ ORIGIN: "http://beeking-etman-website.pages.dev" })),
     ).toThrow(/ORIGIN must be an absolute https URL/);
   });
+
+  it("accepts an http loopback origin used by the local preview and e2e", () => {
+    expect(() =>
+      validateProductionEnv(productionVars({ ORIGIN: "http://localhost:4173" })),
+    ).not.toThrow();
+    expect(() =>
+      validateProductionEnv(productionVars({ ORIGIN: "http://127.0.0.1:4173" })),
+    ).not.toThrow();
+  });
 });
 
 describe("validateProductionEnv optional ADMIN_EMAIL", () => {
