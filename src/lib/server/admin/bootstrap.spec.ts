@@ -41,6 +41,7 @@ async function seedUser(
   db: Awaited<ReturnType<typeof buildDb>>,
   email: string,
   role: string | null = "user",
+  emailVerified = true,
 ): Promise<string> {
   const id = crypto.randomUUID();
   await db.insert(schema.user).values({
@@ -48,6 +49,7 @@ async function seedUser(
     name: "Owner",
     email,
     role,
+    emailVerified,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -106,5 +108,17 @@ describe("promoteAdminByEmail", () => {
     );
     expect(promoted).toBe(false);
     expect(await db.select().from(schema.user).get()).toBeUndefined();
+  });
+
+  it("refuses to promote an unverified email (T1)", async () => {
+    await seedUser(db, "owner@beeking.com", "user", false);
+    const promoted = await promoteAdminByEmail(
+      db,
+      "owner@beeking.com",
+      adminEnv("owner@beeking.com"),
+    );
+    expect(promoted).toBe(false);
+    const row = await db.select().from(schema.user).get();
+    expect(row?.role).toBe("user");
   });
 });

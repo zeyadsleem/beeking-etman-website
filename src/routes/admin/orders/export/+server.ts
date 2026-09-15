@@ -5,6 +5,7 @@ import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
 import { parseOrderStatus } from "$lib/server/admin/orders";
 import { isAdminRole } from "$lib/server/admin/roles";
+import { csvCell } from "$lib/server/csv";
 
 const CAIRO_TZ = "Africa/Cairo";
 
@@ -21,13 +22,6 @@ function cairoDateTime(ms: number): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function csvEscape(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n") || value.includes("\r")) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
 }
 
 export const GET: RequestHandler = async (event) => {
@@ -105,7 +99,7 @@ export const GET: RequestHandler = async (event) => {
     String(itemCounts.get(order.id) ?? 0),
   ]);
 
-  const csv = BOM + [header.join(","), ...rows.map((r) => r.map(csvEscape).join(","))].join("\r\n");
+  const csv = BOM + [header.join(","), ...rows.map((r) => r.map(csvCell).join(","))].join("\r\n");
 
   const today = cairoDate(Date.now());
   const filename = `orders-${today}.csv`;

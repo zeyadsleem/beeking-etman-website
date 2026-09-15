@@ -21,6 +21,9 @@ export const load: PageServerLoad = (event) => {
 export const actions: Actions = {
   changePassword: async (event) => {
     const lang = getLang(event);
+    // Defense-in-depth: layout guards do not cover POSTs, so the action
+    // re-checks the session before touching Better Auth.
+    if (!event.locals.user) redirect(302, loginRedirectPath(event.url));
     if (!(await accountLimiter.allow(`acct:${clientAddressKey(event)}`))) {
       return fail(429, { passwordError: t(lang, "errors.tooManyAttempts") });
     }

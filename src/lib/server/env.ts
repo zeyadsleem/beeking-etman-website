@@ -33,6 +33,17 @@ export function validateProductionEnv(vars: Record<string, string | undefined>):
     );
   }
   if (!vars.ORIGIN) throw new Error("ORIGIN is not set (required in production)");
+  // A typo'd ORIGIN silently changes the Better Auth base URL and the host in
+  // password-reset links, so require an absolute https URL (T10).
+  let originOk = false;
+  try {
+    originOk = new URL(vars.ORIGIN).protocol === "https:";
+  } catch {
+    originOk = false;
+  }
+  if (!originOk) {
+    throw new Error("ORIGIN must be an absolute https URL in production");
+  }
   // Bootstrap admin promotion compares this against sign-in emails; a typo'd
   // value would silently never promote anyone, so fail fast instead.
   const adminEmail = vars.ADMIN_EMAIL;

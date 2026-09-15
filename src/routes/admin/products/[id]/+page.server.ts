@@ -136,7 +136,8 @@ export const actions: Actions = {
       }
       url = upload.url;
     } else if (pastedUrl !== "") {
-      const parsed = z.string().url().safeParse(pastedUrl);
+      // https-only (M4-6): http, data, and javascript: URLs never reach the gallery.
+      const parsed = z.string().url().startsWith("https://").safeParse(pastedUrl);
       if (!parsed.success) return fail(400, { message: t(lang, "errors.unexpected") });
       url = parsed.data;
     } else {

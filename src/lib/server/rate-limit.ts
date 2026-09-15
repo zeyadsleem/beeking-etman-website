@@ -9,6 +9,9 @@ const GLOBAL_PRUNE_WINDOW_MS = 2 * 60 * 60 * 1000;
 export const AUTH_RATE_LIMITS = {
   login: { windowMs: 60_000, max: 10 },
   register: { windowMs: 3_600_000, max: 5 },
+  // Password-reset requests were unthrottled (T3): each one writes D1 rows
+  // and, once email is live, sends a message.
+  reset: { windowMs: 3_600_000, max: 3 },
 } as const;
 
 export interface DbRateLimiter {

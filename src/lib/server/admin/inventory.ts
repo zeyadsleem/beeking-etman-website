@@ -118,10 +118,12 @@ export async function listStockAlerts(
     .limit(200);
 
   const seenLowBatches = new Set<string>();
+  const lowBatchIds = new Set<string>();
   for (const row of batchRows) {
     const low = row.quantityKg <= row.initialQuantityKg * BATCH_LOW_SHARE;
     seenLowBatches.add(row.id);
     if (low) {
+      lowBatchIds.add(row.id);
       alerts.push({
         id: row.id,
         kind: "low_batch",
@@ -143,6 +145,7 @@ export async function listStockAlerts(
   for (const row of lowBatchRows) {
     if (seenLowBatches.has(row.id)) continue;
     if (row.quantityKg <= row.initialQuantityKg * BATCH_LOW_SHARE) {
+      lowBatchIds.add(row.id);
       alerts.push({
         id: row.id,
         kind: "low_batch",
@@ -177,7 +180,9 @@ export async function listStockAlerts(
     alerts,
     counts: {
       lowVariant: lowVariants.length,
-      lowBatch: seenLowBatches.size,
+      // Count low batches specifically — seenLowBatches tracks every expiring
+      // batch, so using its size inflated the badge with non-low batches.
+      lowBatch: lowBatchIds.size,
       expiringBatch: batchRows.length,
       lowMaterial: lowMaterials.length,
     },

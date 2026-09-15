@@ -52,6 +52,31 @@ describe("checkoutSchema payment fields", () => {
   });
 });
 
+describe("checkoutSchema field bounds", () => {
+  it("rejects an oversized address", () => {
+    const result = checkoutSchema.safeParse({ ...base, address: "ا".repeat(201) });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an oversized name", () => {
+    const result = checkoutSchema.safeParse({ ...base, name: "ا".repeat(81) });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an oversized city", () => {
+    const result = checkoutSchema.safeParse({ ...base, city: "ا".repeat(61) });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an oversized email", () => {
+    const result = checkoutSchema.safeParse({
+      ...base,
+      email: `${"a".repeat(250)}@example.com`,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("formatZodErrors nonce", () => {
   it("surfaces the nonce message when the nonce is not a UUID", () => {
     const result = checkoutSchema.safeParse({ ...base, nonce: "not-a-uuid" });

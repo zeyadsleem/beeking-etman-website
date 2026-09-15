@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 
@@ -18,10 +18,14 @@ export async function promoteAdminByEmail(
   env: AdminEnv,
 ): Promise<boolean> {
   if (!isAdminEmail(email, env)) return false;
+  // Promote only verified owners (T1): without this, anyone who registers the
+  // ADMIN_EMAIL address before the operator would gain permanent admin.
   const result = await db
     .update(schema.user)
     .set({ role: "admin" })
-    .where(eq(schema.user.email, email.trim().toLowerCase()))
+    .where(
+      and(eq(schema.user.email, email.trim().toLowerCase()), eq(schema.user.emailVerified, true)),
+    )
     .run();
   return result.rowsAffected > 0;
 }

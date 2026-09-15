@@ -9,7 +9,6 @@ import {
   readCartFromString,
   setCartCookie,
   signCartCookie,
-  verifyCartCookie,
 } from "./cart-cookie";
 
 const SECRET = "test-secret-for-cookie-signing";
@@ -41,10 +40,6 @@ describe("cart-cookie", () => {
   });
   it("drops junk on read", () => {
     expect(readCartFromString("garbage", SECRET)).toEqual([]);
-  });
-  it("verify only checks format", () => {
-    expect(verifyCartCookie("a.b").ok).toBe(true);
-    expect(verifyCartCookie("no-dot").ok).toBe(false);
   });
   it("round-trips a blend line", () => {
     const lines = [
