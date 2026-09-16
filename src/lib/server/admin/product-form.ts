@@ -84,7 +84,8 @@ export function priceToQirsh(raw: string): number | null {
 function pastedUrlOrEmpty(form: FormData): string | null {
   const pasted = stringField(form, "imageUrl").trim();
   if (pasted === "") return "";
-  return z.string().url().safeParse(pasted).success ? pasted : null;
+  // https-only (M4-6): http, data, and javascript: URLs never reach storage.
+  return z.string().url().startsWith("https://").safeParse(pasted).success ? pasted : null;
 }
 
 export type ProductFormResult =

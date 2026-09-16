@@ -813,6 +813,16 @@ function buildAllProducts(): SeedProduct[] {
 // ---------------------------------------------------------------------------
 
 async function seed(): Promise<void> {
+  // Orders are sacred — never seed a database that already holds one. The
+  // truncate below clears ORDER ITEMS (and catalog rows), which would orphan
+  // live orders if this ran against a production URL.
+  const [orderCount] = await db.select({ count: sql<number>`count(*)` }).from(schema.order);
+  if (Number(orderCount?.count ?? 0) > 0) {
+    throw new Error(
+      "Refusing to seed: store_order already holds rows. Run seed only against an order-free database.",
+    );
+  }
+
   // Truncate child tables first (orders are sacred — never deleted).
   await db.delete(schema.orderItem);
   await db.delete(schema.productVariant);

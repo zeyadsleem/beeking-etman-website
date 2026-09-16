@@ -95,6 +95,15 @@ export const actions: Actions = {
     if (!(raw instanceof File) || raw.size === 0)
       return fail(400, { message: t(lang, "errors.unexpected") });
 
+    // Check the product before uploading: a vanished product must not leave
+    // an orphan KV blob behind the 404 (M1).
+    const existing = await db
+      .select({ id: schema.product.id })
+      .from(schema.product)
+      .where(eq(schema.product.id, event.params.id))
+      .get();
+    if (!existing) return fail(404, { message: t(lang, "errors.unexpected") });
+
     const platform = event.platform;
     if (!platform) return fail(503, { message: t(lang, "errors.storageUnavailable") });
     const upload = await saveProductImage(platform.env.MEDIA, raw);
@@ -102,13 +111,6 @@ export const actions: Actions = {
       const failure = productFormFailure(upload.reason);
       return fail(failure.status, { message: t(lang, failure.messageKey) });
     }
-
-    const existing = await db
-      .select({ id: schema.product.id })
-      .from(schema.product)
-      .where(eq(schema.product.id, event.params.id))
-      .get();
-    if (!existing) return fail(404, { message: t(lang, "errors.unexpected") });
 
     await setCoverUrl(db, event.params.id, upload.url);
     return { uploaded: t(lang, "admin.products.uploadedImage") };
@@ -136,7 +138,8 @@ export const actions: Actions = {
       }
       url = upload.url;
     } else if (pastedUrl !== "") {
-      const parsed = z.string().url().safeParse(pastedUrl);
+      // https-only (M4-6): http, data, and javascript: URLs never reach the gallery.
+      const parsed = z.string().url().startsWith("https://").safeParse(pastedUrl);
       if (!parsed.success) return fail(400, { message: t(lang, "errors.unexpected") });
       url = parsed.data;
     } else {
@@ -200,6 +203,14 @@ export const actions: Actions = {
     const result = await reorderProductImages(db, event.params.id, orderedIds);
     if (!result.ok) return fail(400, { message: t(lang, "errors.unexpected") });
 
+    logAdminAction(db, {
+      action: "product.gallery_reorder",
+      targetType: "product",
+      targetId: event.params.id,
+      details: { count: orderedIds.length },
+      userId: event.locals.user?.id,
+    });
+
     return { galleryOrdered: t(lang, "admin.products.galleryOrderSaved") };
   },
 
@@ -224,6 +235,13 @@ export const actions: Actions = {
         return fail(409, { message: t(lang, "admin.products.variantNameTaken") });
       return fail(404, { message: t(lang, "errors.unexpected") });
     }
+    logAdminAction(db, {
+      action: "product.variant_save",
+      targetType: "product",
+      targetId: event.params.id,
+      details: { variantId: result.id },
+      userId: event.locals.user?.id,
+    });
     return { variantSaved: t(lang, "admin.products.variantSaved") };
   },
 
@@ -248,6 +266,13 @@ export const actions: Actions = {
       });
     }
     if (!result.ok) return fail(404, { message: t(lang, "errors.unexpected") });
+    logAdminAction(db, {
+      action: "product.variant_delete",
+      targetType: "product",
+      targetId: event.params.id,
+      details: { variantId: id },
+      userId: event.locals.user?.id,
+    });
     return { variantDeleted: t(lang, "admin.products.variantDeleted") };
   },
 };

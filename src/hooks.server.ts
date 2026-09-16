@@ -14,10 +14,15 @@ import { svelteKitHandler } from "better-auth/svelte-kit";
 // share one bucket per endpoint (login 10/60s, register 5/1h).
 const loginLimiter = createDbRateLimiter(db, AUTH_RATE_LIMITS.login);
 const registerLimiter = createDbRateLimiter(db, AUTH_RATE_LIMITS.register);
+const resetLimiter = createDbRateLimiter(db, AUTH_RATE_LIMITS.reset);
 
 const AUTH_RATE_LIMITED_PATHS = new Map<string, (ip: string) => Promise<boolean>>([
   ["/sign-in/email", (ip) => loginLimiter.allow(`login:${ip}`)],
   ["/sign-up/email", (ip) => registerLimiter.allow(`register:${ip}`)],
+  // Both path names are mapped because the endpoint has been renamed across
+  // Better Auth versions; whichever path the runtime serves is throttled (T3).
+  ["/request-password-reset", (ip) => resetLimiter.allow(`reset:${ip}`)],
+  ["/forget-password", (ip) => resetLimiter.allow(`reset:${ip}`)],
 ]);
 
 const handleBetterAuth: Handle = async ({ event, resolve }) => {

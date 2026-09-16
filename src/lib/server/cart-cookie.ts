@@ -59,11 +59,6 @@ export function signCartCookie(secret: string, lines: CartEntry[]): string {
   return `${body}.${sign(secret, body)}`;
 }
 
-export function verifyCartCookie(raw: string): { ok: boolean } {
-  const { body, sig } = splitPayload(raw);
-  return { ok: body.length > 0 && sig.length > 0 };
-}
-
 export function readCartFromString(raw: string, secret: string): CartEntry[] {
   const { body, sig } = splitPayload(raw);
   if (!body || !sig) return [];
