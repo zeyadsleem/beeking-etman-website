@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { Cookies } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 import { actions, load } from "./+page.server";
 import { createOrder } from "$lib/server/orders";
 import { createAddress } from "$lib/server/addresses";
 import { sendOrderConfirmation } from "$lib/server/email";
 import { readOrderAccessCookie } from "$lib/server/order-access";
-import { readCartCookie, setCartCookie } from "$lib/server/cart-cookie";
+import { getCartSecret, readCartCookie, setCartCookie } from "$lib/server/cart-cookie";
 
 vi.mock("$env/dynamic/private", () => ({
   env: { ORDER_ACCESS_SECRET: "secret", BETTER_AUTH_SECRET: "cart-secret" },
 }));
+
+// The signing key is derived from the auth secret (T12), so the spec signs
+// and reads through the same resolver the app uses instead of a literal.
+const CART_SECRET = getCartSecret(env);
 vi.mock("$lib/server/db", () => ({ db: {} }));
 vi.mock("$lib/server/orders", () => ({ createOrder: vi.fn() }));
 vi.mock("$lib/server/addresses", () => ({
@@ -62,7 +67,7 @@ function event(cookies: Cookies, nonce: string = crypto.randomUUID()) {
 }
 
 async function checkout(cookies: Cookies): Promise<string> {
-  setCartCookie(cookies, "cart-secret", [{ variantId: "variant", quantity: 1 }]);
+  setCartCookie(cookies, CART_SECRET, [{ variantId: "variant", quantity: 1 }]);
   const data = await load(event(cookies) as unknown as Parameters<typeof load>[0]);
   return (data as { nonce: string }).nonce;
 }
@@ -115,14 +120,14 @@ describe("checkout nonce ownership", () => {
       total: 100,
     });
     const newCart = [{ variantId: "new-variant", quantity: 2 }];
-    setCartCookie(cookies, "cart-secret", newCart);
+    setCartCookie(cookies, CART_SECRET, newCart);
     const submission = event(cookies, nonce);
     submission.locals.user = { id: "user-id" } as App.Locals["user"];
     await expect(actions.submit(submission)).rejects.toMatchObject({
       status: 303,
       location: "/checkout/success/order-id?replayed=1",
     });
-    expect(readCartCookie(cookies, "cart-secret")).toEqual(newCart);
+    expect(readCartCookie(cookies, CART_SECRET)).toEqual(newCart);
     expect(createAddress).not.toHaveBeenCalled();
     expect(sendOrderConfirmation).not.toHaveBeenCalled();
     expect(await readOrderAccessCookie(cookies, "order-id", "secret")).toBe(true);
@@ -137,7 +142,7 @@ describe("checkout nonce ownership", () => {
       status: 303,
       location: "/checkout/success/order-id",
     });
-    expect(readCartCookie(cookies, "cart-secret")).toEqual([]);
+    expect(readCartCookie(cookies, CART_SECRET)).toEqual([]);
     expect(createAddress).toHaveBeenCalledTimes(1);
     expect(sendOrderConfirmation).toHaveBeenCalledTimes(1);
   });

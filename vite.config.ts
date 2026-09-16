@@ -55,6 +55,14 @@ export default defineConfig({
           include: ["src/**/*.{test,spec}.{js,ts}"],
           exclude: ["src/**/*.svelte.{test,spec}.{js,ts}"],
           testTimeout: 15_000,
+          // The suite runs many SQLite-backed specs in parallel. A full run
+          // produced hook timeouts under load while every file passed in
+          // isolation (review finding F1). Give DB-heavy hooks headroom and
+          // cap the worker count so contention stays bounded. Vitest 4 needs
+          // a unique groupOrder when projects differ in maxWorkers.
+          hookTimeout: 60_000,
+          maxWorkers: 4,
+          sequence: { groupOrder: 1 },
         },
       },
     ],

@@ -14,6 +14,13 @@ function sign(secret: string, body: string): string {
   return createHmac("sha256", secret).update(body).digest("base64url");
 }
 
+// Domain-separated fallback key so the raw auth secret is not used directly
+// for cart signatures (T12). Full closure sets CART_SIGNING_SECRET; until
+// then the derived key at least separates the two signing domains.
+function deriveCartKey(secret: string): string {
+  return createHmac("sha256", secret).update("beeking:cart-signing:v1").digest("base64url");
+}
+
 function splitPayload(raw: string): { body: string; sig: string } {
   const dot = raw.indexOf(".");
   if (dot <= 0 || dot === raw.length - 1) return { body: "", sig: "" };
@@ -95,7 +102,8 @@ export function clearCartCookie(cookies: Cookies): void {
 }
 
 export function getCartSecret(env: typeof import("$env/dynamic/private").env): string {
-  if (env.BETTER_AUTH_SECRET) return env.BETTER_AUTH_SECRET;
+  if (env.CART_SIGNING_SECRET) return env.CART_SIGNING_SECRET;
+  if (env.BETTER_AUTH_SECRET) return deriveCartKey(env.BETTER_AUTH_SECRET);
   if (dev) return "dev-cart-signing-secret";
   throw new Error("BETTER_AUTH_SECRET is required to sign the cart cookie");
 }
