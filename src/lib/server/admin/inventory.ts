@@ -618,7 +618,20 @@ export async function completeTransfer(
         ]);
       }
     } catch (error) {
-      console.error("[completeTransfer] status completed but movement rows failed", {
+      // Compensate so a completed transfer never lacks its movement trail:
+      // reopen the transfer for a retry before surfacing the failure (M2).
+      try {
+        await db
+          .update(schema.transfer)
+          .set({ status: from, completedAt: null })
+          .where(and(eq(schema.transfer.id, transferId), eq(schema.transfer.status, "completed")));
+      } catch (revertError) {
+        console.error(
+          "[completeTransfer] compensation failed; transfer is completed without movement rows",
+          { transferId, error: revertError },
+        );
+      }
+      console.error("[completeTransfer] movement rows failed; transfer reopened", {
         transferId,
         error,
       });

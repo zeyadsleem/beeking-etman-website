@@ -32,6 +32,14 @@ export function validateProductionEnv(vars: Record<string, string | undefined>):
       `ORDER_ACCESS_SECRET must be at least ${MIN_SECRET_LENGTH} characters in production`,
     );
   }
+  // Optional dedicated cart-signing key (T12). When present it must be
+  // strong like the other secrets.
+  const cartSecret = vars.CART_SIGNING_SECRET;
+  if (cartSecret !== undefined && cartSecret.length < MIN_SECRET_LENGTH) {
+    throw new Error(
+      `CART_SIGNING_SECRET must be at least ${MIN_SECRET_LENGTH} characters when set`,
+    );
+  }
   if (!vars.ORIGIN) throw new Error("ORIGIN is not set (required in production)");
   // A typo'd ORIGIN silently changes the Better Auth base URL and the host in
   // password-reset links, so require an absolute https URL (T10). Loopback

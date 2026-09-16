@@ -5,6 +5,7 @@ import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
 import { parseOrderStatus } from "$lib/server/admin/orders";
 import { isAdminRole } from "$lib/server/admin/roles";
+import { logAdminAction } from "$lib/server/admin/audit";
 import { csvCell } from "$lib/server/csv";
 
 const CAIRO_TZ = "Africa/Cairo";
@@ -65,6 +66,16 @@ export const GET: RequestHandler = async (event) => {
     .groupBy(schema.orderItem.orderId);
 
   const itemCounts = new Map(itemCountRows.map((r) => [r.orderId, Number(r.count)]));
+
+  // Read-side audit (T7): exports leave the system with order PII, so the
+  // actor and the filter are recorded. Best-effort like every audit write.
+  logAdminAction(db, {
+    action: "order.export",
+    targetType: "order",
+    targetId: statusFilter ?? "all",
+    details: { status: statusFilter ?? "all", count: orders.length },
+    userId: event.locals.user?.id,
+  });
 
   // BOM for Excel UTF-8 compatibility
   const BOM = "\uFEFF";

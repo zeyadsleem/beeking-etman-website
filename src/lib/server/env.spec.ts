@@ -64,6 +64,20 @@ describe("validateProductionEnv required vars", () => {
   });
 });
 
+describe("validateProductionEnv optional CART_SIGNING_SECRET", () => {
+  it("accepts a dedicated cart signing secret of sufficient length", () => {
+    expect(() =>
+      validateProductionEnv(productionVars({ CART_SIGNING_SECRET: "c".repeat(32) })),
+    ).not.toThrow();
+  });
+
+  it("rejects a short dedicated cart signing secret", () => {
+    expect(() => validateProductionEnv(productionVars({ CART_SIGNING_SECRET: "short" }))).toThrow(
+      /CART_SIGNING_SECRET/,
+    );
+  });
+});
+
 describe("validateProductionEnv optional ADMIN_EMAIL", () => {
   it("accepts a plausible email address", () => {
     expect(() =>
