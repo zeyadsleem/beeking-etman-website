@@ -1,10 +1,10 @@
 # Program Task Board — Commerce Platform
 
 **Project:** beeking-etman-website (SvelteKit 2 + Svelte 5 runes, Cloudflare Pages + D1 + KV, Drizzle, Better Auth)
-**Date:** 2026-09-13
+**Date:** 2026-09-13; amended 2026-09-17 (AgDR-0001, AgDR-0002).
 **Status:** M0 not started; all phases below not started. Baseline verified 2026-09-13: 191 products / 0 orders / 0 notifications in production D1.
-**Roadmap:** [Commerce Platform Program Roadmap](superpowers/specs/2026-09-13-commerce-platform-roadmap-design.md) — authoritative for phase order, migration numbers, file ownership, and sequencing. Companion specs: EM, PAY, DI, OPS, COM, I18N (see phase headers).
-**Phase order:** M0 production correctness → M1 real payments → M2 commerce core (COM W0) → M3 commerce parity (COM W1/W2) → M4 admin parity → M5 reliability → M6 performance & cost; Phase 6 polish is a spec-gated backlog.
+**Roadmap:** [Commerce Platform Program Roadmap](superpowers/specs/2026-09-13-commerce-platform-roadmap-design.md) — authoritative for phase order, migration numbers, file ownership, and sequencing. Companion specs: EM, MS, DI, OPS, COM, I18N (see phase headers). PAY is deferred to phase 2.
+**Phase order:** M0 production correctness → M1 manual settlement + launch catalog → M2 commerce core (COM W0) → M3 commerce parity (COM W1/W2) → M4 admin parity → M5 reliability → M6 performance & cost; Phase 6 polish is a spec-gated backlog.
 
 **How to use this board.** One phase in flight; a phase starts only after its predecessor's exit
 gate is recorded. Per task: read the cited spec, write a plan in `docs/superpowers/plans/`,
@@ -17,16 +17,16 @@ this board carries IDs, status, and essential dependency notes.
 
 ## Frozen migration allocation (roadmap §3.1)
 
-| #      | File                                             | Owner      | Constraint                                                                                                                                   |
-| ------ | ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0018   | `0018_email_delivery.sql`                        | EM         | First. Outbox rebuild (`attempt_count`, `next_attempt_at`, `last_error`, `provider_message_id`, `locked_at`) + indexes.                      |
-| 0019   | `0019_payments.sql`                              | PAY        | After 0018. Order/payment schema, events, refunds, status vocabulary, triggers.                                                              |
-| 0020   | `0020_email_verified_backfill.sql`               | OPS        | After 0018. Backfill only; requires the verification deploy already live (OPS-19).                                                           |
-| 0021   | `0021_order_status_default.sql`                  | DI (D1)    | Only if payments are not yet applied; otherwise folded into PAY's 0019 rebuild (C2). Never two `store_order` rebuilds in one release window. |
-| 0022   | `0022_inventory_integrity.sql`                   | DI (D2)    | Independent of payments.                                                                                                                     |
-| 0023   | `0023_drop_legacy_product_columns.sql`           | DI (D4)    | Drain-gated; only after old-instance drain evidence (OPS health SHA + canary).                                                               |
-| staged | `drizzle/staged/after_drain_status_backfill.sql` | DI (D3)    | Pre-payments only: `paid` → `placed` backfill. Superseded once PAY lands; never run post-PAY.                                                |
-| —      | COM / I18N migrations                            | COM / I18N | No numbers reserved. Each COM sub-spec takes the next free tag at implementation time; I18N has no migrations.                               |
+| #      | File                                             | Owner      | Constraint                                                                                                                                               |
+| ------ | ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0018   | `0018_email_delivery.sql`                        | EM         | First. Outbox rebuild (`attempt_count`, `next_attempt_at`, `last_error`, `provider_message_id`, `locked_at`) + indexes.                                  |
+| 0019   | `0019_settlement.sql`                            | MS         | After 0018. Order/payment schema, settlement events, hold deadline, status vocabulary, triggers. Number frozen; content reshaped 2026-09-17 (AgDR-0001). |
+| 0020   | `0020_email_verified_backfill.sql`               | OPS        | After 0018. Backfill only; requires the verification deploy already live (OPS-19).                                                                       |
+| 0021   | `0021_order_status_default.sql`                  | DI (D1)    | Only if settlement is not yet applied; otherwise folded into MS's 0019 rebuild (C2). Never two `store_order` rebuilds in one release window.             |
+| 0022   | `0022_inventory_integrity.sql`                   | DI (D2)    | Independent of settlement.                                                                                                                               |
+| 0023   | `0023_drop_legacy_product_columns.sql`           | DI (D4)    | Drain-gated; only after old-instance drain evidence (OPS health SHA + canary).                                                                           |
+| staged | `drizzle/staged/after_drain_status_backfill.sql` | DI (D3)    | Pre-settlement only: `paid` → `placed` backfill. Superseded once 0019 lands; never run after settlement.                                                 |
+| —      | COM / I18N migrations                            | COM / I18N | No numbers reserved. Each COM sub-spec takes the next free tag at implementation time; I18N has no migrations.                                           |
 
 Rules: never reuse a tag; never renumber after a file lands on `main`; confirm the next free index
 at generation time; hand-review generated SQL (`store_coupon`, `store_return`, `store_review` are
@@ -47,7 +47,7 @@ stale doc claims.
 - [ ] EM-1 — Schema + migration 0018 (outbox rebuild, columns, indexes, CHECK), schema mirror, replay spec (EM §9.1)
 - [ ] EM-2 — Provider adapter (`email-provider.ts`, Resend fetch impl, result mapping) + unit specs (EM §9.2; needs D01)
 - [ ] EM-3 — `outbox.ts` enqueue + `outbox-drain.ts` claim/lease/backoff/dead/park + libsql unit specs (EM §9.3; after 0018)
-- [ ] EM-4 — `workers/email-sender/` scaffold: wrangler cron (email + PAY entries), health endpoint, `scheduled()` drain + `runPaymentJobs` hook, tsconfig, `test:worker` (EM §9.4)
+- [ ] EM-4 — `workers/email-sender/` scaffold: wrangler cron (email + settlement entries), health endpoint, `scheduled()` drain + `runSettlementJobs` hook, tsconfig, `test:worker` (EM §9.4)
 - [ ] EM-5 — App rewiring: `sendOrderConfirmation`/`sendOrderStatusUpdate` enqueue-only; delete `flushOutbox`; spec updates; temporary flag shim (EM §9.5)
 - [ ] EM-6 — Password reset through the outbox in `auth.ts` + test (EM §9.6; after OPS-2)
 - [ ] EM-7 — Env validation (`EMAIL_FROM` fail, remove stale warnings) + `.dev.vars.example`/runbook (EM §9.7)
@@ -99,51 +99,55 @@ stale doc claims.
 after EM's outbox is live (C3); DI D2 runs independently; `ci.yml` edits (EM-8, OPS-6/7/11–14)
 land sequentially.
 
-## M1 — Real payments
+## M1 — Manual settlement + launch catalog
 
-**Goal:** Replace simulated payment with Paymob cards + Egyptian wallets; the webhook is sole truth.
-**Exit gate:** Sandbox card + wallet journeys complete; webhook HMAC-verified and idempotent;
-expiry/reconciliation live on the shared cron; one real refund exercised; manual mark-paid is
-guarded; `PAYMENTS_PROVIDER=simulated` refused in production.
+**Goal:** Record COD and manual transfer orders, verify payment by hand, hold stock with a deadline,
+and retire the blend studio so the catalog matches the shop's workflow (AgDR-0001, AgDR-0002).
+**Exit gate:** COD and transfer journeys complete; no customer path reaches `paid`; admin review
+queue + audit trail live; hold expiry releases stock exactly once; one full refund recorded;
+`/blends` redirects; ready-made blends purchasable; coverage reporting exists with a recorded floor.
 **Gate commands:** `vp check`; `vp test --run`; migration replay (0019; trigger + default tests);
-mock-Paymob e2e (`E2E_USE_BUILD=1`); Paymob sandbox checklist in the PR; `verify-production`.
+e2e suite (`E2E_USE_BUILD=1`); runbook go-live checklist in the PR; `verify-production`.
 
-### PAY — order lifecycle & payments (spec §9)
+### SET — order lifecycle & manual settlement (MS §9)
 
-- [ ] PAY-1 — Approve spec; ADR in `docs/decisions.md` + todo update (PAY §9 P1)
-- [ ] PAY-2 — Migration 0019 + snapshot + replay spec + the 8 spec DDL copies (PAY §9 P2; after 0018)
-- [ ] PAY-3 — Payment domain core (`lifecycle.ts`, `types.ts`): enums, aliases, transition guards, normalized apply (PAY §9 P3)
-- [ ] PAY-4 — Paymob adapter (`paymob.ts`): intention, auth token, inquiry, refund, HMAC verify (PAY §9 P4)
-- [ ] PAY-5 — Webhook route + `store_payment_event` idempotency + route tests (PAY §9 P5)
-- [ ] PAY-6 — Checkout integration: pending order + simulated adapter + pay redirect + copy (PAY §9 P6)
-- [ ] PAY-7 — Pay page + status endpoint + return handling + retry UX + rate limits (PAY §9 P7)
-- [ ] PAY-8 — Email triggers + copy split (remove blanket simulated line) + admin notify on payment (PAY §9 P8)
-- [ ] PAY-9 — Expiry release + reconciliation functions + wire into EM's Cron worker (PAY §9 P9; after EM-4 or its stub)
-- [ ] PAY-10 — Admin orders list: payment column/filter + export label updates (PAY §9 P10)
-- [ ] PAY-11 — Admin order detail: payment panel, `mark_paid`, refund, `cancel_refund` + audit (PAY §9 P11)
-- [ ] PAY-12 — Admin `/admin/payments` reconciliation view (PAY §9 P12)
-- [ ] PAY-13 — Env validation + `.dev.vars.example` + runbook/secret setup (PAY §9 P13)
-- [ ] PAY-14 — E2E: mock Paymob server + paid journey + webhook negative/replay tests (PAY §9 P14)
-- [ ] PAY-15 — Security review pass + fixes (HMAC, rate limits, logging redaction, IDOR) (PAY §9 P15)
-- [ ] PAY-16 — Paymob sandbox verification with owner credentials + go-live checklist (PAY §9 P16; needs Paymob blocker)
-- [ ] PAY-17 — Docs: architecture/data-model updates, runbook go-live/rollback, staged `placed`→`paid` cleanup (PAY §9 P17)
+- [ ] SET-1 — Approve spec; AgDR-0001 lands; roadmap/todo/decisions updates (MS §9 SET-1) — GH #4
+- [ ] SET-2 — Migration `0019_settlement` + schema defaults + snapshot + replay spec + DDL copies (MS §9 SET-2; after 0018) — GH #5
+- [ ] SET-3 — Settlement lifecycle core (`settlement/lifecycle.ts`, `types.ts`) + order/payment vocabulary rework across admin/i18n/email/export consumers (MS §9 SET-3) — GH #6
+- [ ] SET-4 — Checkout method selection (COD, InstaPay, wallet) + transfer instructions + claim flow (MS §9 SET-4) — GH #7
+- [ ] SET-5 — Success and order pages: order number, amount, claim form, WhatsApp CTA (MS §9 SET-5) — GH #8
+- [ ] SET-6 — Admin review queue, settlement panel, audited actions (verify, reject, refund, extend hold) (MS §9 SET-6) — GH #9
+- [ ] SET-7 — `runSettlementJobs` hold expiry + wire into EM's Cron worker or its stub (MS §9 SET-7; after EM-4 or its stub) — GH #10
+- [ ] SET-8 — Settlement email triggers + copy (MS §9 SET-8) — GH #11
+- [ ] SET-9 — E2E journeys: COD, transfer claim → verify, hold expiry, blend retirement (MS §9 SET-9) — GH #14
+- [ ] SET-10 — Coverage reporting + threshold for the settlement modules (MS §9 SET-10) — GH #14
+- [ ] SET-11 — Security review pass + fixes (claims untrusted, rate limits, PII masking, IDOR) (MS §9 SET-11) — GH #15
+- [ ] SET-12 — Docs truth pass: architecture, runbook, data model, go-live checklist (MS §9 SET-12) — GH #15
+
+### BLEND — retire the studio, sell ready-made blends (AgDR-0002)
+
+- [ ] BLEND-1 — Remove the studio: `/blends` routes, Phaser lab, blend lib, cart item kind, order expansion, navigation, i18n, tests (AgDR-0002) — GH #12
+- [ ] BLEND-2 — 301 `/blends` → blends category; sitemap update; SEO check (AgDR-0002) — GH #12
+- [ ] BLEND-3 — Ready-made blend products: weight variants, jar stock, ingredient text in descriptions, photos (AgDR-0002; owner data) — GH #13
+- [ ] BLEND-4 — Storefront + admin verification for blend products (AgDR-0002; SET-9 carries the purchase e2e) — GH #13
 
 ### DI — D1 fold + shared vocabulary (spec §9)
 
 - [ ] DI-1 — ADR + pre-flight checklist (production rows re-checked, boundaries acknowledged, frozen journal confirmed) (DI §9.1; gates D1)
-- [ ] DI-3 — D1: capture live `store_order` triggers, edit default + `check()`, fold into 0019 (or ship 0021 if PAY is not applied), sync 8 fixture DDLs (DI §9.3; C2)
+- [ ] DI-3 — D1: capture live `store_order` triggers, edit default + `check()`, fold into 0019 (or ship 0021 if settlement is not applied), sync 8 fixture DDLs (DI §9.3; C2)
 - [ ] DI-4 — Order error mapping + shared `stock_version` vocabulary; also closes the carried corrupt-status-logging and shared `STATUS_ORDER` items (DI §9.4)
 
-**M1 notes.** Payment triggers call the same `enqueueEmail`; OPS-21 output is consumed where payment
-flows touch account state; `PAYMOB_*` preflight extends OPS-7. Carried test gap: checkout-form
-page-component unit coverage (PAY-14 covers the journey end-to-end).
+**M1 notes.** Settlement triggers call the same `enqueueEmail`; OPS-21 output is consumed where
+settlement flows touch account state; the settlement env variables extend OPS-7 preflight. The
+deferred PAY task series moves to the Phase 2 backlog. Carried test gap: checkout-form
+page-component unit coverage (SET-9 covers the journey end-to-end).
 
 ## M2 — Commerce core (COM W0)
 
 **Goal:** Ship order-snapshot primitives that must exist before real orders accumulate; no money movement.
 **Exit gate:** Archived products invisible everywhere; SKU conflicts are typed admin errors;
 checkout shipping estimate matches the stored snapshot; tax math integer-exact; Cairo day
-boundaries correct across DST; no cash-on-delivery option anywhere.
+boundaries correct across DST; COD stays a checkout payment method, never a shipping method (MS §3.4).
 **Gate commands:** `vp check`; `vp test --run`; `vp run test:e2e`; migration replay; COM §4.2 W0 exit checklist.
 
 - [ ] COM-W0-1 — Variant `cost_price`/`sale_price`/`weight_grams` columns + `sku` partial unique index + migration + DDL copies (COM §7 3h-1)
@@ -165,21 +169,21 @@ boundaries correct across DST; no cash-on-delivery option anywhere.
 
 **Goal:** Reach WooCommerce-level capability once the money layer is trusted.
 **Exit gate:** Coupon apply/cap/exhausted/cancel-release e2e green; manual order reaches
-`pending_payment` and is marked paid only through the guarded path; every order/customer edit
+`pending_confirmation` and is marked paid only through the guarded path; every order/customer edit
 writes before/after audit rows; reviews gated by verified purchase + moderation; CSV dry-run makes
 zero writes and re-import is idempotent by SKU; partial return with damaged vs good quantities
 exercises refund + restock correctly.
 **Gate commands:** `vp check`; `vp test --run`; `vp run test:e2e`; per-area migration replays;
 COM §7 area checklists.
 
-### W1 — with/after payments schema (after 0019; 3h done)
+### W1 — with/after settlement schema (after 0019; 3h done)
 
 - [ ] COM-W1-1 — `store_coupon*` rebuild + redemption + snapshot columns + migration + DDL copies (COM §7 3a-1)
 - [ ] COM-W1-2 — Coupon resolve/validate/allocate service + typed errors + unit specs (COM §7 3a-2)
 - [ ] COM-W1-3 — Coupon preview endpoint + authoritative `createOrder` integration + idempotent redemption + i18n (COM §7 3a-3)
 - [ ] COM-W1-4 — `/admin/coupons` CRUD + redemption report/CSV + audit (COM §7 3a-4)
 - [ ] COM-W1-5 — Coupon e2e (apply, cap, exhausted, cancel release) + docs/ADR (COM §7 3a-5)
-- [ ] COM-W1-6 — Manual order creation + `source`/`created_by` + payment-link action + audit (COM §7 3g-4)
+- [ ] COM-W1-6 — Manual order creation + `source`/`created_by` + payment-method action (COD included) + audit (COM §7 3g-4)
 - [ ] COM-W1-7 — Order/customer edit + before/after audit + notes table + `AuditTargetType` extension (COM §7 3g-3)
 - [ ] COM-W1-8 — Review + rating tables rebuild, aggregate triggers + migration + DDL copies (COM §7 3e-1)
 - [ ] COM-W1-9 — Review submission + verified-buyer check + abuse controls + rate limits + i18n (COM §7 3e-2)
@@ -200,7 +204,7 @@ COM §7 area checklists.
 - [ ] COM-W2-8 — Delivery-evidence e2e (enqueue assertions per event) + docs (COM §7 3f-3)
 - [ ] COM-W2-9 — Stock adjustments service + `/admin/inventory/adjustments` + movement reason CHECK (COM §7 3g-2; may land earlier with DI/COM W0)
 
-**M3 boundaries.** Returns never precede working refunds; no COD anywhere; reason codes are COM-owned and read by PAY refund/audit surfaces.
+**M3 boundaries.** Returns never precede working refunds; reason codes are COM-owned and read by the settlement refund and audit surfaces.
 
 ## M4 — Admin parity
 
@@ -233,7 +237,7 @@ worker deploy/rollback, secret rotation, backup/restore, incident triage.
 
 - [ ] M5-1 — Notification matrix verification: every event enqueues through EM's outbox; zero unowned rows (Roadmap §4.6; COM-3f-2/3)
 - [ ] M5-2 — Dead-letter operations: `/admin/emails` resend/retry-all with audit; dead rows alerted; 30-day prune verified (Roadmap §4.6; EM-9/10)
-- [ ] M5-3 — Reconciliation monitoring: expiry/reconciliation counts logged; stuck manual payments surfaced; alert thresholds documented (Roadmap §4.6; PAY-9/12)
+- [ ] M5-3 — Settlement monitoring: expiry counts + review-queue counters logged; unreviewed claims surfaced; alert thresholds documented (Roadmap §4.6; SET-7/SET-6)
 - [ ] M5-4 — Backup/restore rehearsal: local drill, encrypted off-repo baseline, manifest hashes, Time Travel bookmark (Roadmap §4.6; OPS-16)
 - [ ] M5-5 — Alert drill: two-consecutive-failure fire + recovery proof (Roadmap §4.6; OPS-18)
 - [ ] M5-6 — Runbook close-out: worker deploy/rollback, secret rotation, backup/restore, incident triage (Roadmap §4.6)
@@ -269,21 +273,26 @@ before/after D1 metrics recorded in the close-out PR.
 **Wall-clock gated (post-drain evidence; not launch-blocking, R4):**
 
 - [ ] DI-13 — Catalog drop: after evidence, generate D4 (0023) + schema/exporter/d1-seed cleanup + grep gate + post-drop smoke (DI §9.13)
-- [ ] DI-14 — After-drain status backfill script + run (pre-payments only; once PAY lands verify PAY's `placed`→`paid` cleanup instead) (DI §9.14)
+- [ ] DI-14 — After-drain status backfill script + run (pre-settlement only; once 0019 lands verify the settlement `placed`/`paid` → `confirmed` alias cleanup instead) (DI §9.14)
 - [ ] DI-15 — Docs close-out: architecture (grams/units/authority), todo statuses incl. the stale legacy-column entry, ADR, cross-spec numbering notes (DI §9.15; after DI-3–14)
 
 **Deferred with spec:** OPS-23 — Sentry evaluation against the OPS §7.2 trigger (deferred; revisit after OPS-17).
+**Deferred to phase 2:** PAY P1–P17 — Paymob gateway (intention API, HMAC webhook, refunds ledger, reconciliation) per the frozen `2026-09-13-order-lifecycle-payments-design.md`. Returns only after the owner unblocks merchant onboarding (AgDR-0001; roadmap §4.2).
 
 **Phase 6 polish (each needs its own spec + plan; roadmap §4.7):**
 
 - [ ] PostHog analytics: wiring, event taxonomy/funnel (old board Phase 2; COM §1.4 places it here)
 - [ ] Invoice PDF export (COM §1.4 deferral)
-- [ ] Blends: hand-drawn art pack, `/blends` SEO fallback after I18N-5, multi-jar cart merge, owner-editable benefit texts
-- [ ] Native-speaker pass on Arabic copy added across EM/PAY/COM/I18N
+- [ ] Blends catalog: category landing copy + product photography pack (the studio is retired; AgDR-0002)
+- [ ] Native-speaker pass on Arabic copy added across EM/MS/COM/I18N
 
 ## Business blockers (owner actions)
 
-- [ ] **[OWNER]** Paymob merchant onboarding: KYB/approval, sandbox + production keys, HMAC secret, integration IDs — gates M1 launch (Paymob §3.3, P16; roadmap §6)
+- [ ] **[OWNER]** Settlement accounts: receiving InstaPay address + Vodafone Cash wallet number — gates the transfer instructions and M1 launch (MS §3.8; roadmap §6)
+- [ ] **[OWNER]** WhatsApp number for the customer CTA (MS §3.8, O4)
+- [ ] **[OWNER]** COD decision: offer it or not (`PAYMENTS_COD_ENABLED`) (MS §8, O1)
+- [ ] **[OWNER]** Ready-made blend product data: names, ingredients, weights, prices, stock, photos — gates BLEND-3 (AgDR-0002)
+- [ ] **[OWNER]** Paymob merchant onboarding: KYB/approval, sandbox + production keys, HMAC secret, integration IDs — phase 2 only; no longer gates M1 (AgDR-0001)
 - [ ] **[OWNER]** Sender domain + DNS: register a dedicated domain, SPF/DKIM/DMARC, Resend account + domain verification, `RESEND_API_KEY`, `ADMIN_NOTIFY_EMAILS` — gates EM-12 and M0's no-lost-email proof (EM §9 external)
 - [ ] **[OWNER]** Custom-domain decision — gates zone HSTS/Cache Rules, hreflang validation, and the M6 invocation-reduction half (OPS §7.4; I18N-12; D37)
 - [ ] **[OWNER]** VAT registration status — tax stays `active = 0` until confirmed (COM §6.1; COM-W0-10)
@@ -298,15 +307,17 @@ ADR and may change a plan, not a phase gate. Top blocking decisions:
 - [ ] D02 — Sender domain acquisition (recommended: dedicated domain verified before provider enable)
 - [ ] D28 — Default locale redirect (recommended: deterministic 301 → `/ar`; no negotiation)
 - [ ] D20 — Tax mode (recommended: inclusive `rate_bp = 1400`, `active = 0` until VAT confirmed)
-- [ ] D08 — Reservation timing (recommended: reserve at placement; 30-min expiry + 5-min grace)
-- [ ] D09 / D41 — Paymob checkout mode + CSP (recommended: redirect to Unified Checkout; no CSP change)
+- [ ] D08 — Reservation timing (recommended: reserve at placement; 24-h hold + 5-min grace, env-tunable)
+- [ ] D09 / D41 — Paymob checkout mode + CSP (deferred to phase 2 per AgDR-0001)
+- [ ] MS O1–O8 — Settlement configuration: COD on/off, hold window, no proof uploads, WhatsApp number source, hold extension (+24 h), full refunds only, COD capture at handover, env-configured receiving accounts (recommended defaults in MS §8)
 
 ## Archive
 
 **Shipped 2026-09-02 — storefront (commit `dd07776`).** Governorate shipping (7 zones,
 free-shipping threshold 600_00, `computeShipping`) + durable email outbox
 (`enqueueEmail`/`flushOutbox`, admin notify digests); i18n AR/EN keys; spec DDLs patched. Paymob
-was deferred at that point — superseded by this program (M1). See `docs/decisions.md` 2026-09-02.
+was deferred at that point. See `docs/decisions.md` 2026-09-02. The 2026-09-17 pivot (AgDR-0001)
+defers Paymob again and makes COD plus manual transfers the M1 settlement model.
 
 **Shipped 2026-09-09 — production-readiness pass.** Migration 0016 order hardening (trigger-owned
 stock, `stock_version`, `payment_status`, legacy `paid`→`placed` display) + 0017 catalog authority
