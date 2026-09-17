@@ -112,7 +112,7 @@ e2e suite (`E2E_USE_BUILD=1`); runbook go-live checklist in the PR; `verify-prod
 ### SET — order lifecycle & manual settlement (MS §9)
 
 - [ ] SET-1 — Approve spec; AgDR-0001 lands; roadmap/todo/decisions updates (MS §9 SET-1) — GH #4
-- [ ] SET-2 — Migration `0019_settlement` + schema defaults + snapshot + replay spec + DDL copies (MS §9 SET-2; after 0018) — GH #5
+- [x] SET-2 — Migration `0019_settlement` + schema defaults + snapshot + replay spec + DDL copies (MS §9 SET-2; after 0018) — GH #5
 - [ ] SET-3 — Settlement lifecycle core (`settlement/lifecycle.ts`, `types.ts`) + order/payment vocabulary rework across admin/i18n/email/export consumers (MS §9 SET-3) — GH #6
 - [ ] SET-4 — Checkout method selection (COD, InstaPay, wallet) + transfer instructions + claim flow (MS §9 SET-4) — GH #7
 - [ ] SET-5 — Success and order pages: order number, amount, claim form, WhatsApp CTA (MS §9 SET-5) — GH #8
@@ -134,7 +134,7 @@ e2e suite (`E2E_USE_BUILD=1`); runbook go-live checklist in the PR; `verify-prod
 ### DI — D1 fold + shared vocabulary (spec §9)
 
 - [ ] DI-1 — ADR + pre-flight checklist (production rows re-checked, boundaries acknowledged, frozen journal confirmed) (DI §9.1; gates D1)
-- [ ] DI-3 — D1: capture live `store_order` triggers, edit default + `check()`, fold into 0019 (or ship 0021 if settlement is not applied), sync 8 fixture DDLs (DI §9.3; C2)
+- [x] DI-3 — D1: capture live `store_order` triggers, edit default + `check()`, fold into 0019 (or ship 0021 if settlement is not applied), sync 8 fixture DDLs (DI §9.3; C2) — folded into 0019 by SET-2 (#5)
 - [ ] DI-4 — Order error mapping + shared `stock_version` vocabulary; also closes the carried corrupt-status-logging and shared `STATUS_ORDER` items (DI §9.4)
 
 **M1 notes.** Settlement triggers call the same `enqueueEmail`; OPS-21 output is consumed where

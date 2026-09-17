@@ -417,9 +417,11 @@ their readers; their drop is a drain-gated staged migration outside this spec's 
 ### 5.2 DB-backed specs and DDL copies
 
 - Trigger specs: reserve on insert, no restock for shipped/delivered cancellations, one restock per
-  cancellation, value-guard acceptance of legacy values.
-- DDL copies: the frozen spec files under `src/lib/server/db/spec-ddl/` gain the 0019 shape so
-  libsql specs run the real triggers.
+  cancellation, value-guard acceptance of legacy values. The migration replay test in
+  `src/lib/server/db/migration-replay.spec.ts` covers all of them against `0019_settlement.sql`.
+- DDL copies: the eight inline `store_order` fixture DDLs in the service and route specs carry the
+  0019 columns and defaults from this change. Trigger and CHECK parity in those fixtures lands with
+  the settlement behavior tests (SET-6, SET-7), which exercise them.
 
 ### 5.3 Migration replay
 

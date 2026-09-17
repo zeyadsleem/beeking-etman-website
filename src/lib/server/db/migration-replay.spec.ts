@@ -282,6 +282,153 @@ describe("0018_email_delivery migration replay", () => {
   });
 });
 
+describe("0019_settlement migration replay", () => {
+  it("rebuilds store_order, recreates triggers, and enforces the settlement vocabulary", async () => {
+    const client = cleanDb("settlement");
+    const db = drizzle(client, { schema });
+
+    await seedPre0016Schema(db);
+    await apply0016(db);
+    await applyMigrationFile(db, "drizzle/0019_settlement.sql");
+
+    const orderColumns = new Set(
+      (await db.all("PRAGMA table_info(store_order)")).map((c) => (c as { name: string }).name),
+    );
+    for (const name of [
+      "payment_method",
+      "payment_reference",
+      "payment_claimed_at",
+      "payment_reviewed_at",
+      "payment_reviewed_by",
+      "hold_expires_at",
+      "paid_at",
+    ]) {
+      expect(orderColumns.has(name)).toBe(true);
+    }
+
+    const tables = new Set(
+      (await db.all("SELECT name FROM sqlite_master WHERE type = 'table'")).map(
+        (t) => (t as { name: string }).name,
+      ),
+    );
+    expect(tables.has("store_payment_event")).toBe(true);
+
+    const triggers = new Set(
+      (await db.all("SELECT name FROM sqlite_master WHERE type = 'trigger'")).map(
+        (t) => (t as { name: string }).name,
+      ),
+    );
+    expect(triggers.has("trg_order_item_reserve_stock")).toBe(true);
+    expect(triggers.has("trg_order_status_cancel_restock")).toBe(true);
+    expect(triggers.has("trg_order_settlement_values_valid")).toBe(true);
+    expect(triggers.has("trg_order_settlement_values_valid_update")).toBe(true);
+
+    const indexes = await db.all(
+      "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND name IN ('store_order_hold_idx','store_payment_event_orderId_createdAt_idx')",
+    );
+    expect(indexes).toHaveLength(2);
+    const hold = indexes.find((i) => (i as { name: string }).name === "store_order_hold_idx") as {
+      sql: string;
+    };
+    expect(hold.sql).toContain("WHERE");
+
+    const legacyId = randomUUID();
+    await db.run(
+      sql`INSERT INTO store_order (id, number, email, name, phone, address, city, total, status, payment_status, stock_version, created_at)
+          VALUES (${legacyId}, 'HNY-LEGACY-19', 'a@example.com', 'أحمد', '01012345678', 'شارع 9', 'القاهرة', 10000, 'placed', 'simulated', 'legacy', 1)`,
+    );
+    const defaultsId = randomUUID();
+    await db.run(
+      sql`INSERT INTO store_order (id, number, email, name, phone, address, city, total, created_at)
+          VALUES (${defaultsId}, 'HNY-NEW-19', 'b@example.com', 'سارة', '01098765432', 'شارع 4', 'الجيزة', 20000, 2)`,
+    );
+
+    const rows = await db.all(
+      "SELECT id, status, payment_status, payment_method, hold_expires_at FROM store_order ORDER BY created_at",
+    );
+    expect(rows[0]).toMatchObject({
+      id: legacyId,
+      status: "placed",
+      payment_status: "simulated",
+      payment_method: "simulated",
+      hold_expires_at: null,
+    });
+    expect(rows[1]).toMatchObject({
+      id: defaultsId,
+      status: "pending_confirmation",
+      payment_status: "unpaid",
+      payment_method: "simulated",
+      hold_expires_at: null,
+    });
+
+    await expect(
+      db.run(
+        sql`INSERT INTO store_order (id, number, email, name, phone, address, city, total, status, created_at)
+            VALUES ('bad-status', 'HNY-BAD-1', 'c@e.com', 'x', '1', 's', 'cairo', 1, 'bogus', 3)`,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      db.run(
+        sql`INSERT INTO store_order (id, number, email, name, phone, address, city, total, stock_version, created_at)
+            VALUES ('bad-stock', 'HNY-BAD-2', 'c@e.com', 'x', '1', 's', 'cairo', 1, 'nonsense', 4)`,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      db.run(sql`UPDATE store_order SET payment_status = 'bogus' WHERE id = ${defaultsId}`),
+    ).rejects.toThrow();
+
+    const productId = randomUUID();
+    const variantId = randomUUID();
+    await db.run(
+      sql`INSERT INTO store_product (id, name, slug, description, price, image, category_id, created_at)
+          VALUES (${productId}, 'عسل سدر', 'sidr-replay', 'أفضل عسل', 100, '', 'cat-1', 1)`,
+    );
+    await db.run(
+      sql`INSERT INTO store_product_variant (id, product_id, name, price, stock, image)
+          VALUES (${variantId}, ${productId}, '1 ك', 100, 10, '')`,
+    );
+
+    const stockOf = async (): Promise<number> =>
+      (
+        (await db.all(sql`SELECT stock FROM store_product_variant WHERE id = ${variantId}`)) as {
+          stock: number;
+        }[]
+      )[0].stock;
+
+    const shippedId = randomUUID();
+    await db.run(
+      sql`INSERT INTO store_order (id, number, email, name, phone, address, city, total, status, payment_status, stock_version, created_at)
+          VALUES (${shippedId}, 'HNY-SHIP-19', 'd@e.com', 'x', '1', 's', 'cairo', 1, 'pending_confirmation', 'unpaid', 'atomic', 5)`,
+    );
+    await db.run(
+      sql`INSERT INTO store_order_item (id, order_id, product_id, variant_id, product_name, variant_name, quantity, unit_price)
+          VALUES (${randomUUID()}, ${shippedId}, ${productId}, ${variantId}, 'عسل سدر', '1 ك', 2, 100)`,
+    );
+    expect(await stockOf()).toBe(8);
+    await db.run(sql`UPDATE store_order SET status = 'confirmed' WHERE id = ${shippedId}`);
+    await db.run(sql`UPDATE store_order SET status = 'shipped' WHERE id = ${shippedId}`);
+    await db.run(sql`UPDATE store_order SET status = 'cancelled' WHERE id = ${shippedId}`);
+    expect(await stockOf()).toBe(8);
+
+    const pendingId = randomUUID();
+    await db.run(
+      sql`INSERT INTO store_order (id, number, email, name, phone, address, city, total, status, payment_status, stock_version, created_at)
+          VALUES (${pendingId}, 'HNY-PEND-19', 'e@e.com', 'x', '1', 's', 'cairo', 1, 'pending_confirmation', 'unpaid', 'atomic', 6)`,
+    );
+    await db.run(
+      sql`INSERT INTO store_order_item (id, order_id, product_id, variant_id, product_name, variant_name, quantity, unit_price)
+          VALUES (${randomUUID()}, ${pendingId}, ${productId}, ${variantId}, 'عسل سدر', '1 ك', 3, 100)`,
+    );
+    expect(await stockOf()).toBe(5);
+    await db.run(sql`UPDATE store_order SET status = 'cancelled' WHERE id = ${pendingId}`);
+    expect(await stockOf()).toBe(8);
+    await db.run(sql`UPDATE store_order SET status = 'cancelled' WHERE id = ${pendingId}`);
+    expect(await stockOf()).toBe(8);
+
+    client.close();
+  }, 30_000);
+});
+
 describe("staged legacy column drop", () => {
   it("staging guard: the final drop is not in the drizzle journal while the bridge is", () => {
     const journal = JSON.parse(readFileSync("drizzle/meta/_journal.json", "utf-8")) as {
@@ -334,7 +481,7 @@ describe("staged legacy column drop", () => {
   });
 
   afterAll(() => {
-    for (const name of ["baseline", "legacy", "staged", "email"]) {
+    for (const name of ["baseline", "legacy", "staged", "email", "settlement"]) {
       const file = dbFile(name);
       if (existsSync(file)) unlinkSync(file);
     }

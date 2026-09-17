@@ -109,15 +109,28 @@ export const order = sqliteTable(
     governorate: text("governorate").notNull().default("cairo"),
     shippingCost: integer("shipping_cost").notNull().default(0),
     total: integer("total").notNull(),
-    status: text("status").notNull().default("paid"),
-    paymentStatus: text("payment_status").notNull().default("simulated"),
-    stockVersion: text("stock_version").notNull().default("legacy"),
+    status: text("status").notNull().default("pending_confirmation"), // pending_confirmation | confirmed | processing | shipped | delivered | cancelled
+    paymentStatus: text("payment_status").notNull().default("unpaid"), // unpaid | pending_review | paid | failed | refunded | simulated
+    stockVersion: text("stock_version").notNull().default("legacy"), // atomic | legacy
+    paymentMethod: text("payment_method").notNull().default("simulated"), // cod | instapay | wallet | simulated | paymob
+    paymentReference: text("payment_reference"),
+    paymentClaimedAt: integer("payment_claimed_at"),
+    paymentReviewedAt: integer("payment_reviewed_at"),
+    paymentReviewedBy: text("payment_reviewed_by"),
+    holdExpiresAt: integer("hold_expires_at"),
+    paidAt: integer("paid_at"),
     userId: text("user_id"),
     createdAt: integer("created_at")
       .notNull()
       .$defaultFn(() => Date.now()),
   },
-  (table) => [index("store_order_userId_createdAt_idx").on(table.userId, table.createdAt)],
+  (table) => [
+    index("store_order_userId_createdAt_idx").on(table.userId, table.createdAt),
+    index("store_order_hold_idx")
+      .on(table.holdExpiresAt)
+      .where(sql`${table.status} IN ('pending_confirmation','confirmed','processing')`),
+    check("ck_order_stock_version", sql`${table.stockVersion} IN ('atomic','legacy')`),
+  ],
 );
 
 export const orderItem = sqliteTable(
@@ -139,6 +152,32 @@ export const orderItem = sqliteTable(
     unitPrice: integer("unit_price").notNull(),
   },
   (table) => [index("store_order_item_orderId_idx").on(table.orderId)],
+);
+
+// Append-only settlement log: customer claims, admin verifications, rejections, refunds, expiry.
+export const paymentEvent = sqliteTable(
+  "store_payment_event",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => order.id),
+    // claim | verified | rejected | refund | expiry | note
+    type: text("type").notNull(),
+    actor: text("actor").notNull().default("system"), // customer | admin | system
+    actorUserId: text("actor_user_id"),
+    method: text("method"),
+    reference: text("reference"),
+    note: text("note"),
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index("store_payment_event_orderId_createdAt_idx").on(table.orderId, table.createdAt),
+  ],
 );
 
 export const rateLimit = sqliteTable(
