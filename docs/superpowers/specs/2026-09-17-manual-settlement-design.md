@@ -149,11 +149,11 @@ Rules:
   performed by an authenticated admin, does.
 - Amount truth is server-side. The order stores the total at placement; the shop compares the
   received amount to it during verification. The claim form does not accept an amount.
-- Combination invariants are enforced by a `store_order` trigger and service guards:
-  `payment_status = 'refunded'` requires `status != 'cancelled'` is **not** enforced (a cancelled
-  order can be refunded); `payment_status = 'paid'` never applies to a row in
-  `pending_confirmation` (the shop confirms or cancels first). The trigger accepts legacy
-  `placed`/`paid`/`simulated` values during the drain window.
+- Combination rules, enforced by a `store_order` trigger plus service guards:
+  - A refund requires a prior `paid` value. A cancelled order can still be refunded.
+  - A late transfer payment on a cancelled order can be recorded as `paid` and then refunded. The
+    customer cannot submit a new claim on a cancelled order.
+  - The trigger accepts the legacy `placed`/`paid`/`simulated` values during the drain window.
 
 ### 3.3 Stock hold, deadline, and release
 
