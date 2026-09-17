@@ -127,6 +127,13 @@
       "when": 1788975016577,
       "tag": "0017_catalog_authority",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1789651268042,
+      "tag": "0018_email_delivery",
+      "breakpoints": true
     }
   ]
 }

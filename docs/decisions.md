@@ -1650,3 +1650,33 @@ Paymob series (P1–P17) moves to the phase-2 backlog. The launch checklist now
 waits on the owner's receiving accounts, the WhatsApp number, a COD yes/no, and
 the ready-made blend product data. Historical entries above remain history and
 are not rewritten.
+
+---
+
+## 2026-09-17: Email outbox rebuild — migration 0018 (EM-1)
+
+**Context:** `store_notification` accumulated rows marked `sent` after a silent
+no-op because the Pages project had no email binding; delivery was never
+provable. The outbox needs delivery columns, a lease, backoff state, and a
+status vocabulary that separates retryable failure from terminal dead.
+
+**Decision:** Rebuild `store_notification` in `drizzle/0018_email_delivery.sql`
+with `from_address`, `attempt_count`, `next_attempt_at` (NULL = parked),
+`last_error`, `provider_message_id`, `locked_at` lease, `idempotency_key`
+(partial unique), a five-value status CHECK
+(`pending|sending|sent|failed|dead`), and four indexes. Legacy rows backfill to
+terminal `sent` with no provider id: their delivery is unverifiable, and
+re-sending them would duplicate messages. The generated migration was
+hand-reviewed before commit:
+
+- the generated `store_coupon`/`store_return`/`store_review` drops were removed
+  (COM owns their fate; never drop them blindly);
+- the data copy maps legacy columns explicitly (`''` sender, `0` attempts,
+  `next_attempt_at = created_at`, no lease, terminal `sent`);
+- `drizzle/meta/0018_snapshot.json` keeps the three legacy tables so future
+  generates do not re-emit the drops.
+
+**Consequences:** Old app instances keep working during the drain (EM §4.2
+stage 1); EM-3 adds the claim/lease drain, EM-5 rewires the app enqueues, and
+EM-8 deploys the worker. Rows created before this migration can never be
+verified as delivered.

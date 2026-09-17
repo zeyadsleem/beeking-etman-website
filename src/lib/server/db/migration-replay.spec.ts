@@ -45,6 +45,39 @@ async function applyStaged(client: ReturnType<typeof createClient>, path: string
   }
 }
 
+async function applyMigrationFile(db: ReturnType<typeof drizzle>, path: string): Promise<void> {
+  for (const statement of migrationFileStatements(path)) {
+    await db.run(sql.raw(statement));
+  }
+}
+
+function migrationFileStatements(path: string): string[] {
+  return readFileSync(path, "utf-8")
+    .split("--> statement-breakpoint")
+    .map((s) => s.trim())
+    .filter((s) => s.split("\n").some((line) => line.trim().length > 0));
+}
+
+async function seedPre0018Outbox(db: ReturnType<typeof drizzle>): Promise<void> {
+  await db.run(sql`
+    CREATE TABLE store_notification (
+      id TEXT PRIMARY KEY NOT NULL, type TEXT NOT NULL,
+      channel TEXT NOT NULL DEFAULT 'email', recipient TEXT NOT NULL,
+      subject TEXT NOT NULL, body TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at INTEGER NOT NULL, sent_at INTEGER
+    )
+  `);
+  await db.run(sql`
+    INSERT INTO store_notification (id, type, channel, recipient, subject, body, status, created_at)
+    VALUES ('n1', 'order_received', 'email', 'a@example.com', 's', '{}', 'pending', 1111)
+  `);
+  await db.run(sql`
+    INSERT INTO store_notification (id, type, channel, recipient, subject, body, status, created_at, sent_at)
+    VALUES ('n2', 'order_received', 'email', 'b@example.com', 's', '{}', 'sent', 2222, 3333)
+  `);
+}
+
 function productColumns(client: Client): Promise<Set<string>> {
   return client
     .execute("PRAGMA table_info(store_product)")
@@ -174,6 +207,81 @@ describe("0016_order_hardening migration replay", () => {
   });
 });
 
+describe("0018_email_delivery migration replay", () => {
+  it("rebuilds the outbox with delivery columns, CHECK, indexes, and terminal backfill", async () => {
+    const client = cleanDb("email");
+    const db = drizzle(client, { schema });
+
+    await seedPre0018Outbox(db);
+    await applyMigrationFile(db, "drizzle/0018_email_delivery.sql");
+
+    const columns = new Set(
+      (await db.all("PRAGMA table_info(store_notification)")).map(
+        (c) => (c as { name: string }).name,
+      ),
+    );
+    for (const name of [
+      "from_address",
+      "attempt_count",
+      "next_attempt_at",
+      "last_error",
+      "provider_message_id",
+      "locked_at",
+      "idempotency_key",
+    ]) {
+      expect(columns.has(name)).toBe(true);
+    }
+
+    const rows = await db.all(
+      "SELECT id, status, attempt_count, next_attempt_at, provider_message_id, locked_at, from_address FROM store_notification ORDER BY id",
+    );
+    expect(rows[0]).toMatchObject({
+      id: "n1",
+      status: "sent",
+      attempt_count: 0,
+      next_attempt_at: 1111,
+      provider_message_id: null,
+      locked_at: null,
+      from_address: "",
+    });
+    expect(rows[1]).toMatchObject({ id: "n2", status: "sent", next_attempt_at: 2222 });
+
+    const indexes = new Set(
+      (
+        await db.all(
+          "SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'store_notification_%'",
+        )
+      ).map((i) => (i as { name: string }).name),
+    );
+    for (const name of [
+      "store_notification_type_idx",
+      "store_notification_due_idx",
+      "store_notification_created_idx",
+      "store_notification_idem_idx",
+    ]) {
+      expect(indexes.has(name)).toBe(true);
+    }
+
+    await expect(
+      db.run(sql`INSERT INTO store_notification (id, type, recipient, subject, body, status, created_at)
+                 VALUES ('bad', 't', 'r', 's', '{}', 'bogus', 1)`),
+    ).rejects.toThrow();
+
+    await db.run(sql`INSERT INTO store_notification (id, type, recipient, subject, body, created_at, idempotency_key)
+                     VALUES ('n3', 't', 'r', 's', '{}', 1, 'key-1')`);
+    await db.run(sql`INSERT INTO store_notification (id, type, recipient, subject, body, created_at, idempotency_key)
+                     VALUES ('n4', 't', 'r', 's', '{}', 1, NULL)`);
+    await db.run(sql`INSERT INTO store_notification (id, type, recipient, subject, body, created_at, idempotency_key)
+                     VALUES ('n5', 't', 'r', 's', '{}', 1, NULL)`);
+    await expect(
+      db.run(sql`INSERT INTO store_notification (id, type, recipient, subject, body, created_at, idempotency_key)
+                 VALUES ('n6', 't', 'r', 's', '{}', 1, 'key-1')`),
+    ).rejects.toThrow();
+
+    client.close();
+  });
+});
+
 describe("staged legacy column drop", () => {
   it("staging guard: the final drop is not in the drizzle journal while the bridge is", () => {
     const journal = JSON.parse(readFileSync("drizzle/meta/_journal.json", "utf-8")) as {
@@ -226,7 +334,7 @@ describe("staged legacy column drop", () => {
   });
 
   afterAll(() => {
-    for (const name of ["baseline", "legacy", "staged"]) {
+    for (const name of ["baseline", "legacy", "staged", "email"]) {
       const file = dbFile(name);
       if (existsSync(file)) unlinkSync(file);
     }

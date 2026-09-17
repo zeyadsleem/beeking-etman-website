@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   type AnySQLiteColumn,
+  check,
   index,
   integer,
   primaryKey,
@@ -355,19 +357,37 @@ export const notification = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    // "low_stock" | "expiry" | "raw_presesason" | "order" | "reorder" ...
+    // "low_stock" | "expiry" | "raw_presesason" | "order" | ... (canonical OutboxType union)
     type: text("type").notNull(),
     channel: text("channel").notNull().default("email"), // email | slack | telegram
     recipient: text("recipient").notNull(),
+    fromAddress: text("from_address").notNull().default(""),
     subject: text("subject").notNull(),
     body: text("body").notNull(),
-    status: text("status").notNull().default("pending"), // pending | sent | failed
+    status: text("status").notNull().default("pending"), // pending | sending | sent | failed | dead
+    attemptCount: integer("attempt_count").notNull().default(0),
+    nextAttemptAt: integer("next_attempt_at"), // epoch ms; NULL = parked
+    lastError: text("last_error"),
+    providerMessageId: text("provider_message_id"),
+    lockedAt: integer("locked_at"), // lease owner timestamp, epoch ms
+    idempotencyKey: text("idempotency_key"), // stable per logical email
     createdAt: integer("created_at")
       .notNull()
       .$defaultFn(() => Date.now()),
     sentAt: integer("sent_at"),
   },
-  (table) => [index("store_notification_type_idx").on(table.type)],
+  (table) => [
+    check(
+      "store_notification_status_check",
+      sql`${table.status} IN ('pending','sending','sent','failed','dead')`,
+    ),
+    index("store_notification_type_idx").on(table.type),
+    index("store_notification_due_idx").on(table.status, table.nextAttemptAt),
+    index("store_notification_created_idx").on(table.createdAt),
+    uniqueIndex("store_notification_idem_idx")
+      .on(table.idempotencyKey)
+      .where(sql`${table.idempotencyKey} IS NOT NULL`),
+  ],
 );
 
 export * from "./auth.schema";
