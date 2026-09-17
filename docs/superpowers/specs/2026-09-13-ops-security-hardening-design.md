@@ -455,7 +455,9 @@ workable, honest design is a **presence/shape preflight** plus fast value detect
     `ADMIN_EMAIL` (if present, must match the same plausibility rule as
     `src/lib/server/env.ts:38-41`). Extend the list with the email spec's Pages vars `EMAIL_FROM`
     and `ADMIN_NOTIFY_EMAILS`, and — conditionally, when `PAYMENTS_PROVIDER=paymob` — the six
-    `PAYMOB_*` keys (payments spec §3.7). `RESEND_API_KEY` is a Worker secret
+    `PAYMOB_*` keys (payments spec §3.7; phase 2 only, inactive in v1 per AgDR-0001 — v1 requires
+    `PUBLIC_WHATSAPP_NUMBER` and the enabled receiving accounts instead, MS §3.8).
+    `RESEND_API_KEY` is a Worker secret
     (`workers/email-sender/`) and must **not** be listed as a Pages var; worker secret presence is
     verified at worker deploy time, not by this preflight.
   - Prints **only** missing/invalid key names — never values (plaintext vars are returned in

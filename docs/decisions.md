@@ -1606,3 +1606,47 @@ solely in the compat paths and their regression tests. Any ad-hoc query or
 runbook referencing `honey_cart` is stale after the compat window. Historical
 entries above that mention `honey_cart`, `SHIPPING_COST`, or `countup` remain
 accurate as history and are not rewritten.
+
+---
+
+## 2026-09-17: V1 settlement pivot — COD + manual transfers, Paymob deferred; blend studio retired
+
+**Context:** The owner restated his real sales workflow: most orders are paid
+cash on delivery or by a manual transfer to an InstaPay address or a Vodafone
+Cash wallet. Paymob merchant onboarding (KYB, keys, HMAC secret) still gates
+any card launch, and cards are not the main channel. Separately, the blend
+studio composes blends on the site and expands them into base + additive order
+units, while the shop actually mixes ready-made blends and sells them as jars.
+Both mismatches block launch more than they add.
+
+**Decision:**
+
+- **V1 settlement is COD plus manual transfers with admin-verified payment**
+  (AgDR-0001). Payment methods: `cod`, `instapay`, `wallet`. Payment states:
+  `unpaid` → `pending_review` → `paid` → `refunded`, plus `failed`. A customer
+  claim or screenshot never sets `paid`; only an authenticated admin action
+  does, with a settlement event and an audit row.
+- **Paymob is deferred to phase 2** with no date. The 2026-09-13 Paymob spec is
+  frozen as raw material and must be rebased on the v1 lifecycle before
+  implementation.
+- **Fulfillment separates from payment**: `pending_confirmation` → `confirmed`
+  → `processing` → `shipped` → `delivered`, plus `cancelled`. Legacy `placed`
+  and `paid` read as `confirmed`.
+- **Stock is held with a deadline** (recommended 24 hours, env-tunable) and
+  released exactly once on cancellation or expiry. Shipped and delivered
+  reversals never restock.
+- **The blend studio is retired** (AgDR-0002). `/blends` 301-redirects to the
+  blends category; blends sell as catalog products with weight variants, jar
+  stock, and ingredient descriptions. No recipe accounting and no raw-material
+  deduction run at order time.
+- **This supersedes** the 2026-09-02 decision "COD is removed entirely and
+  permanently" and the 2026-08-17 blends-studio entries. The v1 design and
+  migration `0019_settlement.sql` live in
+  `docs/superpowers/specs/2026-09-17-manual-settlement-design.md`.
+
+**Consequences:** Roadmap invariants 5 and 6, the M1 milestone, the critical
+path, and decisions D08–D14/D24/D41 changed in the same commit. The deferred
+Paymob series (P1–P17) moves to the phase-2 backlog. The launch checklist now
+waits on the owner's receiving accounts, the WhatsApp number, a COD yes/no, and
+the ready-made blend product data. Historical entries above remain history and
+are not rewritten.

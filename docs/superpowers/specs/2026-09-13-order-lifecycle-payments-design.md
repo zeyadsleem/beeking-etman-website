@@ -1,20 +1,27 @@
 # Order Lifecycle & Payments (Paymob) — Design Spec
 
 **Date:** 2026-09-13
-**Status:** Proposed — awaiting owner approval
+**Status:** DEFERRED (phase 2) — do not build from this document. On 2026-09-17 the owner reversed
+the locked decisions below. V1 ships cash on delivery plus manual transfers with admin-verified
+payment (AgDR-0001) under `2026-09-17-manual-settlement-design.md`, which owns the order/payment
+vocabulary and migration `0019` for v1. This file is preserved as raw material for the phase-2
+gateway work (intention API, HMAC webhook, reconciliation); rebase it on the v1 lifecycle before
+implementing.
 **Scope:** Replace simulated checkout with real Paymob payments (cards + Egyptian wallets), split the
 order lifecycle into payment and fulfillment state machines, make stock reservation safe under
 unpaid orders, add refunds/partial refunds, admin reconciliation, and a zero-overlap rollout plan.
-**Owner decisions already locked:** Paymob committed; COD permanently removed; payments are the #1
-launch blocker; the custom blend feature must survive unchanged (server-side expansion into
-base + additive order units with per-variant stock decrement).
+**Owner decisions as of 2026-09-13 (superseded 2026-09-17, AgDR-0001 and AgDR-0002):** Paymob
+committed; COD permanently removed; payments are the #1 launch blocker; the custom blend feature
+must survive unchanged (server-side expansion into base + additive order units with per-variant
+stock decrement). The v1 pivot reversed or deferred all four.
 
 Money is integer piasters (1/100 EGP) everywhere; the codebase also calls these "qirsh"
 (`docs/decisions.md` 2026-08-13). All amounts in this document are piasters.
 
 **Roadmap:** `docs/superpowers/specs/2026-09-13-commerce-platform-roadmap-design.md` is
 authoritative for cross-spec arbitration (migration numbering, single ownership); this spec's
-migration is frozen at `0019_payments.sql`.
+migration was frozen at `0019_payments.sql`; the slot now carries `0019_settlement.sql` under the
+v1 spec (AgDR-0001).
 
 ---
 
