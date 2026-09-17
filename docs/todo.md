@@ -44,7 +44,7 @@ stale doc claims.
 
 ### EM — email delivery pipeline (spec §9)
 
-- [ ] EM-1 — Schema + migration 0018 (outbox rebuild, columns, indexes, CHECK), schema mirror, replay spec (EM §9.1)
+- [x] EM-1 — Schema + migration 0018 (outbox rebuild, columns, indexes, CHECK), schema mirror, replay spec (EM §9.1)
 - [ ] EM-2 — Provider adapter (`email-provider.ts`, Resend fetch impl, result mapping) + unit specs (EM §9.2; needs D01)
 - [ ] EM-3 — `outbox.ts` enqueue + `outbox-drain.ts` claim/lease/backoff/dead/park + libsql unit specs (EM §9.3; after 0018)
 - [ ] EM-4 — `workers/email-sender/` scaffold: wrangler cron (email + settlement entries), health endpoint, `scheduled()` drain + `runSettlementJobs` hook, tsconfig, `test:worker` (EM §9.4)
