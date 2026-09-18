@@ -43,7 +43,7 @@
         {/each}
       </ul>
 
-      <aside class="h-fit rounded-2xl border border-cocoa-200 bg-parchment p-5 lg:sticky lg:top-40">
+      <aside class="h-fit rounded-2xl border border-cocoa-200 bg-parchment p-5 lg:sticky lg:top-36 xl:top-24">
         <h2 class="headline text-xl text-cocoa-900">{t(lang, "cart.summary")}</h2>
         <CartTotals {totals} {lang} itemCount={totals.itemCount} />
         <Button variant="primary" href="/checkout" class="mt-5 w-full">{t(lang, "cart.checkout")}</Button>

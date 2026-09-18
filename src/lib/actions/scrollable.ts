@@ -8,6 +8,8 @@ export function scrollable(node: HTMLElement): { destroy: () => void } {
     for (const child of node.children) resize.observe(child);
   };
   const mutation = new MutationObserver(() => {
+    resize.disconnect();
+    resize.observe(node);
     observeChildren();
     update();
   });

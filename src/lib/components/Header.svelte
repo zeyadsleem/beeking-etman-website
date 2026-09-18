@@ -245,6 +245,7 @@
     <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
     <Dialog.Content
       dir={getDir(lang)}
+      aria-describedby={undefined}
       class="fixed inset-y-0 end-0 z-50 flex w-80 max-w-[85vw] flex-col border-s border-cocoa-100 bg-parchment shadow-warm-lg focus:outline-none"
       onCloseAutoFocus={(event) => {
         if (window.matchMedia(`(min-width: ${LG_BREAKPOINT}px)`).matches) {

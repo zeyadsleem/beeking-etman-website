@@ -240,7 +240,7 @@
     >{submitting ? t(lang, "checkout.submitting") : t(lang, "checkout.submit")}</Button>
   </form>
 
-  <aside class="min-w-0 rounded-2xl border border-cocoa-200 bg-parchment p-5 lg:sticky lg:top-40">
+  <aside class="min-w-0 rounded-2xl border border-cocoa-200 bg-parchment p-5 lg:sticky lg:top-36 xl:top-24">
     <h2 class="headline text-xl text-cocoa-900">{t(lang, "cart.summary")}</h2>
     <ul class="mt-4 space-y-3">
       {#each data.items as item (itemId(item))}
