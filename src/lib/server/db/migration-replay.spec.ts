@@ -336,9 +336,10 @@ describe("0019_settlement migration replay", () => {
           "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'store_order' ORDER BY name",
         )
       ).map((t) => (t as { name: string }).name);
-    expect(await orderTriggerNames()).toEqual(["trg_order_status_cancel_restock"]);
 
     try {
+      expect(await orderTriggerNames()).toEqual(["trg_order_status_cancel_restock"]);
+
       // D1 applies every migration inside a transaction with foreign keys enforced. This
       // bracket reproduces that environment so the destructive rebuild runs with real child
       // rows present and the defer_foreign_keys path is exercised.
