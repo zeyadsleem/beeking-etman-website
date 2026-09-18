@@ -92,6 +92,9 @@ describe("validateProductionEnv optional WHATSAPP_NUMBER", () => {
     expect(() => validateProductionEnv(productionVars({ WHATSAPP_NUMBER: "123" }))).toThrow(
       /WHATSAPP_NUMBER/,
     );
+    expect(() =>
+      validateProductionEnv(productionVars({ WHATSAPP_NUMBER: "011234567890" })),
+    ).toThrow(/WHATSAPP_NUMBER/);
   });
 });
 

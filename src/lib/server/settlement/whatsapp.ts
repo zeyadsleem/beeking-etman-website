@@ -22,6 +22,9 @@ export function normalizeWhatsappNumber(value: string | undefined | null): strin
   let digits = value.replace(NON_DIGITS, "");
   if (digits.startsWith("00")) digits = digits.slice(2);
   if (EGYPTIAN_LOCAL_MOBILE.test(digits)) digits = `20${digits.slice(1)}`;
+  // Everything left must look international: no leading zero. This keeps the
+  // normalize contract identical to the whatsappLink guard below.
+  if (digits.startsWith("0")) return null;
   return digits.length >= MIN_DIGITS && digits.length <= MAX_DIGITS ? digits : null;
 }
 

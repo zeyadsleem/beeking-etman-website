@@ -22,6 +22,13 @@ describe("normalizeWhatsappNumber", () => {
     expect(normalizeWhatsappNumber(undefined)).toBeNull();
     expect(normalizeWhatsappNumber("1".repeat(20))).toBeNull();
   });
+
+  it("rejects 0-leading values that are not Egyptian mobiles", () => {
+    expect(normalizeWhatsappNumber("0123456789")).toBeNull();
+    expect(normalizeWhatsappNumber("011234567890")).toBeNull();
+    expect(normalizeWhatsappNumber("0101234567")).toBeNull();
+    expect(normalizeWhatsappNumber("00123456789")).toBeNull();
+  });
 });
 
 describe("whatsappLink", () => {
@@ -52,6 +59,7 @@ describe("order messages", () => {
       "en",
     );
     expect(text).toContain("HNY-1");
+    expect(text).not.toContain(t("en", "checkout.paymentTitle"));
     expect(text).not.toContain("simulated");
   });
 
