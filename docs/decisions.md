@@ -1680,3 +1680,55 @@ hand-reviewed before commit:
 stage 1); EM-3 adds the claim/lease drain, EM-5 rewires the app enqueues, and
 EM-8 deploys the worker. Rows created before this migration can never be
 verified as delivered.
+
+---
+
+## 2026-09-17: Settlement schema — migration 0019, DI D1 folds into it (SET-2)
+
+**Context:** The v1 settlement design needs per-order method, claim, review,
+and hold fields plus a settlement event log (AgDR-0001; MS §4.1). Changing the
+`store_order` defaults forces a table rebuild, and the frozen plan reserved
+that single rebuild for data-integrity's D1 task (roadmap C2/§8.5).
+
+**Decision:** `drizzle/0019_settlement.sql` rebuilds `store_order` once and
+folds D1's content into it:
+
+- physical defaults become `pending_confirmation` / `unpaid`; `payment_method`
+  defaults to `simulated` so legacy rows are honest;
+- `ck_order_stock_version` lands here;
+- all `store_order` triggers are captured and recreated, and the
+  `store_order_item` reserve trigger is dropped before the rebuild and
+  recreated after it — SQLite leaves cross-table triggers broken when their
+  referenced table is dropped and recreated;
+- the rebuild brackets the transaction with `PRAGMA defer_foreign_keys=ON/OFF`.
+  D1 applies migrations inside an implicit transaction where
+  `PRAGMA foreign_keys=OFF` is a no-op; the D1 documentation names
+  `defer_foreign_keys` as the supported mechanism. Both child tables use
+  `NO ACTION`, so the implicit delete on `DROP` never cascades, and the
+  deferred check passes at commit against the renamed table with the same ids;
+- a value-guard trigger pair enforces the new status, payment-status, and
+  payment-method vocabularies on insert and update while accepting legacy
+  values during the drain; `trg_order_cancelled_terminal` makes `cancelled`
+  terminal at the schema level (closing the cancel-reopen-cancel double
+  restock), and `trg_payment_event_values_valid` guards the event `type` and
+  `actor` vocabularies;
+- `store_payment_event` is created with the partial hold index and two
+  append-only triggers that raise `PAYMENT_EVENT_APPEND_ONLY` on update or
+  delete;
+- the eight inline `store_order` fixture DDLs gain the new columns and
+  defaults; trigger and CHECK parity in fixtures lands with SET-6/SET-7.
+
+**Pre-flight evidence (DI-1):** the production baseline is 0 orders and 0
+order items (`docs/todo.md` archive, 2026-09-13), so the `DROP` runs against
+no child rows; the journal ended at `0018_email_delivery` when 0019 was
+generated (the settlement slot was frozen by the roadmap §3.1); the migration
+replay runs the file inside a transaction with foreign keys enforced and with
+a child order item present, which reproduces the D1 environment.
+
+Migration `0021` will never be created. No backfill runs: pre-pivot orders keep
+their stored values and read through the aliases.
+
+**Consequences:** DI-3 is complete. The app keeps writing `paid`/`simulated`
+until SET-3 reworks the vocabulary, and those writes still satisfy the value
+guard. The reserve and restock triggers behave exactly as 0016 defined them,
+except restock now refuses `shipped`/`delivered` reversals.

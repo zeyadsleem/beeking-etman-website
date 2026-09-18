@@ -134,6 +134,13 @@
       "when": 1789651268042,
       "tag": "0018_email_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1789654120294,
+      "tag": "0019_settlement",
+      "breakpoints": true
     }
   ]
 }
