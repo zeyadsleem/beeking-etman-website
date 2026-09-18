@@ -30,25 +30,25 @@
   <SectionTitle as="h1" className="text-4xl">{t(lang, "cart.title")}</SectionTitle>
 
   {#if cartState.items.length === 0}
-    <div class="mt-10 flex flex-col items-center rounded-2xl border border-dashed border-cocoa-200 bg-parchment p-14 text-center">
+    <div class="empty-state">
       <HoneycombIcon size={56} stroke="#dcd8d0" />
       <p class="mt-4 text-lg font-semibold text-cocoa-600">{t(lang, "cart.emptyPage")}</p>
       <Button variant="primary" href="/products" class="mt-5">{t(lang, "cart.browse")}</Button>
     </div>
   {:else}
-    <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_340px]">
-      <ul class="space-y-4">
+    <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <ul class="min-w-0 space-y-4">
         {#each cartState.items as item (itemId(item))}
           <CartLineItem {item} {lang} />
         {/each}
       </ul>
 
-      <aside class="h-fit rounded-2xl border border-cocoa-100 bg-parchment p-5 shadow-warm-sm">
+      <aside class="h-fit rounded-2xl border border-cocoa-200 bg-parchment p-5 lg:sticky lg:top-36 xl:top-24">
         <h2 class="headline text-xl text-cocoa-900">{t(lang, "cart.summary")}</h2>
         <CartTotals {totals} {lang} itemCount={totals.itemCount} />
         <Button variant="primary" href="/checkout" class="mt-5 w-full">{t(lang, "cart.checkout")}</Button>
         <a href="/products" class="mt-2 block text-center text-sm text-cocoa-500 transition hover:text-honey-700">{t(lang, "cart.continue")}</a>
-        <button type="button" class="mt-2 block w-full text-center text-xs text-cocoa-400 transition hover:text-clay-600" onclick={clearCart}>{t(lang, "cart.clear")}</button>
+        <button type="button" class="mt-2 block min-h-11 w-full text-center text-sm text-cocoa-600 transition hover:text-clay-700" onclick={clearCart}>{t(lang, "cart.clear")}</button>
       </aside>
     </div>
   {/if}

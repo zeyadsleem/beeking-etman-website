@@ -17,7 +17,7 @@
     isBlendItem(item) ? "/blends" : productPath({ department: item.department, categorySlug: item.categorySlug, slug: item.slug }),
   );
   const detailClass = $derived(
-    isDrawer ? "mt-0.5 line-clamp-2 text-[11px] font-medium" : "line-clamp-2 text-sm font-medium",
+    isDrawer ? "mt-0.5 text-xs leading-relaxed font-medium" : "text-sm leading-relaxed font-medium",
   );
   const artInfo = $derived(
     isBlendItem(item)
@@ -35,8 +35,8 @@
     href={itemHref}
     onclick={isDrawer ? closeDrawer : undefined}
     class={isDrawer
-      ? "w-16 shrink-0 self-stretch overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100"
-      : "w-20 shrink-0 self-stretch overflow-hidden rounded-xl border border-cocoa-100 bg-cocoa-100 sm:w-24"}
+      ? "h-16 w-14 shrink-0 overflow-hidden rounded-xl border border-cocoa-200 bg-cocoa-100 sm:w-16"
+      : "h-24 w-16 shrink-0 overflow-hidden rounded-xl border border-cocoa-100 bg-cocoa-100 sm:w-24"}
   >
     {#if isPlaceholderImage(item.image)}
       <ProductArt department={artInfo.department} categorySlug={artInfo.categorySlug} />
@@ -50,8 +50,8 @@
         href={itemHref}
         onclick={isDrawer ? closeDrawer : undefined}
         class={isDrawer
-          ? "line-clamp-1 text-sm font-semibold text-cocoa-800 transition-colors hover:text-honey-700"
-          : "card-title text-base leading-snug text-cocoa-900 hover:text-honey-700"}
+          ? "min-w-0 break-words text-sm font-semibold text-cocoa-800 transition-colors hover:text-honey-700"
+          : "card-title min-w-0 break-words text-base leading-snug text-cocoa-900 hover:text-honey-700"}
       >
         {item.name}
       </a>
@@ -68,11 +68,11 @@
       </button>
     </div>
     {#if isBlendItem(item)}
-      <span class="{detailClass} text-cocoa-500">
+      <span class="{detailClass} break-words text-cocoa-600">
         {blendLineDetail(item.variantName, item.additives)}
       </span>
     {:else}
-      <span class="{detailClass} text-cocoa-500">
+      <span class="{detailClass} break-words text-cocoa-600">
         {isDrawer
           ? item.variantName
           : t(lang, "cart.itemLine", { variantName: item.variantName, price: formatEGP(item.price, lang) })}

@@ -13,7 +13,7 @@
 </script>
 
 <div class="flex flex-wrap items-start justify-between gap-4">
-  <div>
+  <div class="min-w-0">
     <div class="mb-3 block h-[3px] w-10 rounded-full bg-honey-600" aria-hidden="true"></div>
     <h1 class="headline text-3xl text-cocoa-900" data-testid={titleTestId}>{title}</h1>
     {#if description}
@@ -21,7 +21,7 @@
     {/if}
   </div>
   {#if actions}
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       {@render actions()}
     </div>
   {/if}

@@ -103,7 +103,7 @@
   <title>{t(data.lang, "brand.tagline")}</title>
 </svelte:head>
 
-<div class="{isAdminRoute ? 'min-h-screen' : 'flex min-h-screen flex-col overflow-x-clip'}">
+<div class="{isAdminRoute ? 'min-h-screen' : 'flex min-h-screen flex-col'}">
   <TopProgressBar />
   {#if isAdminRoute}
     {@render children()}

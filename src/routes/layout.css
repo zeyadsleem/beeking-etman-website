@@ -259,7 +259,19 @@ html:lang(en) body {
   /* ---------- form fields ---------- */
 
   .field {
-    @apply w-full rounded-xl border border-cocoa-200 bg-parchment px-4 py-2.5 text-cocoa-900 placeholder:text-cocoa-400 transition-all duration-200;
+    @apply min-w-0 w-full rounded-xl border border-cocoa-200 bg-parchment px-4 py-2.5 text-cocoa-900 placeholder:text-cocoa-600 transition-all duration-200;
+    min-height: 2.75rem;
+    font-size: 1rem;
+    caret-color: var(--color-honey-800);
+  }
+
+  .field[aria-invalid="true"] {
+    border-color: var(--color-clay-700);
+  }
+
+  .field:disabled {
+    background: var(--color-cocoa-100);
+    cursor: not-allowed;
   }
 
   .field:focus {
@@ -315,7 +327,8 @@ html:lang(en) body {
   }
 
   .empty-state {
-    @apply mt-10 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-cocoa-200 bg-parchment p-14 text-center;
+    @apply mt-10 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-cocoa-200 bg-parchment text-center;
+    padding: clamp(1.5rem, 5vw, 3.5rem);
   }
 
   /* Physical wax-seal presence for the brand stamp imagery. */
@@ -643,7 +656,7 @@ html.has-nav .animate-float-delay {
 .mix-stir-pulse {
   animation-name: mix-stir-pulse;
   animation-iteration-count: 1;
-  animation-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1);
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes pop-in {
@@ -662,7 +675,7 @@ html.has-nav .animate-float-delay {
 }
 
 .animate-pop {
-  animation: pop-in 0.35s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+  animation: pop-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* ---------- spinner ---------- */
@@ -726,6 +739,8 @@ html[lang="ar"] .eyebrow {
 }
 
 .storefront :is(.btn-primary, .btn-outline, .btn-ghost, .chip),
+.admin-content :is(.btn-primary, .btn-outline, .btn-ghost, .chip),
+[role="dialog"] :is(.btn-primary, .btn-outline, .btn-ghost, .chip),
 header :is(.btn-primary, .btn-outline, .btn-ghost) {
   min-height: 2.75rem;
 }
@@ -742,18 +757,70 @@ header .field::placeholder {
   color: var(--color-cocoa-600);
 }
 
-.storefront :is(h1, h2, h3) {
+.storefront :is(h1, h2, h3),
+.admin-content :is(h1, h2, h3) {
   text-wrap: balance;
   overflow-wrap: anywhere;
 }
 
-.storefront ::selection {
+::selection {
   background: var(--color-honey-200);
   color: var(--color-cocoa-950);
 }
 
 .storefront .empty-state {
   padding: clamp(1.5rem, 5vw, 3.5rem);
+}
+
+.admin-content h1,
+.account-content h1 {
+  font-size: clamp(1.875rem, 3vw, 2.5rem);
+  line-height: 1.25;
+}
+
+.admin-content table {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-content th {
+  background: var(--color-cocoa-50);
+  color: var(--color-cocoa-700);
+  font-weight: 600;
+}
+
+.admin-content :is(th, td) {
+  padding: 1rem;
+  vertical-align: top;
+}
+
+.admin-content tbody tr + tr {
+  border-top: 1px solid var(--color-cocoa-100);
+}
+
+.admin-content tbody tr:hover {
+  background: var(--color-cocoa-50);
+}
+
+[role="region"][tabindex="0"] {
+  scrollbar-color: var(--color-cocoa-300) var(--color-paper);
+  scrollbar-width: thin;
+  scroll-padding-inline: 1rem;
+}
+
+.account-content :is(p, dd),
+.admin-content :is(p, dd) {
+  overflow-wrap: anywhere;
+}
+
+.storefront :is(input, select, textarea),
+.admin-content :is(input, select, textarea) {
+  max-width: 100%;
+}
+
+.storefront :is(.btn-primary, .btn-outline),
+.admin-content :is(.btn-primary, .btn-outline) {
+  text-align: center;
+  text-wrap: balance;
 }
 
 @media (max-width: 639px) {

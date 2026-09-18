@@ -132,7 +132,7 @@
     <nav class="mx-auto max-w-5xl px-4 pb-3" aria-label={t(data.lang, "blends.game.action.goals")}>
       <ol class="flex items-center gap-1">
         {#each BLEND_STEPS as step, i (step)}
-          <li class="flex flex-1 items-center gap-1">
+          <li class="flex min-w-0 flex-1 items-center gap-1">
             <button
               type="button"
               class="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-2 py-1.5 text-xs font-semibold transition"
