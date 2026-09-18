@@ -1716,11 +1716,11 @@ folds D1's content into it:
   defaults; trigger and CHECK parity in fixtures lands with SET-6/SET-7.
 
 **Pre-flight evidence (DI-1):** the production baseline is 0 orders and 0
-order items (`docs/todo.md` archive), so the `DROP` runs against no child
-rows; the journal was confirmed at `0017_catalog_authority` before generation;
-the migration replay runs the file inside a transaction with foreign keys
-enforced and with a child order item present, which reproduces the D1
-environment.
+order items (`docs/todo.md` archive, 2026-09-13), so the `DROP` runs against
+no child rows; the journal ended at `0018_email_delivery` when 0019 was
+generated (the settlement slot was frozen by the roadmap §3.1); the migration
+replay runs the file inside a transaction with foreign keys enforced and with
+a child order item present, which reproduces the D1 environment.
 
 Migration `0021` will never be created. No backfill runs: pre-pivot orders keep
 their stored values and read through the aliases.

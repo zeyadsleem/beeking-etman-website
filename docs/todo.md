@@ -133,7 +133,7 @@ e2e suite (`E2E_USE_BUILD=1`); runbook go-live checklist in the PR; `verify-prod
 
 ### DI — D1 fold + shared vocabulary (spec §9)
 
-- [x] DI-1 — ADR + pre-flight checklist (production rows re-checked, boundaries acknowledged, frozen journal confirmed) (DI §9.1; gates D1) — evidence in SET-2 (#5): production baseline 0 orders / 0 order items, journal confirmed at 0017 before generation, D1 content folded into 0019
+- [x] DI-1 — ADR + pre-flight checklist (production rows re-checked, boundaries acknowledged, frozen journal confirmed) (DI §9.1; gates D1) — evidence in SET-2 (#5): production baseline 0 orders / 0 order items (`docs/todo.md` archive, 2026-09-13); the journal ended at `0018_email_delivery` when 0019 was generated (the settlement slot was frozen by the roadmap); D1 content folded into 0019
 - [x] DI-3 — D1: capture live `store_order` triggers, edit default + `check()`, fold into 0019 (or ship 0021 if settlement is not applied), sync 8 fixture DDLs (DI §9.3; C2) — folded into 0019 by SET-2 (#5)
 - [ ] DI-4 — Order error mapping + shared `stock_version` vocabulary; also closes the carried corrupt-status-logging and shared `STATUS_ORDER` items (DI §9.4)
 

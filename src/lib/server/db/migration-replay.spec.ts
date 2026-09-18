@@ -330,6 +330,14 @@ describe("0019_settlement migration replay", () => {
           VALUES (${legacyItemId}, ${legacyId}, ${productId}, ${variantId}, 'عسل سدر', '1 ك', 1, 10000)`,
     );
 
+    const orderTriggerNames = async (): Promise<string[]> =>
+      (
+        await db.all(
+          "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'store_order' ORDER BY name",
+        )
+      ).map((t) => (t as { name: string }).name);
+    expect(await orderTriggerNames()).toEqual(["trg_order_status_cancel_restock"]);
+
     try {
       // D1 applies every migration inside a transaction with foreign keys enforced. This
       // bracket reproduces that environment so the destructive rebuild runs with real child
@@ -416,6 +424,11 @@ describe("0019_settlement migration replay", () => {
       ]) {
         expect(triggers.has(name)).toBe(true);
       }
+      expect(await orderTriggerNames()).toEqual([
+        "trg_order_settlement_values_valid",
+        "trg_order_settlement_values_valid_update",
+        "trg_order_status_cancel_restock",
+      ]);
 
       const indexes = await db.all(
         "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND name IN ('store_order_hold_idx','store_payment_event_orderId_createdAt_idx')",
