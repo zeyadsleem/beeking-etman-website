@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scrollable } from "$lib/actions/scrollable";
   import { enhance } from "$app/forms";
   import { Dialog } from "bits-ui";
   import { formatEGP } from "$lib/currency";
@@ -30,7 +31,7 @@
   <title>{t(lang, "admin.order.details")} — {t(lang, "brand.name")}</title>
 </svelte:head>
 
-<section class="mx-auto max-w-4xl px-4 py-10">
+<section class="mx-auto max-w-4xl">
   <div>
     <Button variant="ghost" href="/admin/orders" class="text-sm">
       {t(lang, "admin.order.backToList")}
@@ -116,7 +117,7 @@
     </p>
   </section>
 
-  <section class="mt-6 overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
+  <section use:scrollable aria-label={t(lang, "admin.order.details")} class="mt-6 overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-cocoa-100 text-xs font-semibold text-cocoa-500">
@@ -161,7 +162,7 @@
   <Dialog.Portal>
     <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
     <Dialog.Content
-      class="fixed inset-x-4 top-1/2 z-50 mx-auto w-full max-w-sm -translate-y-1/2 rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-lg focus:outline-none"
+      class="fixed inset-x-4 top-1/2 z-50 mx-auto max-h-[90dvh] w-auto max-w-sm -translate-y-1/2 overflow-y-auto rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-lg focus:outline-none"
       data-testid="cancel-confirm-dialog"
     >
       <Dialog.Title class="headline text-xl text-cocoa-900">

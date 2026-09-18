@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scrollable } from "$lib/actions/scrollable";
   import { enhance } from "$app/forms";
   import Search from "@lucide/svelte/icons/search";
   import UsersRound from "@lucide/svelte/icons/users-round";
@@ -55,7 +56,7 @@
   <title>{t(lang, "admin.users.title")} — {t(lang, "brand.name")}</title>
 </svelte:head>
 
-<section class="mx-auto max-w-6xl px-4 py-10">
+<section class="mx-auto max-w-6xl">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.users.title")}</SectionTitle>
   <p class="mt-2 text-sm text-cocoa-500">{t(lang, "admin.users.description")}</p>
 
@@ -114,7 +115,7 @@
       />
     </div>
   {:else}
-    <div class="mt-8 hidden overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm md:block" data-testid="admin-users-table">
+    <div role="region" use:scrollable aria-label={t(lang, "admin.users.title")} class="mt-8 hidden overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm md:block" data-testid="admin-users-table">
       <table class="w-full min-w-max text-sm">
         <thead>
           <tr class="border-b border-cocoa-100 text-left text-xs uppercase tracking-wide text-cocoa-500">
@@ -174,7 +175,7 @@
 
     <ul class="mt-8 grid gap-3 md:hidden" data-testid="admin-users-cards">
       {#each data.items as user (user.id)}
-        <li class="rounded-2xl border border-cocoa-100 bg-parchment p-4 shadow-warm-sm">
+        <li class="min-w-0 rounded-2xl border border-cocoa-100 bg-parchment p-4 shadow-warm-sm">
           <div class="flex items-center gap-3">
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-honey-100 text-sm font-bold text-honey-700">
               {initials(user.name)}

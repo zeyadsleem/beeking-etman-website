@@ -38,7 +38,7 @@
   <title>{t(lang, "admin.orders.title")} — {t(lang, "brand.name")}</title>
 </svelte:head>
 
-<section class="mx-auto max-w-6xl px-4 py-10">
+<section class="mx-auto max-w-6xl">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.orders.title")}</SectionTitle>
 
   <div class="mt-4">

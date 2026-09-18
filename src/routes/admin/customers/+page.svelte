@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scrollable } from "$lib/actions/scrollable";
   import { formatEGP } from "$lib/currency";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
@@ -23,7 +24,7 @@
   <title>{t(lang, "admin.customers.title")} — {t(lang, "brand.name")}</title>
 </svelte:head>
 
-<section class="mx-auto max-w-6xl px-4 py-10">
+<section class="mx-auto max-w-6xl">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.customers.title")}</SectionTitle>
   <p class="mt-2 text-sm text-cocoa-500">{t(lang, "admin.customers.description")}</p>
 
@@ -53,7 +54,7 @@
       <p class="text-lg font-semibold text-cocoa-600">{t(lang, "admin.customers.empty")}</p>
     </div>
   {:else}
-    <div class="mt-8 overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
+    <div role="region" use:scrollable aria-label={t(lang, "admin.customers.title")} class="mt-8 overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
       <table class="w-full min-w-max text-sm" data-testid="admin-customers-table">
         <thead>
           <tr class="border-b border-cocoa-100 text-left text-xs uppercase tracking-wide text-cocoa-500">

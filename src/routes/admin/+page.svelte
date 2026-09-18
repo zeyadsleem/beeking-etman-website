@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scrollable } from "$lib/actions/scrollable";
   import {
     ADMIN_ORDER_STATUS_BADGE_CLASS,
     ADMIN_ORDER_STATUS_BAR_CLASS,
@@ -162,7 +163,7 @@
         />
       </div>
     {:else}
-      <div class="max-h-[26rem] overflow-y-auto" data-testid="series-scroll">
+      <div role="region" use:scrollable aria-label={t(lang, "admin.nav.dashboard")} class="max-h-[26rem] overflow-auto" data-testid="series-scroll">
         <table class="w-full text-sm" data-testid="series-table">
           <thead>
             <tr class="sticky top-0 bg-parchment text-xs font-semibold uppercase text-cocoa-400">
@@ -205,7 +206,7 @@
         />
       </div>
     {:else}
-      <div class="overflow-x-auto">
+      <div role="region" use:scrollable aria-label={t(lang, "admin.nav.products")} class="overflow-x-auto">
         <table class="w-full text-sm" data-testid="top-products-table">
           <thead>
             <tr class="bg-parchment text-xs font-semibold uppercase text-cocoa-400">

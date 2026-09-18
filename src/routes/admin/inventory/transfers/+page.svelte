@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scrollable } from "$lib/actions/scrollable";
   import { enhance } from "$app/forms";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import Button from "$lib/components/Button.svelte";
@@ -52,7 +53,7 @@
   <title>{t(lang, "admin.transfers.title")} — {t(lang, "brand.name")}</title>
 </svelte:head>
 
-<section class="mx-auto max-w-6xl px-4 py-10">
+<section class="mx-auto max-w-6xl">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.transfers.title")}</SectionTitle>
   <p class="mt-2 text-cocoa-500">{t(lang, "admin.transfers.description")}</p>
 
@@ -146,7 +147,7 @@
     {#if data.items.length === 0}
       <EmptyState title={t(lang, "admin.transfers.empty")} />
     {:else}
-      <div class="overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
+      <div role="region" use:scrollable aria-label={t(lang, "admin.transfers.title")} class="overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
         <table class="w-full min-w-max text-sm" data-testid="admin-transfers-table">
           <thead>
             <tr class="border-b border-cocoa-100 text-xs uppercase text-cocoa-500">

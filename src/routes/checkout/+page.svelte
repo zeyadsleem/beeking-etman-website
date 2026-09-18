@@ -240,17 +240,17 @@
     >{submitting ? t(lang, "checkout.submitting") : t(lang, "checkout.submit")}</Button>
   </form>
 
-  <aside class="min-w-0 rounded-2xl border border-cocoa-200 bg-parchment p-5 lg:sticky lg:top-28">
+  <aside class="min-w-0 rounded-2xl border border-cocoa-200 bg-parchment p-5 lg:sticky lg:top-36 xl:top-24">
     <h2 class="headline text-xl text-cocoa-900">{t(lang, "cart.summary")}</h2>
     <ul class="mt-4 space-y-3">
       {#each data.items as item (itemId(item))}
         <li class="flex flex-col gap-1 text-sm text-cocoa-700">
           {#if isBlendItem(item)}
             <div class="flex justify-between gap-2">
-              <span class="line-clamp-1">
+              <span class="min-w-0 break-words">
                 {item.name} ({item.variantName}) × 1
               </span>
-              <span class="font-semibold">{formatEGP(lineTotal(item), lang)}</span>
+              <span class="shrink-0 font-semibold tabular-nums">{formatEGP(lineTotal(item), lang)}</span>
             </div>
             {#if item.additives.length > 0}
               <ul class="flex flex-wrap gap-1">
@@ -263,8 +263,8 @@
             {/if}
           {:else}
             <div class="flex justify-between gap-2">
-              <span class="line-clamp-1">{t(lang, "checkout.itemLine", { name: item.name, variantName: item.variantName, quantity: item.quantity })}</span>
-              <span class="font-semibold">{formatEGP(lineTotal(item), lang)}</span>
+              <span class="min-w-0 break-words">{t(lang, "checkout.itemLine", { name: item.name, variantName: item.variantName, quantity: item.quantity })}</span>
+              <span class="shrink-0 font-semibold tabular-nums">{formatEGP(lineTotal(item), lang)}</span>
             </div>
           {/if}
         </li>

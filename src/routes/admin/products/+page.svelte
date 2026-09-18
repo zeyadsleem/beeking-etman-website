@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scrollable } from "$lib/actions/scrollable";
   import { enhance } from "$app/forms";
   import { Dialog } from "bits-ui";
   import Button from "$lib/components/Button.svelte";
@@ -44,7 +45,7 @@
   <title>{t(lang, "admin.products.title")} — {t(lang, "brand.name")}</title>
 </svelte:head>
 
-<section class="mx-auto max-w-6xl px-4 py-10">
+<section class="mx-auto max-w-6xl">
   <div class="flex flex-wrap items-end justify-between gap-3">
     <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.products.title")}</SectionTitle>
     <a href="/admin/products/new" class="btn-primary">{t(lang, "admin.products.new")}</a>
@@ -102,7 +103,7 @@
       <p class="text-lg font-semibold text-cocoa-600">{t(lang, "admin.products.empty")}</p>
     </div>
   {:else}
-    <div class="mt-8 overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
+    <div role="region" use:scrollable aria-label={t(lang, "admin.products.title")} class="mt-8 overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
       <table class="w-full min-w-[48rem] text-sm">
         <thead>
           <tr class="border-b border-cocoa-100 text-xs font-semibold text-cocoa-500">
@@ -196,7 +197,7 @@
   <Dialog.Portal>
     <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
     <Dialog.Content
-      class="fixed inset-x-4 top-1/2 z-50 mx-auto w-full max-w-sm -translate-y-1/2 rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-lg focus:outline-none"
+      class="fixed inset-x-4 top-1/2 z-50 mx-auto max-h-[90dvh] w-auto max-w-sm -translate-y-1/2 overflow-y-auto rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-lg focus:outline-none"
       data-testid="delete-confirm-dialog"
     >
       <Dialog.Title class="headline text-xl text-cocoa-900">
