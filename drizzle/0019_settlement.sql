@@ -33,6 +33,13 @@ BEFORE DELETE ON `store_payment_event`
 BEGIN
   SELECT RAISE(ABORT, 'PAYMENT_EVENT_APPEND_ONLY');
 END;--> statement-breakpoint
+CREATE TRIGGER `trg_payment_event_values_valid`
+BEFORE INSERT ON `store_payment_event`
+WHEN NEW.`type` NOT IN ('claim','verified','rejected','refund','expiry','note')
+  OR NEW.`actor` NOT IN ('customer','admin','system')
+BEGIN
+  SELECT RAISE(ABORT, 'INVALID_PAYMENT_EVENT_VALUES');
+END;--> statement-breakpoint
 -- The store_order rebuild would leave the order_item reserve trigger with a stale table
 -- reference, so drop it before the rebuild and recreate it from its captured 0016 definition
 -- after the rename.
@@ -126,4 +133,12 @@ WHEN NEW.`status` NOT IN ('pending_confirmation','confirmed','processing','shipp
   OR NEW.`payment_method` NOT IN ('cod','instapay','wallet','simulated','paymob')
 BEGIN
   SELECT RAISE(ABORT, 'INVALID_ORDER_VALUES');
+END;--> statement-breakpoint
+-- `cancelled` is terminal (spec §3.1). This guard also makes double restocking impossible:
+-- without it, cancelled -> processing -> cancelled would fire the restock trigger twice.
+CREATE TRIGGER `trg_order_cancelled_terminal`
+BEFORE UPDATE OF `status` ON `store_order`
+WHEN OLD.`status` = 'cancelled' AND NEW.`status` != 'cancelled'
+BEGIN
+  SELECT RAISE(ABORT, 'CANCELLED_IS_TERMINAL');
 END;

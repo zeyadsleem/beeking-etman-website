@@ -421,10 +421,13 @@ describe("0019_settlement migration replay", () => {
         "trg_order_settlement_values_valid_update",
         "trg_payment_event_no_update",
         "trg_payment_event_no_delete",
+        "trg_payment_event_values_valid",
+        "trg_order_cancelled_terminal",
       ]) {
         expect(triggers.has(name)).toBe(true);
       }
       expect(await orderTriggerNames()).toEqual([
+        "trg_order_cancelled_terminal",
         "trg_order_settlement_values_valid",
         "trg_order_settlement_values_valid_update",
         "trg_order_status_cancel_restock",
@@ -506,6 +509,20 @@ describe("0019_settlement migration replay", () => {
         db.run(sql`DELETE FROM store_payment_event WHERE order_id = ${defaultsId}`),
         /PAYMENT_EVENT_APPEND_ONLY/,
       );
+      await expectRejection(
+        db.run(
+          sql`INSERT INTO store_payment_event (id, order_id, type, actor, created_at)
+              VALUES (${randomUUID()}, ${defaultsId}, 'bogus', 'customer', 11)`,
+        ),
+        /INVALID_PAYMENT_EVENT_VALUES/,
+      );
+      await expectRejection(
+        db.run(
+          sql`INSERT INTO store_payment_event (id, order_id, type, actor, created_at)
+              VALUES (${randomUUID()}, ${defaultsId}, 'claim', 'bogus', 12)`,
+        ),
+        /INVALID_PAYMENT_EVENT_VALUES/,
+      );
 
       const stockOf = async (): Promise<number> =>
         (
@@ -543,6 +560,10 @@ describe("0019_settlement migration replay", () => {
       expect(await stockOf()).toBe(8);
       await db.run(sql`UPDATE store_order SET status = 'cancelled' WHERE id = ${pendingId}`);
       expect(await stockOf()).toBe(8);
+      await expectRejection(
+        db.run(sql`UPDATE store_order SET status = 'processing' WHERE id = ${pendingId}`),
+        /CANCELLED_IS_TERMINAL/,
+      );
 
       const aliasId = randomUUID();
       await db.run(

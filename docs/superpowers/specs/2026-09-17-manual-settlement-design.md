@@ -362,7 +362,10 @@ Contents (as shipped; see `drizzle/0019_settlement.sql`):
    recreated. `trg_order_status_cancel_restock` is recreated with the §3.5 `OLD.status` allowlist.
 5. `trg_order_settlement_values_valid` and `trg_order_settlement_values_valid_update` — enum
    guards for `status`, `payment_status`, and `payment_method` on insert and update, accepting
-   legacy `placed`/`paid`/`simulated` values during the drain.
+   legacy `placed`/`paid`/`simulated` values during the drain. `trg_order_cancelled_terminal`
+   makes `cancelled` terminal, which also makes a cancel-reopen-cancel double restock impossible
+   at the schema level. `trg_payment_event_values_valid` guards the event `type` and `actor`
+   vocabularies.
 6. No backfill. Pre-pivot rows keep `placed`/`paid`/`simulated` and read as confirmed, paid rows.
 7. The rebuild bracket uses `PRAGMA defer_foreign_keys=ON/OFF`, not `foreign_keys=OFF`: D1 applies
    migrations inside an implicit transaction where the latter is a no-op. Both child tables use

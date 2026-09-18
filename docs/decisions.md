@@ -1708,7 +1708,10 @@ folds D1's content into it:
   deferred check passes at commit against the renamed table with the same ids;
 - a value-guard trigger pair enforces the new status, payment-status, and
   payment-method vocabularies on insert and update while accepting legacy
-  values during the drain;
+  values during the drain; `trg_order_cancelled_terminal` makes `cancelled`
+  terminal at the schema level (closing the cancel-reopen-cancel double
+  restock), and `trg_payment_event_values_valid` guards the event `type` and
+  `actor` vocabularies;
 - `store_payment_event` is created with the partial hold index and two
   append-only triggers that raise `PAYMENT_EVENT_APPEND_ONLY` on update or
   delete;
