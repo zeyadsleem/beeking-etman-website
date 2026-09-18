@@ -1,4 +1,4 @@
-import { error, fail } from "@sveltejs/kit";
+import { error, fail, type ActionFailure } from "@sveltejs/kit";
 import { asc, eq } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import {
@@ -95,11 +95,13 @@ interface SettlementPlan {
   auditDetails: Record<string, unknown>;
 }
 
+// The failure payload stays concrete: `ReturnType<typeof fail>` would widen it
+// to `ActionFailure<unknown>`, which collapses the generated `ActionData` to {}.
 async function runSettlementAction(
   event: RequestEvent,
   action: "mark_paid" | "reject_claim" | "refund" | "extend_hold",
   plan: (form: FormData) => SettlementPlan,
-): Promise<{ success: string } | ReturnType<typeof fail>> {
+): Promise<{ success: string } | ActionFailure<{ message: string }>> {
   // Defense-in-depth: the /admin layout guard only covers page loads, not
   // POSTs, so every mutating action re-checks the role before reading the body.
   const lang = getLang(event);
