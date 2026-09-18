@@ -177,7 +177,7 @@
     {#if selectedVariant.stock > 0}
       <div class="mt-2 flex flex-wrap items-center gap-4">
         <QuantityPicker lang={lang} value={quantity} max={selectedVariant.stock} onChange={(q) => (quantity = q)} />
-        <Button variant="primary" type="button" onclick={handleAdd} disabled={adding} class={adding ? '!bg-olive-600' : ''}>
+        <Button variant="primary" type="button" onclick={handleAdd} disabled={adding} class={adding ? '!bg-olive-600' : ''} data-testid="product-add-to-cart">
           {#if adding}
             <span class="spinner spinner-sm !border-t-white !border-cocoa-200/30"></span>
             {t(lang, "product.added")}

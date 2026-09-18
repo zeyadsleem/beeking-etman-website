@@ -175,7 +175,7 @@
 
     <ul class="mt-8 grid gap-3 md:hidden" data-testid="admin-users-cards">
       {#each data.items as user (user.id)}
-        <li class="rounded-2xl border border-cocoa-100 bg-parchment p-4 shadow-warm-sm">
+        <li class="min-w-0 rounded-2xl border border-cocoa-100 bg-parchment p-4 shadow-warm-sm">
           <div class="flex items-center gap-3">
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-honey-100 text-sm font-bold text-honey-700">
               {initials(user.name)}

@@ -77,12 +77,12 @@ function promote(email: string): void {
   if (result.status !== 0) throw new Error(result.stderr);
 }
 
-async function addProduct(page: Page, lang: Lang): Promise<void> {
+async function addProduct(page: Page): Promise<void> {
   await visit(page, PRODUCT_PATH);
   const synced = page.waitForResponse(
     (response) => response.url().includes("/api/cart") && response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: t(lang, "detail.addToCart"), exact: true }).click();
+  await page.getByTestId("product-add-to-cart").click();
   expect((await synced).ok()).toBe(true);
   await page.keyboard.press("Escape");
 }
@@ -246,7 +246,7 @@ for (const lang of ["ar", "en"] as const) {
     );
 
     const email = await register(page);
-    await addProduct(page, lang);
+    await addProduct(page);
     await checkRoute(page, lang, "/cart", `h1 ${t(lang, "cart.title")} (populated)`, () =>
       heading(page, t(lang, "cart.title")),
     );
@@ -316,7 +316,7 @@ for (const lang of ["ar", "en"] as const) {
   }) => {
     test.setTimeout(240_000);
     await setLang(page, lang);
-    await addProduct(page, lang);
+    await addProduct(page);
     let email = "";
     for (const role of ["guest", "customer", "admin"] as const) {
       if (role === "customer") email = await register(page);
@@ -404,7 +404,7 @@ for (const lang of ["ar", "en"] as const) {
   test(`${lang} cart quantity and remove keep working`, async ({ page }) => {
     test.setTimeout(180_000);
     await setLang(page, lang);
-    await addProduct(page, lang);
+    await addProduct(page);
     await visit(page, "/cart");
     await expect(page.getByTestId("quantity").first()).toHaveText("1");
     await page
