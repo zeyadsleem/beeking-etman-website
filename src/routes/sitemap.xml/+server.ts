@@ -4,7 +4,7 @@ import * as schema from "$lib/server/db/schema";
 import { siteOrigin } from "$lib/site";
 import type { RequestHandler } from "./$types";
 
-const STATIC_PATHS = ["/", "/honey", "/equipment", "/blends", "/about"];
+const STATIC_PATHS = ["/", "/products", "/honey", "/equipment", "/blends", "/about"];
 
 function xmlEscape(value: string): string {
   return value
@@ -15,9 +15,9 @@ function xmlEscape(value: string): string {
 }
 
 /** Dynamic sitemap: static entry points, one URL per category, plus one URL per
- * product under its department/category. Product slugs are ASCII-safe but
- * escaped anyway so a malformed slug can never break the document; private
- * areas stay out via robots.txt. */
+ * published product under its department/category. Product slugs are ASCII-safe
+ * but escaped anyway so a malformed slug can never break the document;
+ * unpublished products and private areas stay out. */
 export const GET: RequestHandler = async () => {
   const origin = siteOrigin();
   const [categories, products] = await Promise.all([
@@ -33,6 +33,7 @@ export const GET: RequestHandler = async () => {
       })
       .from(schema.product)
       .innerJoin(schema.category, eq(schema.product.categoryId, schema.category.id))
+      .where(eq(schema.product.published, true))
       .orderBy(desc(schema.product.createdAt)),
   ]);
 
