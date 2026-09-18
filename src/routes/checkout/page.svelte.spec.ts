@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
+import { page } from "vite-plus/test/browser";
 import type { SubmitFunction } from "@sveltejs/kit";
 import CheckoutPage from "./+page.svelte";
 import type { PageData } from "./$types";
@@ -69,5 +70,39 @@ describe("enhanced checkout redirects", () => {
     });
     expect(state.items).toHaveLength(remaining);
     expect(update).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("payment method field", () => {
+  function baseData(paymentMethods: ("cod" | "instapay" | "wallet")[]) {
+    return {
+      lang: "en",
+      nonce: crypto.randomUUID(),
+      items: [],
+      savedAddresses: [],
+      governorates: ["cairo"],
+      defaultGovernorate: "cairo",
+      totals: { subtotal: 0, shipping: 0, total: 0 },
+      isLoggedIn: false,
+      missingVariantIds: [],
+      paymentMethods,
+    } as unknown as PageData;
+  }
+
+  it("renders a radio per offered method", async () => {
+    render(CheckoutPage, { data: baseData(["cod", "instapay"]), form: null });
+    await expect.element(page.getByRole("radio", { name: /Cash on delivery/ })).toBeVisible();
+    await expect.element(page.getByRole("radio", { name: /InstaPay transfer/ })).toBeVisible();
+    await expect
+      .element(page.getByRole("radio", { name: /Vodafone Cash transfer/ }))
+      .not.toBeInTheDocument();
+  });
+
+  it("shows the no-methods notice and disables submit", async () => {
+    render(CheckoutPage, { data: baseData([]), form: null });
+    await expect
+      .element(page.getByText("No payment method is available right now", { exact: false }))
+      .toBeVisible();
+    await expect.element(page.getByRole("button", { name: "Place order" })).toBeDisabled();
   });
 });

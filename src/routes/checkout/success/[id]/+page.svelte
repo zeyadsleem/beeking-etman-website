@@ -59,7 +59,7 @@
   {#if data.claim.isTransfer}
     <section class="mt-4 rounded-2xl border border-honey-200 bg-honey-50/60 p-6 text-start text-sm text-cocoa-700 shadow-warm-sm">
       <h2 class="headline text-xl text-cocoa-900">{t(lang, "success.claim.transferTitle")}</h2>
-      {#if data.claim.account && !data.claim.paid && !data.claim.refunded}
+      {#if data.claim.account && data.claim.claimable}
         <p class="mt-2">
           <span class="font-bold">{t(lang, "success.claim.account")}</span>
           <span class="font-extrabold" dir="ltr">{data.claim.account}</span>

@@ -14,7 +14,7 @@ export type ClaimResult =
 const REFERENCE_MAX_CHARS = 120;
 // Control and bidi-formatting characters would let a customer forge the
 // direction or layout of the reference an admin reads later.
-const STRIPPED_CHARS = /[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E]/g;
+const STRIPPED_CHARS = /[\u0000-\u001F\u007F\u061C\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g;
 
 /** Bounds and cleans a customer-supplied transfer reference. */
 export function sanitizeReference(value: string | null | undefined): string | null {

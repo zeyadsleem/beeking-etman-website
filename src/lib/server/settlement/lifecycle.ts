@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 import { affectedRowCount } from "$lib/server/sqlite";
@@ -120,7 +120,8 @@ export async function applyPaymentTransition(
   // `payment_reviewed_at` records the latest settlement decision.
   if (input.to === "failed" || input.to === "refunded") set.paymentReviewedAt = now;
 
-  const statements: unknown[] = [
+  type BatchStatement = Parameters<typeof db.batch>[0][number];
+  const statements: BatchStatement[] = [
     db
       .update(schema.order)
       .set(set)
@@ -129,17 +130,18 @@ export async function applyPaymentTransition(
       ),
   ];
   if (input.event) {
+    // `changes()` reflects the preceding UPDATE on the same connection, so a
+    // transition that matched no rows appends no event either: the ledger and
+    // the state stay consistent in both directions.
     statements.push(
-      db.insert(schema.paymentEvent).values({
-        orderId: input.orderId,
-        type: input.event.type,
-        actor: input.event.actor,
-        actorUserId: input.event.actorUserId ?? null,
-        method: input.event.method ?? null,
-        reference: input.event.reference ?? null,
-        note: input.event.note ?? null,
-        createdAt: now,
-      }),
+      db.run(sql`
+        INSERT INTO store_payment_event
+          (id, order_id, type, actor, actor_user_id, method, reference, note, created_at)
+        SELECT ${crypto.randomUUID()}, ${input.orderId}, ${input.event.type}, ${input.event.actor},
+               ${input.event.actorUserId ?? null}, ${input.event.method ?? null},
+               ${input.event.reference ?? null}, ${input.event.note ?? null}, ${now}
+        WHERE changes() = 1
+      `),
     );
   }
   const results: readonly unknown[] = await db.batch(

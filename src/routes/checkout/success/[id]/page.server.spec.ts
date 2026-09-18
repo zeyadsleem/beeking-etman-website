@@ -9,7 +9,11 @@ import { t } from "$lib/i18n/messages";
 
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
-const mockState = vi.hoisted(() => ({ db: undefined as unknown, allow: true }));
+const mockState = vi.hoisted(() => ({
+  db: undefined as unknown,
+  allow: true,
+  limiterOptions: [] as { windowMs: number; max: number }[],
+}));
 
 vi.mock("$lib/server/db", () => ({
   get db() {
@@ -25,7 +29,10 @@ vi.mock("$env/dynamic/private", () => ({
 }));
 vi.mock("$lib/server/rate-limit", () => ({
   clientAddressKey: () => "test",
-  createDbRateLimiter: () => ({ allow: async () => mockState.allow }),
+  createDbRateLimiter: (_db: unknown, options: { windowMs: number; max: number }) => {
+    mockState.limiterOptions.push(options);
+    return { allow: async () => mockState.allow };
+  },
 }));
 
 import { actions, load } from "./+page.server";
@@ -161,6 +168,17 @@ function claimEvent(id: string, cookies: Cookies, form: Record<string, string> =
 beforeEach(async () => {
   mockState.allow = true;
   await buildDb();
+});
+
+describe("claim rate limits", () => {
+  it("configures 5 claims per order and 20 per IP per hour", () => {
+    expect(mockState.limiterOptions).toEqual(
+      expect.arrayContaining([
+        { windowMs: 3_600_000, max: 5 },
+        { windowMs: 3_600_000, max: 20 },
+      ]),
+    );
+  });
 });
 
 describe("success page load", () => {

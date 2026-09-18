@@ -7,6 +7,7 @@ import { createAddress } from "$lib/server/addresses";
 import { sendOrderConfirmation } from "$lib/server/email";
 import { readOrderAccessCookie } from "$lib/server/order-access";
 import { getCartSecret, readCartCookie, setCartCookie } from "$lib/server/cart-cookie";
+import { t } from "$lib/i18n/messages";
 
 vi.mock("$env/dynamic/private", () => ({
   env: { ORDER_ACCESS_SECRET: "secret", BETTER_AUTH_SECRET: "cart-secret" },
@@ -45,7 +46,7 @@ function cookieJar(): Cookies {
   };
 }
 
-function event(cookies: Cookies, nonce: string = crypto.randomUUID()) {
+function event(cookies: Cookies, nonce: string = crypto.randomUUID(), method = "cod") {
   return {
     cookies,
     locals: {},
@@ -59,7 +60,7 @@ function event(cookies: Cookies, nonce: string = crypto.randomUUID()) {
         address: "Street 123",
         city: "Cairo",
         governorate: "cairo",
-        paymentMethod: "cod",
+        paymentMethod: method,
         saveAddress: "on",
       }),
     }),
@@ -132,6 +133,18 @@ describe("checkout nonce ownership", () => {
     expect(createAddress).not.toHaveBeenCalled();
     expect(sendOrderConfirmation).not.toHaveBeenCalled();
     expect(await readOrderAccessCookie(cookies, "order-id", "secret")).toBe(true);
+  });
+
+  it("rejects a method that is not configured", async () => {
+    const cookies = cookieJar();
+    const nonce = await checkout(cookies);
+    // The test env configures no transfer accounts, so instapay is unavailable.
+    const result = await actions.submit(event(cookies, nonce, "instapay"));
+    expect(result).toMatchObject({ status: 400 });
+    expect((result as { data: { errors: Record<string, string> } }).data.errors.paymentMethod).toBe(
+      t("ar", "checkout.methodUnavailable"),
+    );
+    expect(createOrder).not.toHaveBeenCalled();
   });
 
   it("clears the cart and runs post-order work for a created order", async () => {
