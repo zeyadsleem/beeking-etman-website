@@ -100,6 +100,14 @@
     </section>
   {/if}
 
+  {#if data.whatsappUrl}
+    <div class="mt-6 text-center">
+      <Button variant="outline" href={data.whatsappUrl} data-testid="whatsapp-cta">
+        {t(lang, "success.whatsapp")}
+      </Button>
+    </div>
+  {/if}
+
   <div class="mt-8 text-center">
     <Button variant="primary" href="/products">{t(lang, "success.continue")}</Button>
   </div>

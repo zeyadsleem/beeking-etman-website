@@ -1,5 +1,6 @@
 import { building, dev } from "$app/environment";
 import { env } from "$env/dynamic/private";
+import { normalizeWhatsappNumber } from "$lib/server/settlement/whatsapp";
 
 const MIN_SECRET_LENGTH = 32;
 // Plausibility, not RFC completeness: one @ separating local part from a
@@ -63,6 +64,12 @@ export function validateProductionEnv(vars: Record<string, string | undefined>):
   const adminEmail = vars.ADMIN_EMAIL;
   if (adminEmail !== undefined && !isPlausibleEmail(adminEmail)) {
     throw new Error("ADMIN_EMAIL must be a plausible email address when set");
+  }
+  // A malformed shop number would silently hide every WhatsApp CTA, so it must
+  // at least normalize to a plausible international number when set.
+  const whatsappNumber = vars.WHATSAPP_NUMBER;
+  if (whatsappNumber !== undefined && normalizeWhatsappNumber(whatsappNumber) === null) {
+    throw new Error("WHATSAPP_NUMBER must be a plausible international number when set");
   }
 }
 

@@ -1,4 +1,5 @@
 import { V1_PAYMENT_METHODS, type V1PaymentMethod } from "$lib/settlement/types";
+import { normalizeWhatsappNumber } from "./whatsapp";
 
 export const DEFAULT_HOLD_MINUTES = 1440;
 /** A hold may never exceed 30 days; a bad env value must not pin stock forever. */
@@ -8,6 +9,7 @@ export interface SettlementConfig {
   codEnabled: boolean;
   instapayAddress: string | null;
   walletNumber: string | null;
+  whatsappNumber: string | null;
 }
 
 type Env = Record<string, string | undefined>;
@@ -29,6 +31,7 @@ export function settlementConfig(env: Env): SettlementConfig {
     codEnabled: enabledFlag(env.PAYMENTS_COD_ENABLED, true),
     instapayAddress: trimmedOrNull(env.PAYMENT_INSTAPAY_ADDRESS),
     walletNumber: trimmedOrNull(env.PAYMENT_WALLET_NUMBER),
+    whatsappNumber: normalizeWhatsappNumber(env.WHATSAPP_NUMBER),
   };
 }
 

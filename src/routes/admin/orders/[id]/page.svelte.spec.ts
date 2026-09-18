@@ -31,17 +31,21 @@ const items: AdminOrderItemRow[] = [
   },
 ];
 
-function detailData(transitions: readonly OrderStatus[]): {
+function detailData(
+  transitions: readonly OrderStatus[],
+  customerWhatsappUrl: string | null = "https://wa.me/201000000000?text=order",
+): {
   data: {
     order: AdminOrderRow & { shippingCost: number };
     items: AdminOrderItemRow[];
     transitions: readonly OrderStatus[];
+    customerWhatsappUrl: string | null;
     lang: "ar";
   };
   form: ActionData;
 } {
   // ActionData is `… | null`: the page renders identically with no action result.
-  return { data: { order, items, transitions, lang: "ar" }, form: null };
+  return { data: { order, items, transitions, customerWhatsappUrl, lang: "ar" }, form: null };
 }
 
 describe("admin order detail transitions", () => {
@@ -81,5 +85,22 @@ describe("admin order detail transitions", () => {
     // trigger label ("إلغاء الطلب"), which would otherwise match both.
     await dialog.getByRole("button", { name: t("ar", "addresses.cancel"), exact: true }).click();
     await expect.element(dialog).not.toBeInTheDocument();
+  });
+});
+
+describe("admin order WhatsApp CTA", () => {
+  it("links to the customer phone with a prefilled message", async () => {
+    render(
+      OrderDetailPage,
+      detailData(["confirmed"], "https://wa.me/201000000000?text=%D8%B7%D9%84%D8%A8"),
+    );
+    await expect
+      .element(page.getByTestId("customer-whatsapp"))
+      .toHaveAttribute("href", "https://wa.me/201000000000?text=%D8%B7%D9%84%D8%A8");
+  });
+
+  it("renders no CTA when the phone cannot be normalized", async () => {
+    render(OrderDetailPage, detailData(["confirmed"], null));
+    await expect.element(page.getByTestId("customer-whatsapp")).not.toBeInTheDocument();
   });
 });

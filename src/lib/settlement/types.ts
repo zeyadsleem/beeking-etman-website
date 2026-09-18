@@ -107,6 +107,10 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export const V1_PAYMENT_METHODS = ["cod", "instapay", "wallet"] as const;
 export type V1PaymentMethod = (typeof V1_PAYMENT_METHODS)[number];
 
+export function isV1PaymentMethod(value: string): value is V1PaymentMethod {
+  return (V1_PAYMENT_METHODS as readonly string[]).includes(value);
+}
+
 export const PAYMENT_METHOD_LABEL_KEY: Record<V1PaymentMethod, MessageKey> = {
   cod: "checkout.method.cod",
   instapay: "checkout.method.instapay",

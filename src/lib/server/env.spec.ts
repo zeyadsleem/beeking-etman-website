@@ -78,6 +78,26 @@ describe("validateProductionEnv optional CART_SIGNING_SECRET", () => {
   });
 });
 
+describe("validateProductionEnv optional WHATSAPP_NUMBER", () => {
+  it("accepts international and Egyptian local forms", () => {
+    expect(() =>
+      validateProductionEnv(productionVars({ WHATSAPP_NUMBER: "+20 100 000 0000" })),
+    ).not.toThrow();
+    expect(() =>
+      validateProductionEnv(productionVars({ WHATSAPP_NUMBER: "01012345678" })),
+    ).not.toThrow();
+  });
+
+  it("rejects a value that cannot be a number", () => {
+    expect(() => validateProductionEnv(productionVars({ WHATSAPP_NUMBER: "123" }))).toThrow(
+      /WHATSAPP_NUMBER/,
+    );
+    expect(() =>
+      validateProductionEnv(productionVars({ WHATSAPP_NUMBER: "011234567890" })),
+    ).toThrow(/WHATSAPP_NUMBER/);
+  });
+});
+
 describe("validateProductionEnv optional ADMIN_EMAIL", () => {
   it("accepts a plausible email address", () => {
     expect(() =>

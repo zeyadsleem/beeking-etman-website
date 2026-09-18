@@ -250,7 +250,7 @@ deadline, and retire the blend studio so the catalog matches the shop's workflow
   file, the fold happens inside 0019 and 0021 is never created.
 - **OPS** — verification gating where account state is touched; no CSP change in v1 (the Paymob
   confirmation moves to phase 2); preflight/env validation extended for the v1 settlement
-  variables (`PUBLIC_WHATSAPP_NUMBER` and the receiving accounts).
+  variables (`WHATSAPP_NUMBER` and the receiving accounts).
 - **EM** — no schema changes; `sendOrderStatusUpdate` and the settlement triggers call the same
   `enqueueEmail`; SET-8 asserts outbox rows per trigger.
 

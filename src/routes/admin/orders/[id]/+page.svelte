@@ -8,7 +8,10 @@
   import { formatDate, t } from "$lib/i18n/messages";
   import type { ActionData, PageData } from "./$types";
 
-  let { data, form }: { data: Pick<PageData, "order" | "items" | "transitions" | "lang">; form: ActionData } =
+  let { data, form }: {
+    data: Pick<PageData, "order" | "items" | "transitions" | "customerWhatsappUrl" | "lang">;
+    form: ActionData;
+  } =
     $props();
   const lang = $derived(data.lang);
 
@@ -56,10 +59,20 @@
       <span class="block text-xs font-semibold text-cocoa-400">{t(lang, "admin.orders.total")}</span>
       <span class="font-extrabold text-cocoa-900">{formatEGP(data.order.total, lang)}</span>
     </div>
-    <div>
+    <div class="flex flex-wrap items-center gap-3">
       <Button variant="ghost" href={`/admin/orders/${data.order.id}/invoice`} class="text-sm">
         {t(lang, "admin.order.downloadInvoice")}
       </Button>
+      {#if data.customerWhatsappUrl}
+        <Button
+          variant="ghost"
+          href={data.customerWhatsappUrl}
+          class="text-sm"
+          data-testid="customer-whatsapp"
+        >
+          {t(lang, "admin.order.whatsapp")}
+        </Button>
+      {/if}
     </div>
   </div>
 
