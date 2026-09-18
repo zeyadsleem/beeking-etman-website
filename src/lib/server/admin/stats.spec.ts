@@ -280,7 +280,9 @@ describe("getDashboardStats — kpis", () => {
     const stats = await getDashboardStats(db);
 
     expect(stats.kpis.byStatus).toEqual({
-      placed: 2,
+      pending_confirmation: 0,
+      confirmed: 2,
+      processing: 0,
       shipped: 0,
       delivered: 0,
       cancelled: 1,
@@ -313,7 +315,9 @@ describe("getDashboardStats — kpis", () => {
 
     expect(stats.kpis.orders).toBe(2);
     expect(stats.kpis.byStatus).toEqual({
-      placed: 1,
+      pending_confirmation: 0,
+      confirmed: 1,
+      processing: 0,
       shipped: 0,
       delivered: 0,
       cancelled: 0,

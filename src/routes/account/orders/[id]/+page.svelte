@@ -2,7 +2,7 @@
   import { formatEGP } from "$lib/currency";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
-  import { CUSTOMER_ORDER_STATUS_LABEL_KEY, parseOrderStatus } from "$lib/admin-order-status";
+  import { CUSTOMER_ORDER_STATUS_LABEL_KEY, parseOrderStatus } from "$lib/settlement/types";
   import { formatDate, t } from "$lib/i18n/messages";
   import type { PageData } from "./$types";
 
@@ -16,7 +16,7 @@
   <div class="flex flex-wrap items-center justify-between gap-3">
     <SectionTitle as="h1" className="text-4xl">{data.order.number}</SectionTitle>
     <span class="badge-ok">
-      {t(lang, CUSTOMER_ORDER_STATUS_LABEL_KEY[parseOrderStatus(data.order.status) ?? "placed"] ?? "orders.unknown")}
+      {t(lang, CUSTOMER_ORDER_STATUS_LABEL_KEY[parseOrderStatus(data.order.status) ?? "pending_confirmation"] ?? "orders.unknown")}
     </span>
   </div>
   <p class="mt-1 text-sm text-cocoa-500">

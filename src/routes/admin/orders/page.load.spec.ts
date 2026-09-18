@@ -170,7 +170,7 @@ describe("admin orders page load", () => {
   it("filters by a valid status in items and total", async () => {
     const base = 1_700_000_000_000;
     const db = currentDb();
-    await seedOrder(db, { status: "placed", createdAt: base });
+    await seedOrder(db, { status: "pending_confirmation", createdAt: base });
     await seedOrder(db, { status: "shipped", createdAt: base + 1_000 });
     await seedOrder(db, { status: "delivered", createdAt: base + 2_000 });
 
@@ -184,7 +184,7 @@ describe("admin orders page load", () => {
   it("degrades an unknown status to the unfiltered list with status null", async () => {
     const base = 1_700_000_000_000;
     const db = currentDb();
-    await seedOrder(db, { status: "placed", createdAt: base });
+    await seedOrder(db, { status: "pending_confirmation", createdAt: base });
     await seedOrder(db, { status: "cancelled", createdAt: base + 1_000 });
 
     const data = await load(fakeEvent("http://localhost/admin/orders?status=bogus"));

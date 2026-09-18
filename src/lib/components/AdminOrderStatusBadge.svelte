@@ -2,7 +2,7 @@
   import {
     ADMIN_ORDER_STATUS_BADGE_CLASS,
     ADMIN_ORDER_STATUS_LABEL_KEY,
-  } from "$lib/admin-order-status";
+  } from "$lib/settlement/types";
   import { t, type Lang } from "$lib/i18n/messages";
   import type { OrderStatus } from "$lib/server/admin/orders";
 

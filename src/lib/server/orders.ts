@@ -334,8 +334,9 @@ export async function createOrder(
           governorate,
           shippingCost: totals.shipping,
           total: totals.total,
-          status: "placed",
-          paymentStatus: "simulated",
+          status: "pending_confirmation",
+          paymentStatus: "unpaid",
+          paymentMethod: "simulated", // method selection lands in SET-4
           stockVersion: "atomic",
           userId: userId ?? null,
           createdAt: Date.now(),

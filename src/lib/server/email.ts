@@ -479,7 +479,7 @@ function buildOrderConfirmationHtml(
   </p>
 
   <p style="margin:16px 0 0;font-size:13px;color:${BRAND.muted};text-align:center;">
-    ${escapeHtml(localized("الدفع تمت محاكاته — لا يوجد أي خصم فعلي على بطاقتك.", "Payment was simulated — no real charge on your card.", "ar"))}
+    ${escapeHtml(localized("سنراجع طلبك ونتواصل معك لتأكيد الطلب وطريقة الدفع.", "We will review your order and contact you to confirm it and the payment method.", "ar"))}
   </p>
 </td>
 </tr>`,
@@ -515,7 +515,9 @@ function buildOrderConfirmationText(
 // ---------------------------------------------------------------------------
 
 const STATUS_LABELS: Record<OrderStatus, { ar: string; en: string }> = {
-  placed: { ar: "تم الطلب ✓", en: "Placed ✓" },
+  pending_confirmation: { ar: "تم استلام الطلب ⏳", en: "Order received ⏳" },
+  confirmed: { ar: "تم تأكيد الطلب ✓", en: "Order confirmed ✓" },
+  processing: { ar: "جاري تجهيز الطلب", en: "Preparing your order" },
   shipped: { ar: "تم الشحن 📦", en: "Shipped 📦" },
   delivered: { ar: "تم التسليم ✅", en: "Delivered ✅" },
   cancelled: { ar: "تم الإلغاء ❌", en: "Cancelled ❌" },

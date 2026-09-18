@@ -1732,3 +1732,38 @@ their stored values and read through the aliases.
 until SET-3 reworks the vocabulary, and those writes still satisfy the value
 guard. The reserve and restock triggers behave exactly as 0016 defined them,
 except restock now refuses `shipped`/`delivered` reversals.
+
+---
+
+## 2026-09-17: Settlement lifecycle core and vocabulary rework (SET-3)
+
+**Context:** After 0019, the database understood the settlement vocabulary but
+the code still spoke the old model: `placed` mixed fulfillment with payment,
+`paid` was the inherited default, and the success page and confirmation email
+claimed a simulated payment on orders that are now `unpaid`. Six consumers
+rendered the old values.
+
+**Decision:**
+
+- The shared vocabulary lives in `src/lib/settlement/types.ts` (client-safe):
+  six order statuses, the payment statuses plus legacy `simulated`, payment
+  methods, the payment-event vocabularies, label keys, and badge classes.
+  `placed` and `paid` parse to `confirmed`; new code never writes them.
+- `src/lib/server/settlement/lifecycle.ts` owns both transition matrices, the
+  conditional updates with the settlement stamps, and `recordPaymentEvent` as
+  the only write path into `store_payment_event`.
+- `createOrder` writes `pending_confirmation` / `unpaid` explicitly. Method
+  selection lands in SET-4 (it still writes the legacy `simulated` method).
+- Consumers updated: the admin list and CSV export filters match legacy
+  aliases through `storedOrderStatusValues`; dashboard stats accumulate legacy
+  aliases into `confirmed`; invoice, email, account pages, and the admin UI
+  render canonical statuses; the simulated-payment copy on the success page
+  and the confirmation email is replaced with neutral "we will contact you to
+  confirm" copy. Method-specific instructions land in SET-5.
+- `admin.stats.revenue` is relabeled "Order bookings (excluding cancelled)"
+  because new orders stay `unpaid` until the shop verifies payment.
+
+**Consequences:** The admin fulfillment flow now requires confirm → prepare →
+ship (`pending_confirmation` → `confirmed` → `processing`/`shipped`). Legacy
+rows still transition because `placed` parses as `confirmed`. The lifecycle
+module is the seam the claim, admin review, and expiry tasks build on.

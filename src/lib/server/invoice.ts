@@ -1,4 +1,5 @@
 import { formatEGP } from "$lib/currency";
+import { parseOrderStatus } from "$lib/settlement/types";
 
 interface InvoiceOrder {
   number: string;
@@ -29,9 +30,13 @@ function cairoDateTime(ms: number): string {
 }
 
 function statusLabel(status: string): string {
-  switch (status) {
-    case "placed":
-      return "تم الطلب";
+  switch (parseOrderStatus(status)) {
+    case "pending_confirmation":
+      return "جديد";
+    case "confirmed":
+      return "مؤكد";
+    case "processing":
+      return "قيد التجهيز";
     case "shipped":
       return "تم الشحن";
     case "delivered":
@@ -95,7 +100,9 @@ export function generateInvoiceHtml(order: InvoiceOrder, items: InvoiceItem[]): 
     .totals tr td:last-child { text-align: end; font-weight: 600; }
     .totals .grand { border-top: 2px solid #2c2417; font-size: 18px; font-weight: 800; }
     .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
-    .status-placed { background: #d4edda; color: #155724; }
+    .status-pending_confirmation { background: #fff8e1; color: #8a6d1d; }
+    .status-confirmed { background: #d4edda; color: #155724; }
+    .status-processing { background: #fde8c8; color: #8a5200; }
     .status-shipped { background: #cce5ff; color: #004085; }
     .status-delivered { background: #e8f5e9; color: #2e7d32; }
     .status-cancelled { background: #f8d7da; color: #721c24; }
@@ -122,7 +129,7 @@ export function generateInvoiceHtml(order: InvoiceOrder, items: InvoiceItem[]): 
         <p>
           رقم الفاتورة: <strong>${escHtml(order.number)}</strong><br>
           التاريخ: ${cairoDateTime(order.createdAt)}<br>
-          الحالة: <span class="status-badge status-${escHtml(order.status)}">${statusLabel(order.status)}</span>
+          الحالة: <span class="status-badge status-${parseOrderStatus(order.status) ?? "pending_confirmation"}">${statusLabel(order.status)}</span>
         </p>
       </div>
     </div>

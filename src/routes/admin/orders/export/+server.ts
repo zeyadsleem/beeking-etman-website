@@ -1,12 +1,14 @@
 import { error } from "@sveltejs/kit";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { desc, inArray, sql } from "drizzle-orm";
 import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
 import { parseOrderStatus } from "$lib/server/admin/orders";
+import { storedOrderStatusValues } from "$lib/server/settlement/lifecycle";
 import { isAdminRole } from "$lib/server/admin/roles";
 import { logAdminAction } from "$lib/server/admin/audit";
 import { csvCell } from "$lib/server/csv";
+import type { OrderStatus } from "$lib/settlement/types";
 
 const CAIRO_TZ = "Africa/Cairo";
 
@@ -34,9 +36,7 @@ export const GET: RequestHandler = async (event) => {
   if (statusParam && !statusFilter) error(400, "Invalid status");
 
   const where = statusFilter
-    ? statusFilter === "placed"
-      ? inArray(schema.order.status, ["placed", "paid"])
-      : eq(schema.order.status, statusFilter)
+    ? inArray(schema.order.status, storedOrderStatusValues(statusFilter))
     : undefined;
 
   // Fetch all matching orders (admin volume — small table)
@@ -91,24 +91,29 @@ export const GET: RequestHandler = async (event) => {
     "عدد المنتجات",
   ];
 
-  const statusLabels: Record<string, string> = {
-    placed: "تم الطلب",
+  const statusLabels: Record<OrderStatus, string> = {
+    pending_confirmation: "جديد",
+    confirmed: "مؤكد",
+    processing: "قيد التجهيز",
     shipped: "تم الشحن",
     delivered: "تم التسليم",
     cancelled: "ملغي",
   };
 
-  const rows = orders.map((order) => [
-    order.number,
-    cairoDateTime(order.createdAt),
-    order.name,
-    order.email,
-    order.phone,
-    order.city,
-    statusLabels[order.status] ?? order.status,
-    String(order.total / 100),
-    String(itemCounts.get(order.id) ?? 0),
-  ]);
+  const rows = orders.map((order) => {
+    const status = parseOrderStatus(order.status);
+    return [
+      order.number,
+      cairoDateTime(order.createdAt),
+      order.name,
+      order.email,
+      order.phone,
+      order.city,
+      status ? statusLabels[status] : order.status,
+      String(order.total / 100),
+      String(itemCounts.get(order.id) ?? 0),
+    ];
+  });
 
   const csv = BOM + [header.join(","), ...rows.map((r) => r.map(csvCell).join(","))].join("\r\n");
 

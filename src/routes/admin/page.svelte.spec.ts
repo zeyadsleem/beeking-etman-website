@@ -18,7 +18,14 @@ const stats: DashboardStats = {
     revenue: 123_456,
     orders: 42,
     customers: 17,
-    byStatus: { placed: 10, shipped: 8, delivered: 20, cancelled: 4 },
+    byStatus: {
+      pending_confirmation: 10,
+      confirmed: 0,
+      processing: 0,
+      shipped: 8,
+      delivered: 20,
+      cancelled: 4,
+    },
   },
   dailySeries: [
     { day: "2026-08-23", revenue: 50_00, orders: 1 },
@@ -48,8 +55,8 @@ async function expectDashboardIn(lang: Lang): Promise<void> {
     .element(page.getByTestId("status-breakdown"))
     .toHaveTextContent(t(lang, "admin.stats.byStatus"));
   await expect
-    .element(page.getByTestId("status-chip-placed"))
-    .toHaveTextContent(t(lang, "admin.orders.placed"));
+    .element(page.getByTestId("status-chip-pending_confirmation"))
+    .toHaveTextContent(t(lang, "admin.orders.pending_confirmation"));
   await expect
     .element(page.getByTestId("status-chip-cancelled"))
     .toHaveTextContent(t(lang, "admin.orders.cancelled"));

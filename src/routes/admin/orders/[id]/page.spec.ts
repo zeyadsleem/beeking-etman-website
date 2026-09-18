@@ -106,7 +106,7 @@ async function seedOrder(
     address: "شارع 9",
     city: "القاهرة",
     total: 100_00,
-    status: opts.status ?? "placed",
+    status: opts.status ?? "pending_confirmation",
     paymentStatus: "simulated",
     userId: null,
     createdAt: Date.now(),
@@ -244,11 +244,11 @@ describe("admin order detail load", () => {
     const data = asData(await load(fakeEvent(id)));
 
     expect(data.order.id).toBe(id);
-    expect(data.order.status).toBe("placed");
+    expect(data.order.status).toBe("pending_confirmation");
     expect(data.items).toHaveLength(1);
     expect(data.items[0]?.productName).toBe("عسل سدر مصري");
     expect(data.items[0]?.quantity).toBe(3);
-    expect(data.transitions).toEqual(["shipped", "cancelled"]);
+    expect(data.transitions).toEqual(["confirmed", "cancelled"]);
     expect(data.lang).toBe("ar"); // no cookie/header → Arabic default
   });
 
@@ -305,12 +305,12 @@ describe("admin order detail update action", () => {
     const id = await seedOrder(db);
 
     const message = successOf(
-      await update(fakeEvent(id, { role: "admin" }, { id, status: "shipped" })),
+      await update(fakeEvent(id, { role: "admin" }, { id, status: "confirmed" })),
     );
 
     expect(message).toBe(t("ar", "admin.order.updated"));
     const row = await db.select({ status: schema.order.status }).from(schema.order).get();
-    expect(row?.status).toBe("shipped");
+    expect(row?.status).toBe("confirmed");
   });
 
   it("localizes the success message via the lang cookie", async () => {

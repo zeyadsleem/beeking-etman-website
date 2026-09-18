@@ -4,7 +4,7 @@
     ADMIN_ORDER_STATUS_BAR_CLASS,
     ADMIN_ORDER_STATUS_LABEL_KEY,
     STATUS_ORDER,
-  } from "$lib/admin-order-status";
+  } from "$lib/settlement/types";
   import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
   import CalendarDays from "@lucide/svelte/icons/calendar-days";
   import CircleDollarSign from "@lucide/svelte/icons/circle-dollar-sign";

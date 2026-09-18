@@ -251,7 +251,9 @@ describe("admin dashboard page load", () => {
     expect(data.stats.kpis.orders).toBe(2); // every status counts
     expect(data.stats.kpis.customers).toBe(1);
     expect(data.stats.kpis.byStatus).toEqual({
-      placed: 1,
+      pending_confirmation: 0,
+      confirmed: 1,
+      processing: 0,
       shipped: 0,
       delivered: 0,
       cancelled: 1,

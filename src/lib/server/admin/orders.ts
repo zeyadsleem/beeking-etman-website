@@ -6,8 +6,9 @@ import {
   ORDER_STATUSES,
   parseOrderStatus,
   type OrderStatus,
-} from "$lib/admin-order-status";
+} from "$lib/settlement/types";
 import { affectedRowCount } from "$lib/server/orders";
+import { canTransitionOrder, storedOrderStatusValues } from "$lib/server/settlement/lifecycle";
 import { retryOnBusy } from "$lib/server/sqlite";
 
 export { allowedTransitions, ORDER_STATUSES, parseOrderStatus };
@@ -81,11 +82,7 @@ export async function listOrders(
   const page = Math.max(1, Math.trunc(opts?.page ?? 1));
   const conditions: SQL[] = [];
   if (opts?.status) {
-    conditions.push(
-      opts.status === "placed"
-        ? inArray(schema.order.status, ["placed", "paid"])
-        : eq(schema.order.status, opts.status),
-    );
+    conditions.push(inArray(schema.order.status, storedOrderStatusValues(opts.status)));
   }
   const needle = opts?.query?.trim() ?? "";
   if (needle !== "") {
@@ -207,7 +204,7 @@ export async function transitionOrderStatus(
   if (!current) return { ok: false, reason: "not_found" };
 
   const from = parseOrderStatus(current.status);
-  if (!from || !allowedTransitions(from).includes(next)) {
+  if (!from || !canTransitionOrder(from, next)) {
     return { ok: false, reason: "invalid_transition" };
   }
 

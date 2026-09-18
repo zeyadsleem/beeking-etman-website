@@ -169,8 +169,8 @@ describe("createOrder", () => {
       .where(eq(schema.order.id, result.orderId))
       .get();
     expect(order?.number).toBe(result.orderNumber);
-    expect(order?.status).toBe("placed");
-    expect(order?.paymentStatus).toBe("simulated");
+    expect(order?.status).toBe("pending_confirmation");
+    expect(order?.paymentStatus).toBe("unpaid");
     const stock = await db
       .select()
       .from(schema.productVariant)
@@ -559,8 +559,8 @@ describe("createOrder", () => {
       .from(schema.order)
       .where(eq(schema.order.id, result.orderId))
       .get();
-    expect(order?.status).toBe("placed");
-    expect(order?.paymentStatus).toBe("simulated");
+    expect(order?.status).toBe("pending_confirmation");
+    expect(order?.paymentStatus).toBe("unpaid");
   });
 
   it("replays a nonce with an empty cart for the same owner", async () => {

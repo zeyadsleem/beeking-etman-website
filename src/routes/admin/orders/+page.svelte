@@ -3,7 +3,7 @@
   import AdminOrderStatusBadge from "$lib/components/AdminOrderStatusBadge.svelte";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
-  import { ADMIN_ORDER_STATUS_LABEL_KEY, STATUS_ORDER } from "$lib/admin-order-status";
+  import { ADMIN_ORDER_STATUS_LABEL_KEY, STATUS_ORDER } from "$lib/settlement/types";
   import { formatDate, t } from "$lib/i18n/messages";
   import type { OrderStatus } from "$lib/server/admin/orders";
   import type { PageData } from "./$types";
