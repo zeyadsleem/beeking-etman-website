@@ -59,7 +59,7 @@
   {#if data.claim.isTransfer}
     <section class="mt-4 rounded-2xl border border-honey-200 bg-honey-50/60 p-6 text-start text-sm text-cocoa-700 shadow-warm-sm">
       <h2 class="headline text-xl text-cocoa-900">{t(lang, "success.claim.transferTitle")}</h2>
-      {#if data.claim.account}
+      {#if data.claim.account && !data.claim.paid && !data.claim.refunded}
         <p class="mt-2">
           <span class="font-bold">{t(lang, "success.claim.account")}</span>
           <span class="font-extrabold" dir="ltr">{data.claim.account}</span>
@@ -72,10 +72,12 @@
 
       {#if data.claim.paid}
         <p class="mt-3 font-semibold text-olive-800">{t(lang, "success.claim.paid")}</p>
+      {:else if data.claim.refunded}
+        <p class="mt-3 font-semibold text-cocoa-700">{t(lang, "success.claim.refunded")}</p>
       {:else if data.claim.claimed}
         <p class="mt-3 font-semibold text-honey-800">{t(lang, "success.claim.alreadyClaimed")}</p>
         {#if data.claim.reference}<p class="mt-1 text-xs text-cocoa-500">{data.claim.reference}</p>{/if}
-      {:else if data.claim.claimable}
+      {:else if data.claim.claimable && data.claim.account}
         <form method="POST" action="?/claim" class="mt-3 space-y-3">
           <label class="field-label block">
             {t(lang, "success.claim.reference")}
@@ -83,9 +85,11 @@
           </label>
           <Button type="submit" variant="primary">{t(lang, "success.claim.submit")}</Button>
         </form>
+      {:else if data.claim.claimable}
+        <p class="mt-3 font-semibold text-clay-800">{t(lang, "success.claim.noAccount")}</p>
       {/if}
 
-      {#if form?.claimSubmitted}
+      {#if form?.claimSubmitted && !data.claim.claimed}
         <p class="mt-3 font-semibold text-olive-800" role="status">{t(lang, "success.claim.submitted")}</p>
       {/if}
       {#if form?.claimError}

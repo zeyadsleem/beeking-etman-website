@@ -48,6 +48,13 @@ describe("hold window", () => {
     expect(holdMinutesFor("instapay", { ORDER_HOLD_MINUTES: "60" })).toBe(60);
     expect(holdMinutesFor("instapay", { ORDER_HOLD_MINUTES: "abc" })).toBe(DEFAULT_HOLD_MINUTES);
     expect(holdMinutesFor("instapay", { ORDER_HOLD_MINUTES: "-5" })).toBe(DEFAULT_HOLD_MINUTES);
+    // A broken COD override falls back to the global window, not the default.
+    expect(holdMinutesFor("cod", { ORDER_HOLD_MINUTES: "60", COD_HOLD_MINUTES: "abc" })).toBe(60);
+    expect(holdMinutesFor("cod", { ORDER_HOLD_MINUTES: "60", COD_HOLD_MINUTES: "" })).toBe(60);
+  });
+
+  it("caps absurd windows at 30 days", () => {
+    expect(holdMinutesFor("instapay", { ORDER_HOLD_MINUTES: "1e15" })).toBe(43_200);
   });
 
   it("computes the deadline from the injected clock", () => {

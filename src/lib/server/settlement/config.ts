@@ -1,6 +1,8 @@
 import { V1_PAYMENT_METHODS, type V1PaymentMethod } from "$lib/settlement/types";
 
 export const DEFAULT_HOLD_MINUTES = 1440;
+/** A hold may never exceed 30 days; a bad env value must not pin stock forever. */
+export const MAX_HOLD_MINUTES = 43_200;
 
 export interface SettlementConfig {
   codEnabled: boolean;
@@ -12,7 +14,8 @@ type Env = Record<string, string | undefined>;
 
 function enabledFlag(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined) return fallback;
-  return value === "true" || value === "1";
+  const normalized = value.trim().toLowerCase();
+  return normalized === "true" || normalized === "1";
 }
 
 function trimmedOrNull(value: string | undefined): string | null {
@@ -55,11 +58,16 @@ export function receivingAccountFor(
 }
 
 /** Hold window in minutes; COD may override with COD_HOLD_MINUTES. */
-export function holdMinutesFor(method: V1PaymentMethod, env: Env): number {
-  const raw =
-    method === "cod" ? (env.COD_HOLD_MINUTES ?? env.ORDER_HOLD_MINUTES) : env.ORDER_HOLD_MINUTES;
+function parseHoldMinutes(raw: string | undefined): number | null {
   const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : DEFAULT_HOLD_MINUTES;
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.min(Math.trunc(parsed), MAX_HOLD_MINUTES);
+}
+
+/** Hold window in minutes; a valid COD_HOLD_MINUTES overrides ORDER_HOLD_MINUTES. */
+export function holdMinutesFor(method: V1PaymentMethod, env: Env): number {
+  const override = method === "cod" ? parseHoldMinutes(env.COD_HOLD_MINUTES) : null;
+  return override ?? parseHoldMinutes(env.ORDER_HOLD_MINUTES) ?? DEFAULT_HOLD_MINUTES;
 }
 
 export function holdDeadline(method: V1PaymentMethod, env: Env, now: number = Date.now()): number {

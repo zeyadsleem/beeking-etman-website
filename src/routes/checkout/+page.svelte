@@ -225,13 +225,16 @@
           </label>
         {/each}
       </div>
+      {#if data.paymentMethods.length === 0}
+        <p class="mt-1 text-sm font-semibold text-clay-800" role="alert">{t(lang, "checkout.noMethods")}</p>
+      {/if}
       {#if error("paymentMethod")}<span class="field-error">{error("paymentMethod")}</span>{/if}
     </fieldset>
 
     <Button
       variant="primary"
       type="submit"
-      disabled={submitting}
+      disabled={submitting || data.paymentMethods.length === 0}
       aria-busy={submitting}
       class="w-full"
     >{submitting ? t(lang, "checkout.submitting") : t(lang, "checkout.submit")}</Button>

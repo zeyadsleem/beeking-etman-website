@@ -86,6 +86,11 @@ export interface PaymentTransitionInput {
   reviewedBy?: string | null;
   /** Injectable clock for tests. */
   now?: number;
+  /**
+   * Settlement event appended in the same transaction as the status change,
+   * so a partial failure can never leave a state change without its trail.
+   */
+  event?: Omit<PaymentEventInput, "orderId" | "now">;
 }
 
 /**
@@ -115,15 +120,32 @@ export async function applyPaymentTransition(
   // `payment_reviewed_at` records the latest settlement decision.
   if (input.to === "failed" || input.to === "refunded") set.paymentReviewedAt = now;
 
-  const [flip] = await db.batch([
+  const statements: unknown[] = [
     db
       .update(schema.order)
       .set(set)
       .where(
         and(eq(schema.order.id, input.orderId), inArray(schema.order.paymentStatus, validFrom)),
       ),
-  ]);
-  if (affectedRowCount(flip) !== 1) {
+  ];
+  if (input.event) {
+    statements.push(
+      db.insert(schema.paymentEvent).values({
+        orderId: input.orderId,
+        type: input.event.type,
+        actor: input.event.actor,
+        actorUserId: input.event.actorUserId ?? null,
+        method: input.event.method ?? null,
+        reference: input.event.reference ?? null,
+        note: input.event.note ?? null,
+        createdAt: now,
+      }),
+    );
+  }
+  const results: readonly unknown[] = await db.batch(
+    statements as unknown as Parameters<typeof db.batch>[0],
+  );
+  if (affectedRowCount(results[0]) !== 1) {
     return { ok: false, reason: "invalid_transition" };
   }
   return { ok: true };

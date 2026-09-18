@@ -81,7 +81,7 @@ export const load: PageServerLoad = async (event) => {
   const config = settlementConfig(env);
   const method = parsePaymentMethod(row.paymentMethod);
   const isTransfer = method === "instapay" || method === "wallet";
-  const paymentStatus = parsePaymentStatus(row.paymentStatus) ?? "unpaid";
+  const paymentStatus = parsePaymentStatus(row.paymentStatus);
 
   const order = {
     id: row.id,
@@ -112,7 +112,7 @@ export const load: PageServerLoad = async (event) => {
       isTransfer,
       method: isTransfer ? method : null,
       account: isTransfer && method ? receivingAccountFor(config, method) : null,
-      status: paymentStatus,
+      status: paymentStatus ?? "unknown",
       reference: row.paymentReference,
       claimable:
         isTransfer &&
@@ -120,6 +120,7 @@ export const load: PageServerLoad = async (event) => {
         (paymentStatus === "unpaid" || paymentStatus === "failed"),
       claimed: paymentStatus === "pending_review",
       paid: paymentStatus === "paid",
+      refunded: paymentStatus === "refunded",
     },
   };
 };
@@ -139,10 +140,10 @@ export const actions: Actions = {
     }
 
     const rawReference = (await event.request.formData()).get("reference");
-    const reference = typeof rawReference === "string" ? rawReference.trim().slice(0, 120) : "";
     const result = await submitClaim(db, {
       orderId: row.id,
-      reference: reference === "" ? null : reference,
+      reference: typeof rawReference === "string" ? rawReference : null,
+      actorUserId: event.locals.user?.id ?? null,
     });
     if (!result.ok) {
       return fail(400, { claimError: t(lang, CLAIM_FAILURE_KEYS[result.reason]) });

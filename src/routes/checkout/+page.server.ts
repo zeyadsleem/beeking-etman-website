@@ -11,7 +11,6 @@ import {
   availablePaymentMethods,
   isPaymentMethodAvailable,
   holdDeadline,
-  receivingAccountFor,
   settlementConfig,
 } from "$lib/server/settlement/config";
 import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
@@ -52,10 +51,6 @@ export const load: PageServerLoad = async (event) => {
     savedAddresses,
     isLoggedIn: Boolean(event.locals.user),
     paymentMethods: availablePaymentMethods(settlement),
-    paymentInstructions: {
-      instapayAddress: receivingAccountFor(settlement, "instapay"),
-      walletNumber: receivingAccountFor(settlement, "wallet"),
-    },
   };
 };
 
