@@ -195,7 +195,6 @@
     <div class="mt-4 flex flex-wrap items-center gap-3">
       {#each data.transitions as next (next)}
         <form method="POST" action="?/update">
-          <input type="hidden" name="id" value={data.order.id} />
           <input type="hidden" name="status" value={next} />
           {#if next === "cancelled"}
             <button type="button" class={CANCEL_BUTTON_CLASS} onclick={() => { cancelConfirmOpen = true; cancelError = null; }}>
@@ -303,7 +302,6 @@
         }}
         class="mt-5 flex items-center justify-end gap-2"
       >
-        <input type="hidden" name="id" value={data.order.id} />
         <input type="hidden" name="status" value="cancelled" />
         <Dialog.Close class="btn-outline">{t(lang, "addresses.cancel")}</Dialog.Close>
         <Button type="submit" variant="primary">{t(lang, "admin.order.cancel")}</Button>

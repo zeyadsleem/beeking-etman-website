@@ -16,7 +16,8 @@ export interface AdminSettlementInput {
   now?: number;
 }
 
-function clean(value: string | null | undefined): string | null {
+/** Trim and length-cap admin free text; `null` when nothing usable remains. */
+export function cleanSettlementText(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed.slice(0, 200) : null;
 }
@@ -29,8 +30,8 @@ export async function verifyPayment(
   db: LibSQLDatabase<typeof schema>,
   input: AdminSettlementInput,
 ): Promise<SettlementActionResult> {
-  const reference = clean(input.reference);
-  const note = clean(input.note);
+  const reference = cleanSettlementText(input.reference);
+  const note = cleanSettlementText(input.note);
   if (!reference && !note) return { ok: false, reason: "invalid_input" };
 
   const result = await retryOnBusy(() =>
@@ -59,7 +60,7 @@ export async function rejectClaim(
   db: LibSQLDatabase<typeof schema>,
   input: AdminSettlementInput,
 ): Promise<SettlementActionResult> {
-  const note = clean(input.note);
+  const note = cleanSettlementText(input.note);
   if (!note) return { ok: false, reason: "invalid_input" };
 
   const result = await retryOnBusy(() =>
@@ -85,8 +86,8 @@ export async function refundPayment(
   db: LibSQLDatabase<typeof schema>,
   input: AdminSettlementInput,
 ): Promise<SettlementActionResult> {
-  const reference = clean(input.reference);
-  const note = clean(input.note);
+  const reference = cleanSettlementText(input.reference);
+  const note = cleanSettlementText(input.note);
   if (!reference || !note) return { ok: false, reason: "invalid_input" };
 
   const result = await retryOnBusy(() =>
@@ -130,7 +131,9 @@ export async function extendHold(
       db
         .update(schema.order)
         .set({
-          holdExpiresAt: sql`coalesce(${schema.order.holdExpiresAt}, ${now}) + ${HOLD_EXTENSION_MS}`,
+          // An already-expired deadline restarts from now; a future one is
+          // pushed 24 h further out.
+          holdExpiresAt: sql`max(coalesce(${schema.order.holdExpiresAt}, ${now}), ${now}) + ${HOLD_EXTENSION_MS}`,
         })
         .where(
           and(

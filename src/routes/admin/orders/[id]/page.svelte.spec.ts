@@ -1,7 +1,8 @@
 import { page } from "vite-plus/test/browser";
 import { describe, expect, it } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
-import { t } from "$lib/i18n/messages";
+import { formatEGP } from "$lib/currency";
+import { formatDate, t } from "$lib/i18n/messages";
 import type {
   AdminOrderItemRow,
   AdminOrderRow,
@@ -10,6 +11,12 @@ import type {
 } from "$lib/server/admin/orders";
 import type { ActionData } from "./$types";
 import OrderDetailPage from "./+page.svelte";
+
+// Intl currency formatting embeds non-breaking spaces; vitest-browser
+// normalizes those in element text, so expectations get the same collapse.
+function normalized(value: string): string {
+  return value.replace(/\u00a0/g, " ");
+}
 
 interface DetailEvent {
   id: string;
@@ -198,7 +205,10 @@ describe("admin order settlement panel", () => {
     await expect.element(panel).toHaveTextContent(t("ar", "admin.orders.payment.pending_review"));
     await expect.element(panel).toHaveTextContent(t("ar", "admin.order.settlement.reference"));
     await expect.element(panel).toHaveTextContent(t("ar", "admin.order.settlement.holdDeadline"));
-    await expect.element(panel).toHaveTextContent(t("ar", "admin.orders.total"));
+    await expect.element(panel).toHaveTextContent(normalized(formatEGP(order.total, "ar")));
+    await expect
+      .element(panel)
+      .toHaveTextContent(formatDate("ar", Date.parse("2026-08-24T10:00:00Z")));
     await expect.element(panel).toHaveTextContent(t("ar", "admin.order.settlement.timeline"));
     await expect.element(panel).toHaveTextContent(t("ar", "admin.order.settlement.event.claim"));
 
@@ -231,6 +241,9 @@ describe("admin order settlement panel", () => {
     const panel = page.getByTestId("settlement-panel");
     await expect.element(panel).toHaveTextContent(t("ar", "admin.orders.payment.paid"));
     await expect.element(panel).toHaveTextContent(t("ar", "admin.order.settlement.paidAt"));
+    await expect
+      .element(panel)
+      .toHaveTextContent(formatDate("ar", Date.parse("2026-08-23T12:00:00Z")));
     await expect.element(panel).toHaveTextContent(t("ar", "admin.order.settlement.reviewedBy"));
     await expect.element(panel).toHaveTextContent("منى");
     await expect

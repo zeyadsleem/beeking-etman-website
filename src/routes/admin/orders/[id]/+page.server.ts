@@ -9,6 +9,7 @@ import {
   type TransitionResult,
 } from "$lib/server/admin/orders";
 import {
+  cleanSettlementText,
   extendHold,
   HOLD_EXTENSION_HOURS,
   rejectClaim,
@@ -197,7 +198,7 @@ export const actions: Actions = {
       return {
         run: (actorUserId, now) =>
           verifyPayment(db, { orderId: event.params.id, reference, note, actorUserId, now }),
-        auditDetails: { to: "paid", reference: reference.trim() || null },
+        auditDetails: { to: "paid", reference: cleanSettlementText(reference) },
       };
     }),
 
@@ -207,7 +208,7 @@ export const actions: Actions = {
       return {
         run: (actorUserId, now) =>
           rejectClaim(db, { orderId: event.params.id, note, actorUserId, now }),
-        auditDetails: { to: "failed", note: note.trim() || null },
+        auditDetails: { to: "failed", note: cleanSettlementText(note) },
       };
     }),
 
@@ -220,8 +221,8 @@ export const actions: Actions = {
           refundPayment(db, { orderId: event.params.id, reference, note, actorUserId, now }),
         auditDetails: {
           to: "refunded",
-          reference: reference.trim() || null,
-          note: note.trim() || null,
+          reference: cleanSettlementText(reference),
+          note: cleanSettlementText(note),
         },
       };
     }),

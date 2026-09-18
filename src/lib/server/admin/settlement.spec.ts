@@ -327,6 +327,15 @@ describe("extendHold", () => {
     expect(order?.holdExpiresAt).toBe(2000 + 24 * 3_600_000);
   });
 
+  it("restarts from now when the deadline already passed", async () => {
+    const id = await seedOrder(db, { holdExpiresAt: 1000 });
+
+    expect(await extendHold(db, { orderId: id, now: 5000 })).toEqual({ ok: true });
+
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order?.holdExpiresAt).toBe(5000 + 24 * 3_600_000);
+  });
+
   it("refuses a shipped order without appending an event", async () => {
     const id = await seedOrder(db, { status: "shipped" });
 

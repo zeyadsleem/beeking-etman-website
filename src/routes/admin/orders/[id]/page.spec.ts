@@ -671,13 +671,16 @@ describe("admin order detail settlement actions", () => {
 
   it("extends the hold and writes the note event and audit rows", async () => {
     const db = currentDb();
-    const id = await seedOrder(db, { holdExpiresAt: 10_000 });
+    // The route action uses the real clock, so a far-future deadline keeps the
+    // expected extension deterministic.
+    const farFuture = 4_100_000_000_000;
+    const id = await seedOrder(db, { holdExpiresAt: farFuture });
 
     const message = successOf(await extendHold(fakeEvent(id, { role: "admin" })));
 
     expect(message).toBe(t("ar", "admin.order.paymentRecorded"));
     const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
-    expect(order?.holdExpiresAt).toBe(10_000 + 24 * 3_600_000);
+    expect(order?.holdExpiresAt).toBe(farFuture + 24 * 3_600_000);
     const events = await db
       .select()
       .from(schema.paymentEvent)
