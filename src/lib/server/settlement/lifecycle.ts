@@ -132,7 +132,8 @@ export async function applyPaymentTransition(
   if (input.event) {
     // `changes()` reflects the preceding UPDATE on the same connection, so a
     // transition that matched no rows appends no event either: the ledger and
-    // the state stay consistent in both directions.
+    // the state stay consistent in both directions. The column list mirrors
+    // `store_payment_event` in src/lib/server/db/schema.ts.
     statements.push(
       db.run(sql`
         INSERT INTO store_payment_event
@@ -167,9 +168,10 @@ export interface PaymentEventInput {
 }
 
 /**
- * Appends a settlement event. The 0019 triggers reject updates and deletes
- * with `PAYMENT_EVENT_APPEND_ONLY` (covered by the migration replay test), so
- * this is the only write path.
+ * Appends a settlement event as a standalone statement. Transitions that must
+ * stay atomic write their event inside `applyPaymentTransition` instead; the
+ * 0019 triggers reject updates and deletes with `PAYMENT_EVENT_APPEND_ONLY`
+ * (covered by the migration replay test).
  */
 export async function recordPaymentEvent(
   db: LibSQLDatabase<typeof schema>,

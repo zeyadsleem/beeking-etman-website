@@ -87,6 +87,8 @@
         </form>
       {:else if data.claim.claimable}
         <p class="mt-3 font-semibold text-clay-800">{t(lang, "success.claim.noAccount")}</p>
+      {:else}
+        <p class="mt-3 text-sm text-cocoa-500">{t(lang, "success.paymentPending")}</p>
       {/if}
 
       {#if form?.claimSubmitted && !data.claim.claimed}
