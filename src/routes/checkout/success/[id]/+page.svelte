@@ -30,7 +30,7 @@
       <p class="mt-3 text-lg text-cocoa-600">
         {t(lang, "success.orderNumber")} <span class="badge-ok px-4 py-1 font-extrabold" data-testid="order-number">{data.order.number}</span>
       </p>
-      <p class="mt-2 text-sm text-cocoa-400">{t(lang, "success.simulated")}</p>
+      <p class="mt-2 text-sm text-cocoa-400">{t(lang, "success.paymentPending")}</p>
     </div>
   </div>
 

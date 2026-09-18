@@ -113,7 +113,7 @@ e2e suite (`E2E_USE_BUILD=1`); runbook go-live checklist in the PR; `verify-prod
 
 - [x] SET-1 — Approve spec; AgDR-0001 lands; roadmap/todo/decisions updates (MS §9 SET-1) — GH #4 (docs PR #16)
 - [x] SET-2 — Migration `0019_settlement` + schema defaults + snapshot + replay spec + DDL copies (MS §9 SET-2; after 0018) — GH #5
-- [ ] SET-3 — Settlement lifecycle core (`settlement/lifecycle.ts`, `types.ts`) + order/payment vocabulary rework across admin/i18n/email/export consumers; the shared types become the single source for the payment-event guard vocabulary (MS §9 SET-3) — GH #6
+- [x] SET-3 — Settlement lifecycle core (`settlement/lifecycle.ts`, `types.ts`) + order/payment vocabulary rework across admin/i18n/email/export consumers; the shared types become the single source for the payment-event guard vocabulary (MS §9 SET-3) — GH #6
 - [ ] SET-4 — Checkout method selection (COD, InstaPay, wallet) + transfer instructions + claim flow (MS §9 SET-4) — GH #7
 - [ ] SET-5 — Success and order pages: order number, amount, claim form, WhatsApp CTA (MS §9 SET-5) — GH #8
 - [ ] SET-6 — Admin review queue, settlement panel, audited actions (verify, reject, refund, extend hold) (MS §9 SET-6) — GH #9

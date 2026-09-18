@@ -3,7 +3,7 @@
   import { formatEGP } from "$lib/currency";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
-  import { CUSTOMER_ORDER_STATUS_LABEL_KEY, parseOrderStatus } from "$lib/admin-order-status";
+  import { customerOrderStatusLabelKey } from "$lib/settlement/types";
   import { formatDate, t } from "$lib/i18n/messages";
   import type { PageData } from "./$types";
 
@@ -41,7 +41,7 @@
             </div>
             <div class="text-start">
               <span class="text-sm text-cocoa-500">{t(lang, "orders.status")}</span>
-              <span class="ms-2 badge-ok">{t(lang, CUSTOMER_ORDER_STATUS_LABEL_KEY[parseOrderStatus(order.status) ?? "placed"] ?? "orders.unknown")}</span>
+              <span class="ms-2 badge-ok">{t(lang, customerOrderStatusLabelKey(order.status))}</span>
             </div>
             <span class="font-extrabold text-cocoa-900">{formatEGP(order.total, lang)}</span>
           </a>

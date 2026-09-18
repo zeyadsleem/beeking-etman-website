@@ -9,6 +9,7 @@ vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
+import type { OrderStatus } from "$lib/settlement/types";
 import {
   cairoTodayMidnightMs,
   LOW_STOCK_THRESHOLD,
@@ -148,7 +149,7 @@ interface SeedOrder {
   email?: string;
   userId?: string | null;
   total?: number;
-  status?: "placed" | "shipped" | "delivered" | "cancelled";
+  status?: OrderStatus | "placed" | "paid";
   createdAt?: number;
 }
 
@@ -280,11 +281,25 @@ describe("getDashboardStats — kpis", () => {
     const stats = await getDashboardStats(db);
 
     expect(stats.kpis.byStatus).toEqual({
-      placed: 2,
+      pending_confirmation: 0,
+      confirmed: 2,
+      processing: 0,
       shipped: 0,
       delivered: 0,
       cancelled: 1,
     });
+  });
+
+  it("merges legacy placed, paid, and confirmed rows into one confirmed count", async () => {
+    const db = await buildDb();
+
+    await seedOrder(db, { status: "confirmed" });
+    await seedOrder(db, { status: "placed" });
+    await seedOrder(db, { status: "paid" });
+
+    const stats = await getDashboardStats(db);
+
+    expect(stats.kpis.byStatus.confirmed).toBe(3);
   });
 
   it("counts a hand-edited unknown status toward kpis.orders but not byStatus", async () => {
@@ -313,7 +328,9 @@ describe("getDashboardStats — kpis", () => {
 
     expect(stats.kpis.orders).toBe(2);
     expect(stats.kpis.byStatus).toEqual({
-      placed: 1,
+      pending_confirmation: 0,
+      confirmed: 1,
+      processing: 0,
       shipped: 0,
       delivered: 0,
       cancelled: 0,

@@ -6,9 +6,13 @@ import {
   ORDER_STATUSES,
   parseOrderStatus,
   type OrderStatus,
-} from "$lib/admin-order-status";
-import { affectedRowCount } from "$lib/server/orders";
-import { retryOnBusy } from "$lib/server/sqlite";
+} from "$lib/settlement/types";
+import {
+  applyOrderTransition,
+  canTransitionOrder,
+  storedOrderStatusValues,
+} from "$lib/server/settlement/lifecycle";
+import { affectedRowCount, retryOnBusy } from "$lib/server/sqlite";
 
 export { allowedTransitions, ORDER_STATUSES, parseOrderStatus };
 export type { OrderStatus };
@@ -81,11 +85,7 @@ export async function listOrders(
   const page = Math.max(1, Math.trunc(opts?.page ?? 1));
   const conditions: SQL[] = [];
   if (opts?.status) {
-    conditions.push(
-      opts.status === "placed"
-        ? inArray(schema.order.status, ["placed", "paid"])
-        : eq(schema.order.status, opts.status),
-    );
+    conditions.push(inArray(schema.order.status, storedOrderStatusValues(opts.status)));
   }
   const needle = opts?.query?.trim() ?? "";
   if (needle !== "") {
@@ -207,7 +207,7 @@ export async function transitionOrderStatus(
   if (!current) return { ok: false, reason: "not_found" };
 
   const from = parseOrderStatus(current.status);
-  if (!from || !allowedTransitions(from).includes(next)) {
+  if (!from || !canTransitionOrder(from, next)) {
     return { ok: false, reason: "invalid_transition" };
   }
 
@@ -215,17 +215,5 @@ export async function transitionOrderStatus(
     return cancelLegacyOrder(db, orderId, current.status);
   }
 
-  const [flip] = await retryOnBusy(() =>
-    db.batch([
-      db
-        .update(schema.order)
-        .set({ status: next })
-        .where(and(eq(schema.order.id, orderId), eq(schema.order.status, current.status))),
-    ]),
-  );
-  if (affectedRowCount(flip) !== 1) {
-    return { ok: false, reason: "invalid_transition" };
-  }
-
-  return { ok: true };
+  return retryOnBusy(() => applyOrderTransition(db, { orderId, from: [from], to: next }));
 }

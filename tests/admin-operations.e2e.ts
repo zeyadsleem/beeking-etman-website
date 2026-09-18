@@ -112,8 +112,11 @@ test("admin views orders list, opens an order, and marks it shipped", async ({ p
   await expect(detail).toBeVisible();
   await expect(detail).toContainText(orderNumber);
 
-  await page.getByRole("button", { name: "تعليم كمشحون" }).click();
+  await page.getByRole("button", { name: "تأكيد الطلب" }).click();
   await expect(page.getByText("تم تحديث حالة الطلب")).toBeVisible();
+  await expect(page.getByText("مؤكد").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "تعليم كمشحون" }).click();
   await expect(page.getByText("تم الشحن").first()).toBeVisible();
 });
 

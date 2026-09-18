@@ -16,7 +16,7 @@ const order: AdminOrderRow & { shippingCost: number } = {
   city: "القاهرة",
   total: 100_00,
   shippingCost: 0,
-  status: "placed",
+  status: "pending_confirmation",
   createdAt: Date.parse("2026-08-23T10:00:00Z"),
 };
 

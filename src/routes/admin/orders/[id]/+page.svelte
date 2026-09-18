@@ -73,6 +73,10 @@
             <button type="button" class={CANCEL_BUTTON_CLASS} onclick={() => { cancelConfirmOpen = true; cancelError = null; }}>
               {t(lang, "admin.order.cancel")}
             </button>
+          {:else if next === "confirmed"}
+            <Button type="submit" variant="primary">{t(lang, "admin.order.markConfirmed")}</Button>
+          {:else if next === "processing"}
+            <Button type="submit" variant="primary">{t(lang, "admin.order.markProcessing")}</Button>
           {:else if next === "shipped"}
             <Button type="submit" variant="primary">{t(lang, "admin.order.markShipped")}</Button>
           {:else}

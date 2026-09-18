@@ -163,7 +163,7 @@ async function seedProduct(
 let orderCounter = 0;
 
 // The DB column stores free text; legacy rows hold "paid".
-type StoredOrderStatus = OrderStatus | "paid";
+type StoredOrderStatus = OrderStatus | "placed" | "paid";
 
 async function seedOrder(
   db: Awaited<ReturnType<typeof buildDb>>,
@@ -230,8 +230,10 @@ afterAll(() => {
 });
 
 describe("parseOrderStatus", () => {
-  it("accepts the four lifecycle statuses", () => {
-    expect(parseOrderStatus("placed")).toBe("placed");
+  it("accepts the six lifecycle statuses", () => {
+    expect(parseOrderStatus("pending_confirmation")).toBe("pending_confirmation");
+    expect(parseOrderStatus("confirmed")).toBe("confirmed");
+    expect(parseOrderStatus("processing")).toBe("processing");
     expect(parseOrderStatus("shipped")).toBe("shipped");
     expect(parseOrderStatus("delivered")).toBe("delivered");
     expect(parseOrderStatus("cancelled")).toBe("cancelled");
@@ -243,15 +245,18 @@ describe("parseOrderStatus", () => {
     expect(parseOrderStatus("")).toBeNull();
   });
 
-  it("maps legacy paid status to placed", () => {
-    expect(parseOrderStatus("paid")).toBe("placed");
+  it("maps legacy placed and paid rows to confirmed", () => {
+    expect(parseOrderStatus("placed")).toBe("confirmed");
+    expect(parseOrderStatus("paid")).toBe("confirmed");
   });
 });
 
 describe("allowedTransitions", () => {
   it("returns exactly the forward-only matrix with terminal statuses empty", () => {
-    expect(allowedTransitions("placed")).toEqual(["shipped", "cancelled"]);
-    expect(allowedTransitions("shipped")).toEqual(["delivered", "cancelled"]);
+    expect(allowedTransitions("pending_confirmation")).toEqual(["confirmed", "cancelled"]);
+    expect(allowedTransitions("confirmed")).toEqual(["processing", "shipped", "cancelled"]);
+    expect(allowedTransitions("processing")).toEqual(["shipped", "cancelled"]);
+    expect(allowedTransitions("shipped")).toEqual(["delivered"]);
     expect(allowedTransitions("delivered")).toEqual([]);
     expect(allowedTransitions("cancelled")).toEqual([]);
   });
@@ -287,7 +292,7 @@ describe("listOrders", () => {
 
   it("filters by status in both the page and the total count", async () => {
     const base = 1_700_000_000_000;
-    await seedOrder(db, { status: "placed", createdAt: base });
+    await seedOrder(db, { status: "pending_confirmation", createdAt: base });
     const shippedA = await seedOrder(db, { status: "shipped", createdAt: base + 1_000 });
     const shippedB = await seedOrder(db, { status: "shipped", createdAt: base + 2_000 });
     await seedOrder(db, { status: "delivered", createdAt: base + 3_000 });
@@ -299,15 +304,16 @@ describe("listOrders", () => {
     expect(result.items.every((o) => o.status === "shipped")).toBe(true);
   });
 
-  it("placed filter includes legacy paid rows", async () => {
+  it("confirmed filter includes legacy placed and paid rows", async () => {
     const base = 1_700_000_000_000;
-    await seedOrder(db, { status: "placed", createdAt: base });
-    await seedOrder(db, { status: "paid", createdAt: base + 1_000 });
-    await seedOrder(db, { status: "shipped", createdAt: base + 2_000 });
+    await seedOrder(db, { status: "confirmed", createdAt: base });
+    await seedOrder(db, { status: "placed", createdAt: base + 1_000 });
+    await seedOrder(db, { status: "paid", createdAt: base + 2_000 });
+    await seedOrder(db, { status: "shipped", createdAt: base + 3_000 });
 
-    const result = await listOrders(db, { status: "placed" });
-    expect(result.total).toBe(2);
-    expect(result.items.every((o) => o.status === "placed")).toBe(true);
+    const result = await listOrders(db, { status: "confirmed" });
+    expect(result.total).toBe(3);
+    expect(result.items.every((o) => o.status === "confirmed")).toBe(true);
   });
 
   it("maps full order fields onto AdminOrderRow", async () => {
@@ -322,7 +328,7 @@ describe("listOrders", () => {
       address: "شارع 9",
       city: "القاهرة",
       total: 100_00,
-      status: "placed",
+      status: "confirmed",
       createdAt: 1_700_000_000_000,
     });
   });
@@ -346,7 +352,7 @@ describe("getOrderWithItems", () => {
     const result = await getOrderWithItems(db, orderId);
     expect(result).not.toBeNull();
     if (!result) return;
-    expect(result.order).toMatchObject({ id: orderId, status: "placed", total: 100_00 });
+    expect(result.order).toMatchObject({ id: orderId, status: "confirmed", total: 100_00 });
     expect(result.items).toHaveLength(2);
     const byVariant = new Map(result.items.map((item) => [item.variantName, item]));
     expect(byVariant.get("250g")).toEqual({

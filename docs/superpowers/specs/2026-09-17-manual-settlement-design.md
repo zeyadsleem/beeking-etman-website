@@ -321,12 +321,12 @@ WhatsApp rules:
 
 ### 3.9 Module layout
 
-New server modules:
+New modules:
 
-- `src/lib/server/settlement/types.ts` — shared vocabulary, label maps, and normalized event
-  shapes.
-- `src/lib/server/settlement/lifecycle.ts` — transition guards, `parsePaymentStatus`,
-  `parseOrderStatus` alias handling, conditional updates for verify/reject/refund.
+- `src/lib/settlement/types.ts` — client-safe shared vocabulary: order and payment statuses,
+  legacy aliases, methods, payment-event vocabularies, label keys, and badge classes.
+- `src/lib/server/settlement/lifecycle.ts` — transition guards for both machines, conditional
+  updates with the settlement stamps, and `recordPaymentEvent` (the only event write path).
 - `src/lib/server/settlement/claims.ts` — claim submission, guards, rate limits, event writes.
 - `src/lib/server/settlement/expiry.ts` — `releaseExpiredHolds(db, now)` used by the worker's
   `scheduled()` handler through the M0 hook.
