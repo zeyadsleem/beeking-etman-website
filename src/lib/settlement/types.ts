@@ -103,6 +103,22 @@ export function parsePaymentStatus(value: string): PaymentStatus | null {
 export const PAYMENT_METHODS = ["cod", "instapay", "wallet", "simulated", "paymob"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+/** Methods the v1 checkout can offer; `paymob` is reserved for phase 2. */
+export const V1_PAYMENT_METHODS = ["cod", "instapay", "wallet"] as const;
+export type V1PaymentMethod = (typeof V1_PAYMENT_METHODS)[number];
+
+export const PAYMENT_METHOD_LABEL_KEY: Record<V1PaymentMethod, MessageKey> = {
+  cod: "checkout.method.cod",
+  instapay: "checkout.method.instapay",
+  wallet: "checkout.method.wallet",
+};
+
+export const PAYMENT_METHOD_HINT_KEY: Record<V1PaymentMethod, MessageKey> = {
+  cod: "checkout.method.codHint",
+  instapay: "checkout.method.instapayHint",
+  wallet: "checkout.method.walletHint",
+};
+
 const PAYMENT_METHOD_SET: ReadonlySet<string> = new Set(PAYMENT_METHODS);
 
 /** `simulated` is legacy-only; `paymob` is reserved for phase 2. */

@@ -8,6 +8,7 @@ const base = {
   city: "القاهرة",
   address: "شارع 9",
   governorate: "cairo",
+  paymentMethod: "cod",
   nonce: crypto.randomUUID(),
 };
 
@@ -34,15 +35,17 @@ describe("checkoutSchema nonce", () => {
 });
 
 describe("checkoutSchema payment fields", () => {
-  it("no longer requires card fields (payment is simulated)", () => {
-    expect(
-      checkoutSchema.safeParse({
-        ...base,
-        cardNumber: "4242424242424242",
-        cardExpiry: "08/28",
-        cardCvc: "123",
-      }).success,
-    ).toBe(true);
+  it("accepts the supported methods and rejects anything else", () => {
+    for (const paymentMethod of ["cod", "instapay", "wallet"]) {
+      expect(checkoutSchema.safeParse({ ...base, paymentMethod }).success).toBe(true);
+    }
+    expect(checkoutSchema.safeParse({ ...base, paymentMethod: "paymob" }).success).toBe(false);
+    expect(checkoutSchema.safeParse({ ...base, paymentMethod: "bogus" }).success).toBe(false);
+  });
+
+  it("requires a payment method", () => {
+    const { paymentMethod: _omitted, ...withoutMethod } = base;
+    expect(checkoutSchema.safeParse(withoutMethod).success).toBe(false);
   });
 
   it("does not echo removed fields into the parsed data", () => {

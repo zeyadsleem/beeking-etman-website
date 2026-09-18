@@ -301,18 +301,19 @@ WhatsApp rules:
 
 ### 3.8 Configuration and secrets
 
-| Variable                  | Purpose                                                         | Required                   |
-| ------------------------- | --------------------------------------------------------------- | -------------------------- |
-| `PUBLIC_WHATSAPP_NUMBER`  | Shop WhatsApp number for CTAs, international format without `+` | yes                        |
-| `PUBLIC_INSTAPAY_ADDRESS` | Receiving InstaPay address shown on transfer orders             | when InstaPay is enabled   |
-| `PUBLIC_WALLET_NUMBER`    | Receiving Vodafone Cash number shown on transfer orders         | when the wallet is enabled |
-| `ORDER_HOLD_MINUTES`      | Hold window for all new orders; default `1440`                  | no                         |
-| `COD_HOLD_MINUTES`        | Optional override for COD orders                                | no                         |
-| `PAYMENTS_COD_ENABLED`    | `true` disables/enables the COD option; default `true`          | no                         |
-| `PAYMENTS_WALLET_ENABLED` | Enables the Vodafone Cash option; default `true`                | no                         |
+| Variable                   | Purpose                                                                 | Required                   |
+| -------------------------- | ----------------------------------------------------------------------- | -------------------------- |
+| `PUBLIC_WHATSAPP_NUMBER`   | Shop WhatsApp number for CTAs, international format without `+` (SET-5) | yes                        |
+| `PAYMENT_INSTAPAY_ADDRESS` | Receiving InstaPay address; InstaPay is offered only when set           | when InstaPay is offered   |
+| `PAYMENT_WALLET_NUMBER`    | Receiving Vodafone Cash number; the wallet is offered only when set     | when the wallet is offered |
+| `ORDER_HOLD_MINUTES`       | Hold window for all new orders; default `1440`                          | no                         |
+| `COD_HOLD_MINUTES`         | Optional override for COD orders                                        | no                         |
+| `PAYMENTS_COD_ENABLED`     | `false` removes the COD option; default `true`                          | no                         |
 
-- Validation lives in `src/lib/server/env.ts` with the existing fail-fast pattern. Production must
-  refuse to boot when an enabled method is selected and its receiving account is missing.
+- The values are read through `$env/dynamic/private`. The checkout and success pages render them
+  server-side, so the customer sees them without the values entering the client bundle.
+- A method is offered only when its configuration exists. Production validation covers the shape
+  of the hold-window values; missing receiving accounts simply remove the method.
 - No new secrets. Receiving accounts are public by design (customers must see them) and carry no
   credential.
 - The deferred `PAYMOB_*` variables are not introduced in v1. Phase 2 reintroduces them with the

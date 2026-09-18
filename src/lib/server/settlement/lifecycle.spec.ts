@@ -238,6 +238,34 @@ describe("applyPaymentTransition", () => {
     expect(row[0]).toMatchObject({ paymentStatus: "failed", paymentReviewedAt: 7000 });
   });
 
+  it("appends the event only when the transition matched", async () => {
+    const successId = await seedOrder(db);
+    expect(
+      await applyPaymentTransition(db, {
+        orderId: successId,
+        from: ["unpaid"],
+        to: "pending_review",
+        event: { type: "claim", actor: "customer", reference: "TRX-1" },
+        now: 1000,
+      }),
+    ).toEqual({ ok: true });
+
+    const paidId = await seedOrder(db, { paymentStatus: "paid" });
+    expect(
+      await applyPaymentTransition(db, {
+        orderId: paidId,
+        from: ["unpaid"],
+        to: "pending_review",
+        event: { type: "claim", actor: "customer" },
+        now: 2000,
+      }),
+    ).toEqual({ ok: false, reason: "invalid_transition" });
+
+    const events = await db.select().from(schema.paymentEvent);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ orderId: successId, type: "claim", reference: "TRX-1" });
+  });
+
   it("never moves an illegal payment state through a mixed from array", async () => {
     const id = await seedOrder(db, { paymentStatus: "refunded" });
     expect(

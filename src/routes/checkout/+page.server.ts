@@ -7,6 +7,12 @@ import { issueCheckoutNonce, verifyCheckoutNonce } from "$lib/server/checkout-no
 import { createCheckoutSchema, formatZodErrors } from "$lib/server/checkout-schema";
 import { createAddress, listAddressSummaries } from "$lib/server/addresses";
 import { createOrder } from "$lib/server/orders";
+import {
+  availablePaymentMethods,
+  isPaymentMethodAvailable,
+  holdDeadline,
+  settlementConfig,
+} from "$lib/server/settlement/config";
 import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
 import { resolveCartItems } from "$lib/server/store";
 import { computeTotals } from "$lib/cart";
@@ -34,6 +40,7 @@ export const load: PageServerLoad = async (event) => {
   if (event.locals.user) {
     savedAddresses = await listAddressSummaries(db, event.locals.user.id);
   }
+  const settlement = settlementConfig(env);
   return {
     nonce: await issueCheckoutNonce(event.cookies, getOrderAccessSecret(env)),
     items,
@@ -43,6 +50,7 @@ export const load: PageServerLoad = async (event) => {
     defaultGovernorate: DEFAULT_GOVERNORATE,
     savedAddresses,
     isLoggedIn: Boolean(event.locals.user),
+    paymentMethods: availablePaymentMethods(settlement),
   };
 };
 
@@ -73,6 +81,13 @@ export const actions: Actions = {
       } satisfies CheckoutFail);
     }
 
+    if (!isPaymentMethodAvailable(settlementConfig(env), parsed.data.paymentMethod)) {
+      const errors: Record<string, string> = {
+        paymentMethod: t(lang, "checkout.methodUnavailable"),
+      };
+      return fail(400, { errors, values: form } satisfies CheckoutFail);
+    }
+
     const lines = readCartCookie(cookies, getCartSecret(env));
     const result = await createOrder(
       db,
@@ -88,6 +103,10 @@ export const actions: Actions = {
       parsed.data.nonce,
       locals.user?.id,
       lang,
+      {
+        method: parsed.data.paymentMethod,
+        holdExpiresAt: holdDeadline(parsed.data.paymentMethod, env),
+      },
     );
 
     if (!result.ok) {
