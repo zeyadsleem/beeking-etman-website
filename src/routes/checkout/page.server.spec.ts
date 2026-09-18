@@ -59,6 +59,7 @@ function event(cookies: Cookies, nonce: string = crypto.randomUUID()) {
         address: "Street 123",
         city: "Cairo",
         governorate: "cairo",
+        paymentMethod: "cod",
         saveAddress: "on",
       }),
     }),

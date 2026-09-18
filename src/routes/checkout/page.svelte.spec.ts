@@ -52,6 +52,8 @@ describe("enhanced checkout redirects", () => {
         totals: { subtotal: 0, shipping: 0, total: 0 },
         isLoggedIn: false,
         missingVariantIds: [],
+        paymentMethods: ["cod"],
+        paymentInstructions: { instapayAddress: null, walletNumber: null },
       } as unknown as PageData,
       form: null,
     });

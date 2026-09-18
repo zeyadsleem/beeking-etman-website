@@ -1,5 +1,6 @@
 import { t, type Lang } from "$lib/i18n/messages";
 import { GOVERNORATES, type GovernorateCode } from "$lib/shipping";
+import { V1_PAYMENT_METHODS } from "$lib/settlement/types";
 import { nameSchema } from "$lib/server/name-schema";
 import { z } from "zod";
 
@@ -27,6 +28,9 @@ export function createCheckoutSchema(lang: Lang = "ar") {
         message: t(lang, "schema.governorate"),
       },
     ),
+    paymentMethod: z.enum(V1_PAYMENT_METHODS, {
+      message: t(lang, "schema.paymentMethod"),
+    }),
   });
 }
 

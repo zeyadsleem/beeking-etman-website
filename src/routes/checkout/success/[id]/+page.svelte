@@ -3,9 +3,9 @@
   import { trackPurchase } from "$lib/analytics-events";
   import Button from "$lib/components/Button.svelte";
   import { formatDate, t } from "$lib/i18n/messages";
-  import type { PageData } from "./$types";
+  import type { ActionData, PageData } from "./$types";
 
-  let { data }: { data: PageData } = $props();
+  let { data, form }: { data: PageData; form: ActionData } = $props();
 
   const lang = $derived(data.lang);
 
@@ -55,6 +55,44 @@
     <p><span class="font-bold text-cocoa-900">{t(lang, "success.customer")}</span> {data.order.name} — {data.order.phone}</p>
     <p><span class="font-bold text-cocoa-900">{t(lang, "success.date")}</span> {formatDate(lang, data.order.createdAt, { dateStyle: "long", timeStyle: "short" })}</p>
   </section>
+
+  {#if data.claim.isTransfer}
+    <section class="mt-4 rounded-2xl border border-honey-200 bg-honey-50/60 p-6 text-start text-sm text-cocoa-700 shadow-warm-sm">
+      <h2 class="headline text-xl text-cocoa-900">{t(lang, "success.claim.transferTitle")}</h2>
+      {#if data.claim.account}
+        <p class="mt-2">
+          <span class="font-bold">{t(lang, "success.claim.account")}</span>
+          <span class="font-extrabold" dir="ltr">{data.claim.account}</span>
+        </p>
+        <p>
+          <span class="font-bold">{t(lang, "success.claim.amount")}</span>
+          <span class="font-extrabold">{formatEGP(data.order.total, lang)}</span>
+        </p>
+      {/if}
+
+      {#if data.claim.paid}
+        <p class="mt-3 font-semibold text-olive-800">{t(lang, "success.claim.paid")}</p>
+      {:else if data.claim.claimed}
+        <p class="mt-3 font-semibold text-honey-800">{t(lang, "success.claim.alreadyClaimed")}</p>
+        {#if data.claim.reference}<p class="mt-1 text-xs text-cocoa-500">{data.claim.reference}</p>{/if}
+      {:else if data.claim.claimable}
+        <form method="POST" action="?/claim" class="mt-3 space-y-3">
+          <label class="field-label block">
+            {t(lang, "success.claim.reference")}
+            <input name="reference" class="field mt-1" maxlength="120" autocomplete="off" />
+          </label>
+          <Button type="submit" variant="primary">{t(lang, "success.claim.submit")}</Button>
+        </form>
+      {/if}
+
+      {#if form?.claimSubmitted}
+        <p class="mt-3 font-semibold text-olive-800" role="status">{t(lang, "success.claim.submitted")}</p>
+      {/if}
+      {#if form?.claimError}
+        <p class="mt-3 font-semibold text-clay-800" role="alert">{form.claimError}</p>
+      {/if}
+    </section>
+  {/if}
 
   <div class="mt-8 text-center">
     <Button variant="primary" href="/products">{t(lang, "success.continue")}</Button>

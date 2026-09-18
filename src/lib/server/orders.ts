@@ -6,6 +6,7 @@ import type { BlendCartItem, CartEntry, CartItem } from "$lib/cart";
 import { isBlendEntry } from "$lib/cart";
 import { ADDITIVE_LABELS, isAdditiveKey, jarLabel } from "$lib/blends";
 import { localized, t, type Lang } from "$lib/i18n/messages";
+import type { PaymentMethod } from "$lib/settlement/types";
 import * as schema from "$lib/server/db/schema";
 import { isBusyError, sleep, SQLITE_BUSY_RETRIES } from "$lib/server/sqlite";
 
@@ -258,6 +259,12 @@ async function findOrderByNonce(
     .get();
 }
 
+export interface SettlementInput {
+  method: PaymentMethod;
+  /** Stock reservation deadline; null for legacy callers that do not hold. */
+  holdExpiresAt: number | null;
+}
+
 export async function createOrder(
   db: LibSQLDatabase<typeof schema>,
   lines: CartEntry[],
@@ -265,6 +272,7 @@ export async function createOrder(
   nonce: string,
   userId?: string,
   lang: Lang = "ar",
+  settlement: SettlementInput = { method: "simulated", holdExpiresAt: null },
 ): Promise<CreateOrderResult> {
   const existing = await findOrderByNonce(db, nonce);
   if (existing) {
@@ -324,7 +332,8 @@ export async function createOrder(
           total: totals.total,
           status: "pending_confirmation",
           paymentStatus: "unpaid",
-          paymentMethod: "simulated", // method selection lands in SET-4
+          paymentMethod: settlement.method,
+          holdExpiresAt: settlement.holdExpiresAt,
           stockVersion: "atomic",
           userId: userId ?? null,
           createdAt: Date.now(),

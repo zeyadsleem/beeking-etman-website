@@ -10,6 +10,11 @@
   import CartTotals from "$lib/components/CartTotals.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { t } from "$lib/i18n/messages";
+  import {
+    PAYMENT_METHOD_HINT_KEY,
+    PAYMENT_METHOD_LABEL_KEY,
+    type V1PaymentMethod,
+  } from "$lib/settlement/types";
   import type { ActionData, PageData } from "./$types";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -42,6 +47,18 @@
       : undefined) ?? data.defaultGovernorate;
   }
   let governorate = $state(initialGovernorate());
+
+  function initialPaymentMethod(): V1PaymentMethod {
+    const previous = form?.values?.paymentMethod;
+    if (
+      typeof previous === "string" &&
+      (data.paymentMethods as readonly string[]).includes(previous)
+    ) {
+      return previous as V1PaymentMethod;
+    }
+    return data.paymentMethods[0] ?? "cod";
+  }
+  let paymentMethod = $state(initialPaymentMethod());
 
   const liveTotals = $derived({
     ...data.totals,
@@ -190,7 +207,25 @@
 
     <fieldset class="rounded-2xl border border-cocoa-200 bg-cocoa-50/50 p-5">
       <legend class="px-2 text-sm font-bold text-cocoa-800">{t(lang, "checkout.paymentTitle")}</legend>
-      <p class="text-xs text-cocoa-500">{t(lang, "checkout.paymentNote")}</p>
+      <div class="mt-1 space-y-3">
+        {#each data.paymentMethods as method (method)}
+          <label class="flex cursor-pointer items-start gap-3 text-sm text-cocoa-800">
+            <input
+              type="radio"
+              name="paymentMethod"
+              value={method}
+              bind:group={paymentMethod}
+              required
+              class="mt-0.5 accent-honey-600"
+            />
+            <span>
+              <span class="block font-semibold">{t(lang, PAYMENT_METHOD_LABEL_KEY[method])}</span>
+              <span class="block text-xs text-cocoa-500">{t(lang, PAYMENT_METHOD_HINT_KEY[method])}</span>
+            </span>
+          </label>
+        {/each}
+      </div>
+      {#if error("paymentMethod")}<span class="field-error">{error("paymentMethod")}</span>{/if}
     </fieldset>
 
     <Button
