@@ -102,14 +102,19 @@ describe("createDbRateLimiter", () => {
 
   it("ignores rows belonging to other keys when pruning", async () => {
     const db = await buildDb();
-    await db.insert(schema.rateLimit).values({ key: "other", windowStart: 1, count: 5 });
+    // One hour old: outside the current bucket, inside the two-hour global
+    // prune window, so the assertion holds even when the 1% global prune
+    // fires. A fixed epoch-1 timestamp would be deleted by that best-effort
+    // cleanup and make this test flaky.
+    const otherWindow = Date.now() - 3_600_000;
+    await db.insert(schema.rateLimit).values({ key: "other", windowStart: otherWindow, count: 5 });
     const limiter = createDbRateLimiter(db, { windowMs: 3_600_000, max: 1 });
     expect(await limiter.allow("k")).toBe(true);
     const rows = await db
       .select({ key: schema.rateLimit.key, windowStart: schema.rateLimit.windowStart })
       .from(schema.rateLimit)
-      .where(sql`${schema.rateLimit.windowStart} = 1`);
-    expect(rows).toEqual([{ key: "other", windowStart: 1 }]);
+      .where(sql`${schema.rateLimit.windowStart} = ${otherWindow}`);
+    expect(rows).toEqual([{ key: "other", windowStart: otherWindow }]);
   });
 });
 
