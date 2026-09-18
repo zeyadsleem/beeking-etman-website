@@ -105,6 +105,8 @@ export async function applyPaymentTransition(
   const set: Partial<typeof schema.order.$inferInsert> = { paymentStatus: input.to };
   if (input.reference !== undefined) set.paymentReference = input.reference;
   if (input.reviewedBy !== undefined) set.paymentReviewedBy = input.reviewedBy;
+  // Timestamps record the latest action of their kind; re-claiming a failed
+  // order updates the claim time.
   if (input.to === "pending_review") set.paymentClaimedAt = now;
   if (input.to === "paid") {
     set.paidAt = now;
