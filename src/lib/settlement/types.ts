@@ -36,6 +36,7 @@ export function allowedTransitions(status: OrderStatus): readonly OrderStatus[] 
   return TRANSITIONS[status];
 }
 
+/** Admin list ordering; kept as a named alias of the canonical list. */
 export const STATUS_ORDER = ORDER_STATUSES;
 
 export const ADMIN_ORDER_STATUS_LABEL_KEY: Record<OrderStatus, MessageKey> = {
@@ -55,6 +56,12 @@ export const CUSTOMER_ORDER_STATUS_LABEL_KEY: Record<OrderStatus, MessageKey> = 
   delivered: "orders.delivered",
   cancelled: "orders.cancelled",
 };
+
+/** Label key for a stored value, falling back to the unknown label. */
+export function customerOrderStatusLabelKey(value: string): MessageKey {
+  const status = parseOrderStatus(value);
+  return status ? CUSTOMER_ORDER_STATUS_LABEL_KEY[status] : "orders.unknown";
+}
 
 export const ADMIN_ORDER_STATUS_BADGE_CLASS: Record<OrderStatus, string> = {
   pending_confirmation: "border border-cocoa-200 bg-parchment text-cocoa-700",

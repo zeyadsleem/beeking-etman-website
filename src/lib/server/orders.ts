@@ -52,18 +52,6 @@ function formatUnitName(unit: OrderUnit): string {
   return `${unit.name} - ${unit.variantName}`;
 }
 
-interface BatchWriteResult {
-  rowsAffected?: number;
-  meta?: { changes?: number };
-}
-
-export function affectedRowCount(result: unknown): number {
-  if (typeof result !== "object" || result === null) return 0;
-  const { rowsAffected, meta } = result as BatchWriteResult;
-  if (typeof rowsAffected === "number") return rowsAffected;
-  return typeof meta?.changes === "number" ? meta.changes : 0;
-}
-
 interface OrderUnit {
   variantId: string;
   productId: string;

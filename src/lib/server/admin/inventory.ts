@@ -13,7 +13,7 @@ import { and, asc, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 import { logAdminAction } from "$lib/server/admin/audit";
-import { affectedRowCount } from "$lib/server/orders";
+import { affectedRowCount } from "$lib/server/sqlite";
 import { retryOnBusy } from "$lib/server/sqlite";
 
 export const INVENTORY_PAGE_SIZE = 20;

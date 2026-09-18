@@ -135,7 +135,7 @@ export async function getDashboardStats(
     if (status !== null) {
       // Legacy rows split across placed/paid and both map to confirmed, so
       // the counts accumulate instead of overwriting each other.
-      byStatus[status] = (byStatus[status] ?? 0) + Number(row.count);
+      byStatus[status] = byStatus[status] + Number(row.count);
     }
   }
 

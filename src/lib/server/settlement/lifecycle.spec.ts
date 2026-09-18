@@ -152,6 +152,19 @@ describe("applyOrderTransition", () => {
       await applyOrderTransition(db, { orderId: id, from: ["confirmed"], to: "processing" }),
     ).toEqual({ ok: false, reason: "invalid_transition" });
   });
+
+  it("never moves an illegal stored state through a mixed from array", async () => {
+    const id = await seedOrder(db, { status: "shipped" });
+    expect(
+      await applyOrderTransition(db, {
+        orderId: id,
+        from: ["confirmed", "shipped"],
+        to: "cancelled",
+      }),
+    ).toEqual({ ok: false, reason: "invalid_transition" });
+    const row = await db.select({ status: schema.order.status }).from(schema.order);
+    expect(row[0]?.status).toBe("shipped");
+  });
 });
 
 describe("applyPaymentTransition", () => {
@@ -202,12 +215,35 @@ describe("applyPaymentTransition", () => {
     ).toEqual({ ok: false, reason: "invalid_transition" });
   });
 
-  it("records a full refund", async () => {
+  it("records a full refund and stamps the review", async () => {
     const id = await seedOrder(db, { paymentStatus: "paid" });
     expect(
-      await applyPaymentTransition(db, { orderId: id, from: ["paid"], to: "refunded" }),
+      await applyPaymentTransition(db, { orderId: id, from: ["paid"], to: "refunded", now: 9000 }),
     ).toEqual({ ok: true });
     const row = await db.select().from(schema.order);
+    expect(row[0]).toMatchObject({ paymentStatus: "refunded", paymentReviewedAt: 9000 });
+  });
+
+  it("stamps a rejection", async () => {
+    const id = await seedOrder(db, { paymentStatus: "pending_review" });
+    expect(
+      await applyPaymentTransition(db, {
+        orderId: id,
+        from: ["pending_review"],
+        to: "failed",
+        now: 7000,
+      }),
+    ).toEqual({ ok: true });
+    const row = await db.select().from(schema.order);
+    expect(row[0]).toMatchObject({ paymentStatus: "failed", paymentReviewedAt: 7000 });
+  });
+
+  it("never moves an illegal payment state through a mixed from array", async () => {
+    const id = await seedOrder(db, { paymentStatus: "refunded" });
+    expect(
+      await applyPaymentTransition(db, { orderId: id, from: ["unpaid", "refunded"], to: "paid" }),
+    ).toEqual({ ok: false, reason: "invalid_transition" });
+    const row = await db.select({ paymentStatus: schema.order.paymentStatus }).from(schema.order);
     expect(row[0]?.paymentStatus).toBe("refunded");
   });
 });
@@ -239,5 +275,7 @@ describe("recordPaymentEvent", () => {
 });
 
 afterAll(() => {
-  if (existsSync(DB_FILE)) unlinkSync(DB_FILE);
+  for (const file of [DB_FILE, `${DB_FILE}-wal`, `${DB_FILE}-shm`]) {
+    if (existsSync(file)) unlinkSync(file);
+  }
 });

@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
-import { affectedRowCount } from "$lib/server/orders";
+import { affectedRowCount } from "$lib/server/sqlite";
 import {
   allowedTransitions,
   type OrderStatus,
@@ -21,6 +21,7 @@ const PAYMENT_TRANSITIONS: Readonly<Record<PaymentStatus, readonly PaymentStatus
   failed: ["pending_review", "paid"],
   paid: ["refunded"],
   refunded: [],
+  // Pre-pivot rows are settled history; v1 services never move them.
   simulated: [],
 };
 
@@ -43,9 +44,8 @@ export function storedOrderStatusValues(status: OrderStatus): string[] {
   return status === "confirmed" ? ["confirmed", "placed", "paid"] : [status];
 }
 
-export type TransitionResult =
-  | { ok: true }
-  | { ok: false; reason: "invalid_transition" | "not_found" };
+/** A missing row and a moved-on row both report `invalid_transition`. */
+export type TransitionResult = { ok: true } | { ok: false; reason: "invalid_transition" };
 
 /**
  * Conditional fulfillment transition. The caller passes the statuses it
@@ -56,15 +56,20 @@ export async function applyOrderTransition(
   db: LibSQLDatabase<typeof schema>,
   params: { orderId: string; from: readonly OrderStatus[]; to: OrderStatus },
 ): Promise<TransitionResult> {
-  if (!params.from.some((from) => canTransitionOrder(from, params.to))) {
+  // Only statuses that may legally reach `to` take part in the match; a mixed
+  // `from` array can never move an illegal stored state.
+  const validFrom = params.from.filter((from) => canTransitionOrder(from, params.to));
+  if (validFrom.length === 0) {
     return { ok: false, reason: "invalid_transition" };
   }
-  const stored = [...new Set(params.from.flatMap(storedOrderStatusValues))];
-  const result = await db
-    .update(schema.order)
-    .set({ status: params.to })
-    .where(and(eq(schema.order.id, params.orderId), inArray(schema.order.status, stored)));
-  if (affectedRowCount(result) !== 1) {
+  const stored = [...new Set(validFrom.flatMap(storedOrderStatusValues))];
+  const [flip] = await db.batch([
+    db
+      .update(schema.order)
+      .set({ status: params.to })
+      .where(and(eq(schema.order.id, params.orderId), inArray(schema.order.status, stored))),
+  ]);
+  if (affectedRowCount(flip) !== 1) {
     return { ok: false, reason: "invalid_transition" };
   }
   return { ok: true };
@@ -92,7 +97,8 @@ export async function applyPaymentTransition(
   db: LibSQLDatabase<typeof schema>,
   input: PaymentTransitionInput,
 ): Promise<TransitionResult> {
-  if (!input.from.some((from) => canTransitionPayment(from, input.to))) {
+  const validFrom = input.from.filter((from) => canTransitionPayment(from, input.to));
+  if (validFrom.length === 0) {
     return { ok: false, reason: "invalid_transition" };
   }
   const now = input.now ?? Date.now();
@@ -104,15 +110,18 @@ export async function applyPaymentTransition(
     set.paidAt = now;
     set.paymentReviewedAt = now;
   }
+  // `payment_reviewed_at` records the latest settlement decision.
   if (input.to === "failed" || input.to === "refunded") set.paymentReviewedAt = now;
 
-  const result = await db
-    .update(schema.order)
-    .set(set)
-    .where(
-      and(eq(schema.order.id, input.orderId), inArray(schema.order.paymentStatus, [...input.from])),
-    );
-  if (affectedRowCount(result) !== 1) {
+  const [flip] = await db.batch([
+    db
+      .update(schema.order)
+      .set(set)
+      .where(
+        and(eq(schema.order.id, input.orderId), inArray(schema.order.paymentStatus, validFrom)),
+      ),
+  ]);
+  if (affectedRowCount(flip) !== 1) {
     return { ok: false, reason: "invalid_transition" };
   }
   return { ok: true };
@@ -132,8 +141,9 @@ export interface PaymentEventInput {
 }
 
 /**
- * Appends a settlement event. The table rejects updates and deletes with
- * `PAYMENT_EVENT_APPEND_ONLY`, so this is the only write path.
+ * Appends a settlement event. The 0019 triggers reject updates and deletes
+ * with `PAYMENT_EVENT_APPEND_ONLY` (covered by the migration replay test), so
+ * this is the only write path.
  */
 export async function recordPaymentEvent(
   db: LibSQLDatabase<typeof schema>,

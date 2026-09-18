@@ -9,6 +9,7 @@ vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
+import type { OrderStatus } from "$lib/settlement/types";
 import {
   cairoTodayMidnightMs,
   LOW_STOCK_THRESHOLD,
@@ -148,7 +149,7 @@ interface SeedOrder {
   email?: string;
   userId?: string | null;
   total?: number;
-  status?: "placed" | "shipped" | "delivered" | "cancelled";
+  status?: OrderStatus | "placed" | "paid";
   createdAt?: number;
 }
 
@@ -287,6 +288,18 @@ describe("getDashboardStats — kpis", () => {
       delivered: 0,
       cancelled: 1,
     });
+  });
+
+  it("merges legacy placed, paid, and confirmed rows into one confirmed count", async () => {
+    const db = await buildDb();
+
+    await seedOrder(db, { status: "confirmed" });
+    await seedOrder(db, { status: "placed" });
+    await seedOrder(db, { status: "paid" });
+
+    const stats = await getDashboardStats(db);
+
+    expect(stats.kpis.byStatus.confirmed).toBe(3);
   });
 
   it("counts a hand-edited unknown status toward kpis.orders but not byStatus", async () => {

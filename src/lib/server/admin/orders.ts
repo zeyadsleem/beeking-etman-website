@@ -7,9 +7,12 @@ import {
   parseOrderStatus,
   type OrderStatus,
 } from "$lib/settlement/types";
-import { affectedRowCount } from "$lib/server/orders";
-import { canTransitionOrder, storedOrderStatusValues } from "$lib/server/settlement/lifecycle";
-import { retryOnBusy } from "$lib/server/sqlite";
+import {
+  applyOrderTransition,
+  canTransitionOrder,
+  storedOrderStatusValues,
+} from "$lib/server/settlement/lifecycle";
+import { affectedRowCount, retryOnBusy } from "$lib/server/sqlite";
 
 export { allowedTransitions, ORDER_STATUSES, parseOrderStatus };
 export type { OrderStatus };
@@ -212,17 +215,5 @@ export async function transitionOrderStatus(
     return cancelLegacyOrder(db, orderId, current.status);
   }
 
-  const [flip] = await retryOnBusy(() =>
-    db.batch([
-      db
-        .update(schema.order)
-        .set({ status: next })
-        .where(and(eq(schema.order.id, orderId), eq(schema.order.status, current.status))),
-    ]),
-  );
-  if (affectedRowCount(flip) !== 1) {
-    return { ok: false, reason: "invalid_transition" };
-  }
-
-  return { ok: true };
+  return retryOnBusy(() => applyOrderTransition(db, { orderId, from: [from], to: next }));
 }
