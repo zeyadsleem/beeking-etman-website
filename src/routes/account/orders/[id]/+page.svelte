@@ -12,7 +12,7 @@
 
 <svelte:head><title>{data.order.number} — {t(lang, "brand.name")}</title></svelte:head>
 
-<div class="mx-auto mt-8 w-full max-w-2xl px-4">
+<div class="mx-auto w-full max-w-2xl">
   <div class="flex flex-wrap items-center justify-between gap-3">
     <SectionTitle as="h1" className="text-4xl">{data.order.number}</SectionTitle>
     <span class="badge-ok">

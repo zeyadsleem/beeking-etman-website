@@ -55,7 +55,7 @@
 
 <svelte:head><title>{t(lang, "addresses.title")} — {t(lang, "brand.name")}</title></svelte:head>
 
-<div class="mx-auto mt-8 mb-16 w-full max-w-2xl px-4">
+<div class="mx-auto mb-16 w-full max-w-2xl">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "addresses.title")}</SectionTitle>
 
   <div class="mt-6">

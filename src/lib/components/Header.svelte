@@ -34,7 +34,7 @@
   const LG_BREAKPOINT = 1024;
 
   onMount(() => {
-    const desktop = window.matchMedia("(min-width: 1024px)");
+    const desktop = window.matchMedia(`(min-width: ${LG_BREAKPOINT}px)`);
     const closeOnDesktop = (): void => {
       if (desktop.matches) mobileOpen = false;
     };
@@ -246,6 +246,12 @@
     <Dialog.Content
       dir={getDir(lang)}
       class="fixed inset-y-0 end-0 z-50 flex w-80 max-w-[85vw] flex-col border-s border-cocoa-100 bg-parchment shadow-warm-lg focus:outline-none"
+      onCloseAutoFocus={(event) => {
+        if (window.matchMedia(`(min-width: ${LG_BREAKPOINT}px)`).matches) {
+          event.preventDefault();
+          document.getElementById("main-content")?.focus({ preventScroll: true });
+        }
+      }}
     >
       <Dialog.Title class="sr-only">{t(lang, "nav.main")}</Dialog.Title>
       <header class="flex items-center justify-between border-b border-cocoa-200 px-4 py-3">

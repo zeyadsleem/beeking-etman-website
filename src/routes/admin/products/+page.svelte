@@ -45,7 +45,7 @@
   <title>{t(lang, "admin.products.title")} — {t(lang, "brand.name")}</title>
 </svelte:head>
 
-<section class="mx-auto max-w-6xl px-4 py-10">
+<section class="mx-auto max-w-6xl">
   <div class="flex flex-wrap items-end justify-between gap-3">
     <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.products.title")}</SectionTitle>
     <a href="/admin/products/new" class="btn-primary">{t(lang, "admin.products.new")}</a>

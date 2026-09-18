@@ -3,9 +3,22 @@ export function scrollable(node: HTMLElement): { destroy: () => void } {
     node.tabIndex =
       node.scrollWidth > node.clientWidth || node.scrollHeight > node.clientHeight ? 0 : -1;
   };
-  const observer = new ResizeObserver(update);
-  observer.observe(node);
-  for (const child of node.children) observer.observe(child);
+  const resize = new ResizeObserver(update);
+  const observeChildren = (): void => {
+    for (const child of node.children) resize.observe(child);
+  };
+  const mutation = new MutationObserver(() => {
+    observeChildren();
+    update();
+  });
+  resize.observe(node);
+  observeChildren();
+  mutation.observe(node, { childList: true, subtree: true });
   update();
-  return { destroy: () => observer.disconnect() };
+  return {
+    destroy: () => {
+      resize.disconnect();
+      mutation.disconnect();
+    },
+  };
 }

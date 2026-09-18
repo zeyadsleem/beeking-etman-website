@@ -28,7 +28,7 @@
   <title>{t(lang, "admin.order.details")} — {t(lang, "brand.name")}</title>
 </svelte:head>
 
-<section class="mx-auto max-w-4xl px-4 py-10">
+<section class="mx-auto max-w-4xl">
   <div>
     <Button variant="ghost" href="/admin/orders" class="text-sm">
       {t(lang, "admin.order.backToList")}

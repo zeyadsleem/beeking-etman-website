@@ -11,7 +11,7 @@
 
 <svelte:head><title>{t(lang, "account.securityTitle")} — {t(lang, "brand.name")}</title></svelte:head>
 
-<div class="mx-auto mt-8 w-full max-w-2xl px-4">
+<div class="mx-auto w-full max-w-2xl">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "account.securityTitle")}</SectionTitle>
 
   <section class="mt-6 rounded-2xl border border-cocoa-200 bg-parchment p-6">

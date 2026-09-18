@@ -40,6 +40,7 @@
       <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40" />
       <Dialog.Content
         dir={getDir(lang)}
+        aria-describedby={undefined}
         class="fixed inset-y-0 start-0 z-50 flex w-72 max-w-[calc(100vw-2rem)] flex-col bg-ink-950 shadow-warm-lg"
         onCloseAutoFocus={(event) => {
           if (window.matchMedia("(min-width: 1024px)").matches) {

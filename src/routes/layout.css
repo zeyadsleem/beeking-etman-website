@@ -772,11 +772,6 @@ header .field::placeholder {
   padding: clamp(1.5rem, 5vw, 3.5rem);
 }
 
-.admin-content > section {
-  padding: 0;
-  margin-inline: 0;
-}
-
 .admin-content h1,
 .account-content h1 {
   font-size: clamp(1.875rem, 3vw, 2.5rem);
@@ -810,11 +805,6 @@ header .field::placeholder {
   scrollbar-color: var(--color-cocoa-300) var(--color-paper);
   scrollbar-width: thin;
   scroll-padding-inline: 1rem;
-}
-
-.account-content > div {
-  margin-top: 0;
-  padding-inline: 0;
 }
 
 .account-content :is(p, dd),
