@@ -120,7 +120,6 @@ export async function applyPaymentTransition(
   // `payment_reviewed_at` records the latest settlement decision.
   if (input.to === "failed" || input.to === "refunded") set.paymentReviewedAt = now;
 
-  type BatchStatement = Parameters<typeof db.batch>[0][number];
   const statements: BatchStatement[] = [
     db
       .update(schema.order)
@@ -130,20 +129,7 @@ export async function applyPaymentTransition(
       ),
   ];
   if (input.event) {
-    // `changes()` reflects the preceding UPDATE on the same connection, so a
-    // transition that matched no rows appends no event either: the ledger and
-    // the state stay consistent in both directions. The column list mirrors
-    // `store_payment_event` in src/lib/server/db/schema.ts.
-    statements.push(
-      db.run(sql`
-        INSERT INTO store_payment_event
-          (id, order_id, type, actor, actor_user_id, method, reference, note, created_at)
-        SELECT ${crypto.randomUUID()}, ${input.orderId}, ${input.event.type}, ${input.event.actor},
-               ${input.event.actorUserId ?? null}, ${input.event.method ?? null},
-               ${input.event.reference ?? null}, ${input.event.note ?? null}, ${now}
-        WHERE changes() = 1
-      `),
-    );
+    statements.push(paymentEventStatement(db, { ...input.event, orderId: input.orderId, now }));
   }
   const results: readonly unknown[] = await db.batch(
     statements as unknown as Parameters<typeof db.batch>[0],
@@ -165,6 +151,28 @@ export interface PaymentEventInput {
   reference?: string | null;
   note?: string | null;
   now?: number;
+}
+
+export type BatchStatement = Parameters<LibSQLDatabase<typeof schema>["batch"]>[0][number];
+
+/**
+ * Batch statement that appends a settlement event only when the immediately
+ * preceding UPDATE in the same batch matched a row (`changes()`): the ledger
+ * and the state stay consistent in both directions. The column list mirrors
+ * `store_payment_event` in src/lib/server/db/schema.ts.
+ */
+export function paymentEventStatement(
+  db: LibSQLDatabase<typeof schema>,
+  event: PaymentEventInput,
+): BatchStatement {
+  return db.run(sql`
+    INSERT INTO store_payment_event
+      (id, order_id, type, actor, actor_user_id, method, reference, note, created_at)
+    SELECT ${crypto.randomUUID()}, ${event.orderId}, ${event.type}, ${event.actor},
+           ${event.actorUserId ?? null}, ${event.method ?? null},
+           ${event.reference ?? null}, ${event.note ?? null}, ${event.now ?? Date.now()}
+    WHERE changes() = 1
+  `) as BatchStatement;
 }
 
 /**

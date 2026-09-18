@@ -8,7 +8,14 @@ import { storedOrderStatusValues } from "$lib/server/settlement/lifecycle";
 import { isAdminRole } from "$lib/server/admin/roles";
 import { logAdminAction } from "$lib/server/admin/audit";
 import { csvCell } from "$lib/server/csv";
-import type { OrderStatus } from "$lib/settlement/types";
+import { t } from "$lib/i18n/messages";
+import {
+  ADMIN_PAYMENT_METHOD_LABEL_KEY,
+  ADMIN_PAYMENT_STATUS_LABEL_KEY,
+  parsePaymentMethod,
+  parsePaymentStatus,
+  type OrderStatus,
+} from "$lib/settlement/types";
 
 const CAIRO_TZ = "Africa/Cairo";
 
@@ -50,6 +57,8 @@ export const GET: RequestHandler = async (event) => {
       phone: schema.order.phone,
       city: schema.order.city,
       status: schema.order.status,
+      paymentMethod: schema.order.paymentMethod,
+      paymentStatus: schema.order.paymentStatus,
       total: schema.order.total,
     })
     .from(schema.order)
@@ -87,6 +96,8 @@ export const GET: RequestHandler = async (event) => {
     "الهاتف",
     "المدينة",
     "الحالة",
+    "طريقة الدفع",
+    "حالة الدفع",
     "الإجمالي (ج.م)",
     "عدد المنتجات",
   ];
@@ -102,6 +113,8 @@ export const GET: RequestHandler = async (event) => {
 
   const rows = orders.map((order) => {
     const status = parseOrderStatus(order.status);
+    const method = parsePaymentMethod(order.paymentMethod);
+    const paymentStatus = parsePaymentStatus(order.paymentStatus);
     return [
       order.number,
       cairoDateTime(order.createdAt),
@@ -110,6 +123,8 @@ export const GET: RequestHandler = async (event) => {
       order.phone,
       order.city,
       status ? statusLabels[status] : order.status,
+      method ? t("ar", ADMIN_PAYMENT_METHOD_LABEL_KEY[method]) : order.paymentMethod,
+      paymentStatus ? t("ar", ADMIN_PAYMENT_STATUS_LABEL_KEY[paymentStatus]) : order.paymentStatus,
       String(order.total / 100),
       String(itemCounts.get(order.id) ?? 0),
     ];

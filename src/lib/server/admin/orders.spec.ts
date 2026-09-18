@@ -329,6 +329,8 @@ describe("listOrders", () => {
       city: "القاهرة",
       total: 100_00,
       status: "confirmed",
+      paymentStatus: "simulated",
+      paymentMethod: "simulated",
       createdAt: 1_700_000_000_000,
     });
   });

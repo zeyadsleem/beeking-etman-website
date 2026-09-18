@@ -3,13 +3,28 @@
   import { Dialog } from "bits-ui";
   import { formatEGP } from "$lib/currency";
   import AdminOrderStatusBadge from "$lib/components/AdminOrderStatusBadge.svelte";
+  import AdminPaymentStatusBadge from "$lib/components/AdminPaymentStatusBadge.svelte";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import { formatDate, t } from "$lib/i18n/messages";
+  import {
+    ADMIN_PAYMENT_METHOD_LABEL_KEY,
+    paymentEventTypeLabelKey,
+  } from "$lib/settlement/types";
   import type { ActionData, PageData } from "./$types";
 
   let { data, form }: {
-    data: Pick<PageData, "order" | "items" | "transitions" | "customerWhatsappUrl" | "lang">;
+    data: Pick<
+      PageData,
+      | "order"
+      | "items"
+      | "events"
+      | "settlement"
+      | "reviewerLabel"
+      | "transitions"
+      | "customerWhatsappUrl"
+      | "lang"
+    >;
     form: ActionData;
   } =
     $props();
@@ -75,6 +90,106 @@
       {/if}
     </div>
   </div>
+
+  <section
+    class="mt-4 rounded-2xl border border-cocoa-100 bg-parchment p-6 text-sm text-cocoa-600 shadow-warm-sm"
+    data-testid="settlement-panel"
+  >
+    <h2 class="headline text-xl text-cocoa-900">{t(lang, "admin.order.settlement.title")}</h2>
+    <p class="mt-3">
+      {#if data.order.paymentMethod}
+        <span class="font-bold text-cocoa-900">{t(lang, ADMIN_PAYMENT_METHOD_LABEL_KEY[data.order.paymentMethod])}</span>
+      {/if}
+      {#if data.order.paymentStatus}
+        <span class="ms-2 inline-flex align-middle">
+          <AdminPaymentStatusBadge status={data.order.paymentStatus} {lang} />
+        </span>
+      {/if}
+    </p>
+    <p class="mt-1">
+      <span class="font-bold text-cocoa-900">{t(lang, "admin.orders.total")}:</span>
+      {formatEGP(data.order.total, lang)}
+    </p>
+    {#if data.order.paymentReference}
+      <p class="mt-1">
+        <span class="font-bold text-cocoa-900">{t(lang, "admin.order.settlement.reference")}:</span>
+        {data.order.paymentReference}
+      </p>
+    {/if}
+    {#if data.order.holdExpiresAt}
+      <p class="mt-1">
+        <span class="font-bold text-cocoa-900">{t(lang, "admin.order.settlement.holdDeadline")}:</span>
+        {formatDate(lang, data.order.holdExpiresAt)}
+      </p>
+    {/if}
+    {#if data.order.paidAt}
+      <p class="mt-1">
+        <span class="font-bold text-cocoa-900">{t(lang, "admin.order.settlement.paidAt")}:</span>
+        {formatDate(lang, data.order.paidAt)}
+      </p>
+    {/if}
+    {#if data.reviewerLabel}
+      <p class="mt-1">
+        <span class="font-bold text-cocoa-900">{t(lang, "admin.order.settlement.reviewedBy")}:</span>
+        {data.reviewerLabel}
+      </p>
+    {/if}
+
+    {#if data.events.length > 0}
+      <h3 class="mt-4 font-bold text-cocoa-900">{t(lang, "admin.order.settlement.timeline")}</h3>
+      <ul class="mt-2 space-y-1">
+        {#each data.events as entry (entry.id)}
+          <li>
+            <span class="font-semibold">{t(lang, paymentEventTypeLabelKey(entry.type))}</span>
+            <span class="text-xs text-cocoa-400"> — {formatDate(lang, entry.createdAt)}</span>
+            {#if entry.reference}<span class="text-xs"> ({entry.reference})</span>{/if}
+            {#if entry.note}<span class="text-xs text-cocoa-500"> — {entry.note}</span>{/if}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+
+    {#if data.settlement.canVerify || data.settlement.canReject || data.settlement.canRefund || data.settlement.canExtendHold}
+      <div class="mt-4 flex flex-wrap items-start gap-4">
+        {#if data.settlement.canVerify}
+          <form method="POST" action="?/mark_paid" class="flex flex-wrap items-end gap-2">
+            <label class="field-label">
+              {t(lang, "admin.order.fieldReference")}
+              <input name="reference" class="field" maxlength="200" autocomplete="off" />
+            </label>
+            <Button type="submit" variant="primary">{t(lang, "admin.order.verify")}</Button>
+          </form>
+        {/if}
+        {#if data.settlement.canReject}
+          <form method="POST" action="?/reject_claim" class="flex flex-wrap items-end gap-2">
+            <label class="field-label">
+              {t(lang, "admin.order.fieldNote")}
+              <input name="note" class="field" maxlength="200" required autocomplete="off" />
+            </label>
+            <Button type="submit" variant="outline">{t(lang, "admin.order.rejectClaim")}</Button>
+          </form>
+        {/if}
+        {#if data.settlement.canRefund}
+          <form method="POST" action="?/refund" class="flex flex-wrap items-end gap-2">
+            <label class="field-label">
+              {t(lang, "admin.order.fieldReason")}
+              <input name="note" class="field" maxlength="200" required autocomplete="off" />
+            </label>
+            <label class="field-label">
+              {t(lang, "admin.order.fieldRefundReference")}
+              <input name="reference" class="field" maxlength="200" required autocomplete="off" />
+            </label>
+            <Button type="submit" variant="outline">{t(lang, "admin.order.refund")}</Button>
+          </form>
+        {/if}
+        {#if data.settlement.canExtendHold}
+          <form method="POST" action="?/extend_hold">
+            <Button type="submit" variant="ghost">{t(lang, "admin.order.extendHold")}</Button>
+          </form>
+        {/if}
+      </div>
+    {/if}
+  </section>
 
   {#if data.transitions.length > 0}
     <div class="mt-4 flex flex-wrap items-center gap-3">
