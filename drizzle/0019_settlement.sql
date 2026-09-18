@@ -4,6 +4,12 @@
 -- store_order trigger is recreated. Migration 0021 will never be created.
 -- No backfill: pre-pivot rows keep their stored placed/paid/simulated values and read through
 -- the legacy aliases.
+--
+-- Foreign keys: D1 applies every migration inside an implicit transaction, where
+-- PRAGMA foreign_keys=OFF is a no-op (documented D1 behavior). PRAGMA defer_foreign_keys=ON is
+-- the supported mechanism: it defers constraint checks to the commit, after the renamed table
+-- carries the same ids again. Both store_order child tables (store_order_item,
+-- store_payment_event) use NO ACTION, so the implicit DELETE on DROP never cascades.
 CREATE TABLE `store_payment_event` (
 	`id` text PRIMARY KEY NOT NULL,
 	`order_id` text NOT NULL,
@@ -17,11 +23,21 @@ CREATE TABLE `store_payment_event` (
 	FOREIGN KEY (`order_id`) REFERENCES `store_order`(`id`) ON UPDATE no action ON DELETE no action
 );--> statement-breakpoint
 CREATE INDEX `store_payment_event_orderId_createdAt_idx` ON `store_payment_event` (`order_id`,`created_at`);--> statement-breakpoint
+CREATE TRIGGER `trg_payment_event_no_update`
+BEFORE UPDATE ON `store_payment_event`
+BEGIN
+  SELECT RAISE(ABORT, 'PAYMENT_EVENT_APPEND_ONLY');
+END;--> statement-breakpoint
+CREATE TRIGGER `trg_payment_event_no_delete`
+BEFORE DELETE ON `store_payment_event`
+BEGIN
+  SELECT RAISE(ABORT, 'PAYMENT_EVENT_APPEND_ONLY');
+END;--> statement-breakpoint
 -- The store_order rebuild would leave the order_item reserve trigger with a stale table
 -- reference, so drop it before the rebuild and recreate it from its captured 0016 definition
 -- after the rename.
 DROP TRIGGER IF EXISTS `trg_order_item_reserve_stock`;--> statement-breakpoint
-PRAGMA foreign_keys=OFF;--> statement-breakpoint
+PRAGMA defer_foreign_keys=ON;--> statement-breakpoint
 CREATE TABLE `__new_store_order` (
 	`id` text PRIMARY KEY NOT NULL,
 	`number` text NOT NULL,
@@ -61,7 +77,7 @@ SELECT
 FROM `store_order`;--> statement-breakpoint
 DROP TABLE `store_order`;--> statement-breakpoint
 ALTER TABLE `__new_store_order` RENAME TO `store_order`;--> statement-breakpoint
-PRAGMA foreign_keys=ON;--> statement-breakpoint
+PRAGMA defer_foreign_keys=OFF;--> statement-breakpoint
 CREATE UNIQUE INDEX `store_order_number_unique` ON `store_order` (`number`);--> statement-breakpoint
 CREATE UNIQUE INDEX `store_order_nonce_unique` ON `store_order` (`nonce`);--> statement-breakpoint
 CREATE INDEX `store_order_userId_createdAt_idx` ON `store_order` (`user_id`,`created_at`);--> statement-breakpoint

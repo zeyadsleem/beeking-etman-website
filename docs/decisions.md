@@ -1700,11 +1700,27 @@ folds D1's content into it:
   `store_order_item` reserve trigger is dropped before the rebuild and
   recreated after it — SQLite leaves cross-table triggers broken when their
   referenced table is dropped and recreated;
+- the rebuild brackets the transaction with `PRAGMA defer_foreign_keys=ON/OFF`.
+  D1 applies migrations inside an implicit transaction where
+  `PRAGMA foreign_keys=OFF` is a no-op; the D1 documentation names
+  `defer_foreign_keys` as the supported mechanism. Both child tables use
+  `NO ACTION`, so the implicit delete on `DROP` never cascades, and the
+  deferred check passes at commit against the renamed table with the same ids;
 - a value-guard trigger pair enforces the new status, payment-status, and
-  payment-method vocabularies while accepting legacy values during the drain;
-- `store_payment_event` (append-only) and the partial hold index are created;
+  payment-method vocabularies on insert and update while accepting legacy
+  values during the drain;
+- `store_payment_event` is created with the partial hold index and two
+  append-only triggers that raise `PAYMENT_EVENT_APPEND_ONLY` on update or
+  delete;
 - the eight inline `store_order` fixture DDLs gain the new columns and
   defaults; trigger and CHECK parity in fixtures lands with SET-6/SET-7.
+
+**Pre-flight evidence (DI-1):** the production baseline is 0 orders and 0
+order items (`docs/todo.md` archive), so the `DROP` runs against no child
+rows; the journal was confirmed at `0017_catalog_authority` before generation;
+the migration replay runs the file inside a transaction with foreign keys
+enforced and with a child order item present, which reproduces the D1
+environment.
 
 Migration `0021` will never be created. No backfill runs: pre-pivot orders keep
 their stored values and read through the aliases.

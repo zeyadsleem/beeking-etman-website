@@ -343,25 +343,35 @@ and docs.
 
 ### 4.1 Migration `0019_settlement` (number frozen by the program roadmap; journal ends at `0017_catalog_authority`)
 
-Contents:
+Contents (as shipped; see `drizzle/0019_settlement.sql`):
 
-1. `ALTER TABLE store_order ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'simulated'`,
-   `payment_reference TEXT`, `payment_claimed_at INTEGER`, `payment_reviewed_at INTEGER`,
-   `payment_reviewed_by TEXT`, `hold_expires_at INTEGER`, `paid_at INTEGER`.
+1. Rebuild `store_order` once — the DI D1 fold (roadmap C2/§8.5). The rebuild adds
+   `payment_method TEXT NOT NULL DEFAULT 'simulated'`, `payment_reference TEXT`,
+   `payment_claimed_at INTEGER`, `payment_reviewed_at INTEGER`, `payment_reviewed_by TEXT`,
+   `hold_expires_at INTEGER`, `paid_at INTEGER`; aligns the physical defaults to
+   `pending_confirmation`/`unpaid`; and adds `ck_order_stock_version`. Migration `0021` is never
+   created.
 2. `CREATE TABLE store_payment_event` (append-only settlement log): `id`, `order_id`, `type`,
    `actor`, `actor_user_id`, `method`, `reference`, `note`, `created_at`; index on
-   `(order_id, created_at)`.
+   `(order_id, created_at)`; `BEFORE UPDATE` and `BEFORE DELETE` triggers raise
+   `PAYMENT_EVENT_APPEND_ONLY`.
 3. Partial index `store_order_hold_idx ON store_order(hold_expires_at) WHERE status IN
 ('pending_confirmation','confirmed','processing')`.
-4. `DROP TRIGGER trg_order_status_cancel_restock` and recreate with the §3.5 `OLD.status`
-   allowlist.
-5. `CREATE TRIGGER trg_order_settlement_values_valid` — enum guard for `status`, `payment_status`,
-   and `payment_method`, accepting legacy `placed`/`paid`/`simulated` values during the drain.
+4. The rebuild drops the cross-table `trg_order_item_reserve_stock` before it and recreates it
+   after it, because SQLite leaves a trigger broken when its referenced table is dropped and
+   recreated. `trg_order_status_cancel_restock` is recreated with the §3.5 `OLD.status` allowlist.
+5. `trg_order_settlement_values_valid` and `trg_order_settlement_values_valid_update` — enum
+   guards for `status`, `payment_status`, and `payment_method` on insert and update, accepting
+   legacy `placed`/`paid`/`simulated` values during the drain.
 6. No backfill. Pre-pivot rows keep `placed`/`paid`/`simulated` and read as confirmed, paid rows.
+7. The rebuild bracket uses `PRAGMA defer_foreign_keys=ON/OFF`, not `foreign_keys=OFF`: D1 applies
+   migrations inside an implicit transaction where the latter is a no-op. Both child tables use
+   `NO ACTION`, so the implicit delete on `DROP` never cascades; the deferred check runs at commit
+   against the renamed table with the same ids.
 
 Also in the same change: the Drizzle schema defaults become `pending_confirmation`/`unpaid`, the
-frozen DDL copies in the spec test suite gain the 0019 shape, and the migration replay spec covers
-the new migration.
+eight inline `store_order` fixture DDLs gain the 0019 shape, and the migration replay spec covers
+the new migration under a transaction with foreign keys enforced.
 
 ### 4.2 Rollout stages
 

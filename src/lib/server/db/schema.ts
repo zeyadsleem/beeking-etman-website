@@ -109,10 +109,13 @@ export const order = sqliteTable(
     governorate: text("governorate").notNull().default("cairo"),
     shippingCost: integer("shipping_cost").notNull().default(0),
     total: integer("total").notNull(),
-    status: text("status").notNull().default("pending_confirmation"), // pending_confirmation | confirmed | processing | shipped | delivered | cancelled
-    paymentStatus: text("payment_status").notNull().default("unpaid"), // unpaid | pending_review | paid | failed | refunded | simulated
+    // pending_confirmation | confirmed | processing | shipped | delivered | cancelled (legacy aliases: placed, paid)
+    status: text("status").notNull().default("pending_confirmation"),
+    // unpaid | pending_review | paid | failed | refunded (legacy: simulated)
+    paymentStatus: text("payment_status").notNull().default("unpaid"),
     stockVersion: text("stock_version").notNull().default("legacy"), // atomic | legacy
-    paymentMethod: text("payment_method").notNull().default("simulated"), // cod | instapay | wallet | simulated | paymob
+    // cod | instapay | wallet (legacy: simulated; reserved: paymob)
+    paymentMethod: text("payment_method").notNull().default("simulated"),
     paymentReference: text("payment_reference"),
     paymentClaimedAt: integer("payment_claimed_at"),
     paymentReviewedAt: integer("payment_reviewed_at"),
