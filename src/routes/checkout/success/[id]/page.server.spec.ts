@@ -25,6 +25,7 @@ vi.mock("$env/dynamic/private", () => ({
     ORDER_ACCESS_SECRET: "secret",
     PAYMENT_INSTAPAY_ADDRESS: "shop@instapay",
     PAYMENT_WALLET_NUMBER: "01000000000",
+    WHATSAPP_NUMBER: "+20 100 000 0000",
   },
 }));
 vi.mock("$lib/server/rate-limit", () => ({
@@ -200,6 +201,10 @@ describe("success page load", () => {
     });
     expect(data.order).not.toHaveProperty("email");
     expect(data.order).not.toHaveProperty("nonce");
+
+    const withWhatsapp = data as unknown as { whatsappUrl: string | null };
+    expect(withWhatsapp.whatsappUrl).toContain("https://wa.me/201000000000?text=");
+    expect(decodeURIComponent(withWhatsapp.whatsappUrl ?? "")).toContain("HNY-");
   });
 
   it("reports claimed, paid, and refunded states", async () => {

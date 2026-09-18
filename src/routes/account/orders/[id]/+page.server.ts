@@ -1,10 +1,19 @@
 import { error, redirect } from "@sveltejs/kit";
 import { and, asc, eq } from "drizzle-orm";
+import { env } from "$env/dynamic/private";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
 import { t } from "$lib/i18n/messages";
 import { getLang } from "$lib/server/lang";
 import { loginRedirectPath } from "$lib/server/login-redirect";
+import { receivingAccountFor, settlementConfig } from "$lib/server/settlement/config";
+import { customerOrderWhatsappText, whatsappLink } from "$lib/server/settlement/whatsapp";
+import {
+  isV1PaymentMethod,
+  parsePaymentMethod,
+  parsePaymentStatus,
+  PAYMENT_METHOD_LABEL_KEY,
+} from "$lib/settlement/types";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
@@ -19,6 +28,8 @@ export const load: PageServerLoad = async (event) => {
       number: schema.order.number,
       createdAt: schema.order.createdAt,
       status: schema.order.status,
+      paymentStatus: schema.order.paymentStatus,
+      paymentMethod: schema.order.paymentMethod,
       total: schema.order.total,
       name: schema.order.name,
       phone: schema.order.phone,
@@ -41,5 +52,40 @@ export const load: PageServerLoad = async (event) => {
     .from(schema.orderItem)
     .where(eq(schema.orderItem.orderId, order.id))
     .orderBy(asc(schema.orderItem.productName));
-  return { lang, order, items };
+
+  const config = settlementConfig(env);
+  const method = parsePaymentMethod(order.paymentMethod);
+  const isTransfer = method === "instapay" || method === "wallet";
+  const paymentStatus = parsePaymentStatus(order.paymentStatus);
+  const whatsappUrl = config.whatsappNumber
+    ? whatsappLink(
+        config.whatsappNumber,
+        customerOrderWhatsappText({ number: order.number, total: order.total, method }, lang),
+      )
+    : null;
+
+  return {
+    lang,
+    order: {
+      id: order.id,
+      number: order.number,
+      createdAt: order.createdAt,
+      status: order.status,
+      total: order.total,
+      name: order.name,
+      phone: order.phone,
+      address: order.address,
+      city: order.city,
+    },
+    items,
+    payment: {
+      methodLabelKey: method && isV1PaymentMethod(method) ? PAYMENT_METHOD_LABEL_KEY[method] : null,
+      account: isTransfer && method ? receivingAccountFor(config, method) : null,
+      claimable:
+        isTransfer &&
+        order.status !== "cancelled" &&
+        (paymentStatus === "unpaid" || paymentStatus === "failed"),
+    },
+    whatsappUrl,
+  };
 };

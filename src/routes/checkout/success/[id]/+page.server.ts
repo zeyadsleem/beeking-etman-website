@@ -8,6 +8,7 @@ import * as schema from "$lib/server/db/schema";
 import { t, type MessageKey } from "$lib/i18n/messages";
 import { receivingAccountFor, settlementConfig } from "$lib/server/settlement/config";
 import { submitClaim, type ClaimResult } from "$lib/server/settlement/claims";
+import { customerOrderWhatsappText, whatsappLink } from "$lib/server/settlement/whatsapp";
 import { parsePaymentMethod, parsePaymentStatus } from "$lib/settlement/types";
 import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
 import type { Actions, PageServerLoad, RequestEvent } from "./$types";
@@ -105,9 +106,17 @@ export const load: PageServerLoad = async (event) => {
     .where(eq(schema.orderItem.orderId, order.id))
     .orderBy(schema.orderItem.id);
 
+  const whatsappUrl = config.whatsappNumber
+    ? whatsappLink(
+        config.whatsappNumber,
+        customerOrderWhatsappText({ number: row.number, total: row.total, method }, lang),
+      )
+    : null;
+
   return {
     order,
     items,
+    whatsappUrl,
     claim: {
       isTransfer,
       method: isTransfer ? method : null,

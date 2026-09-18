@@ -12,17 +12,30 @@ import { db } from "$lib/server/db";
 import { getLang } from "$lib/server/lang";
 import { isAdminRole } from "$lib/server/admin/roles";
 import { sendOrderStatusUpdate } from "$lib/server/email";
+import {
+  adminOrderWhatsappText,
+  normalizeWhatsappNumber,
+  whatsappLink,
+} from "$lib/server/settlement/whatsapp";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
   const detail = await getOrderWithItems(db, event.params.id);
   if (!detail) error(404, t(getLang(event), "order.notFound"));
+  const lang = getLang(event);
 
+  const customerNumber = normalizeWhatsappNumber(detail.order.phone);
   return {
     order: detail.order,
     items: detail.items,
     transitions: allowedTransitions(detail.order.status),
-    lang: getLang(event),
+    customerWhatsappUrl: customerNumber
+      ? whatsappLink(
+          customerNumber,
+          adminOrderWhatsappText({ number: detail.order.number, name: detail.order.name }, lang),
+        )
+      : null,
+    lang,
   };
 };
 

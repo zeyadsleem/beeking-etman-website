@@ -12,7 +12,12 @@ import {
 describe("settlementConfig", () => {
   it("offers COD only when no transfer accounts are configured", () => {
     const config = settlementConfig({});
-    expect(config).toEqual({ codEnabled: true, instapayAddress: null, walletNumber: null });
+    expect(config).toEqual({
+      codEnabled: true,
+      instapayAddress: null,
+      walletNumber: null,
+      whatsappNumber: null,
+    });
     expect(availablePaymentMethods(config)).toEqual(["cod"]);
   });
 

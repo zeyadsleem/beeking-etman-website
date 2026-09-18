@@ -291,7 +291,7 @@ only.
 
 WhatsApp rules:
 
-- The shop number comes from `PUBLIC_WHATSAPP_NUMBER`. Links use `https://wa.me/<number>?text=...`
+- The shop number comes from `WHATSAPP_NUMBER` (read server-side; the links are rendered into the page). Links use `https://wa.me/<number>?text=...`
   with a URL-encoded, prefilled message.
 - The customer CTA appears on the success page and the customer order page. The message contains
   the order number, the total, and the method.
@@ -303,7 +303,7 @@ WhatsApp rules:
 
 | Variable                   | Purpose                                                                 | Required                   |
 | -------------------------- | ----------------------------------------------------------------------- | -------------------------- |
-| `PUBLIC_WHATSAPP_NUMBER`   | Shop WhatsApp number for CTAs, international format without `+` (SET-5) | yes                        |
+| `WHATSAPP_NUMBER`          | Shop WhatsApp number for CTAs, international format without `+` (SET-5) | yes                        |
 | `PAYMENT_INSTAPAY_ADDRESS` | Receiving InstaPay address; InstaPay is offered only when set           | when InstaPay is offered   |
 | `PAYMENT_WALLET_NUMBER`    | Receiving Vodafone Cash number; the wallet is offered only when set     | when the wallet is offered |
 | `ORDER_HOLD_MINUTES`       | Hold window for all new orders; default `1440`                          | no                         |
@@ -518,7 +518,7 @@ go-live checklist signed.
 | O1  | COD offered            | Yes, with `PAYMENTS_COD_ENABLED` as the switch | Drop COD: loses the owner's main channel                                                   |
 | O2  | Hold window            | 24 hours, env-tunable, 5-minute grace          | 30 minutes: too short for a human transfer; 72 hours: holds jars too long for a small shop |
 | O3  | Transfer proof         | No uploads; screenshot over WhatsApp           | Upload to KV: new public surface, PII handling, and review load with no verification gain  |
-| O4  | WhatsApp number source | `PUBLIC_WHATSAPP_NUMBER` env                   | Hardcode: breaks staging and forks                                                         |
+| O4  | WhatsApp number source | `WHATSAPP_NUMBER` env (server-rendered links)  | Hardcode: breaks staging and forks                                                         |
 | O5  | Hold extension         | Admin action, +24 hours, audited               | No extension: forces cancel-and-reorder when a customer is late                            |
 | O6  | Partial refunds        | Out of v1; full refunds only                   | Amount-based ledger now: complexity without a current use case                             |
 | O7  | COD collection timing  | Mark `paid` at handover, after cash is in hand | Mark at confirmation: records money that may never arrive                                  |
