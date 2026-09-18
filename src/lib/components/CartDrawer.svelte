@@ -9,7 +9,7 @@
   import CartDrawerSkeleton from "./CartDrawerSkeleton.svelte";
   import HoneycombIcon from "./HoneycombIcon.svelte";
   import Price from "./Price.svelte";
-  import { t, type Lang } from "$lib/i18n/messages";
+  import { getDir, t, type Lang } from "$lib/i18n/messages";
 
   let { lang = "ar" }: { lang?: Lang } = $props();
   let loaded = $state(false);
@@ -24,6 +24,7 @@
   <Dialog.Portal>
     <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
     <Dialog.Content
+      dir={getDir(lang)}
       class="fixed inset-y-0 end-0 z-50 flex w-[88vw] max-w-[24rem] flex-col border-s border-cocoa-100 bg-parchment shadow-warm-lg focus:outline-none sm:w-96 sm:max-w-none lg:w-[27rem]"
       data-testid="cart-drawer"
     >
@@ -31,7 +32,7 @@
         <Dialog.Title class="headline text-xl text-cocoa-900">{t(lang, "cart.title")}</Dialog.Title>
         <Dialog.Description class="sr-only">{t(lang, "cart.srDescription")}</Dialog.Description>
         <Dialog.Close
-          class="grid h-9 w-9 place-items-center rounded-full text-cocoa-400 transition-colors hover:bg-cocoa-100 hover:text-cocoa-900"
+          class="grid h-11 w-11 place-items-center rounded-full text-cocoa-600 transition-colors hover:bg-cocoa-100 hover:text-cocoa-900"
           aria-label={t(lang, "cart.close")}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -49,7 +50,7 @@
           <Button variant="outline" href="/products" class="mt-2 text-sm" onclick={closeDrawer}>{t(lang, "cart.browse")}</Button>
         </div>
       {:else}
-        <ul class="flex-1 space-y-4 overflow-y-auto p-4">
+        <ul class="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
           {#each cartState.items as item (itemId(item))}
             <CartLineItem {item} {lang} size="drawer" />
           {/each}

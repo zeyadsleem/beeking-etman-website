@@ -94,7 +94,7 @@
 
 
 <!-- Hero -->
-<section class="relative start-1/2 -ms-[50vw] w-screen overflow-x-clip bg-gradient-to-b from-paper via-paper to-cream">
+<section class="relative rounded-2xl bg-gradient-to-b from-paper via-paper to-cream">
   <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
     <div class="absolute -top-32 end-[-6rem] h-[26rem] w-[26rem] rounded-full bg-honey-200/40 blur-3xl"></div>
     <div class="absolute bottom-[-8rem] start-[-6rem] h-[20rem] w-[20rem] rounded-full bg-clay-100/40 blur-3xl"></div>

@@ -118,7 +118,7 @@
   <Dialog.Portal>
     <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
     <Dialog.Content
-      class="fixed inset-x-4 top-1/2 z-50 mx-auto w-full max-w-sm -translate-y-1/2 rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-lg focus:outline-none"
+      class="fixed inset-x-4 top-1/2 z-50 mx-auto max-h-[90dvh] w-auto max-w-sm -translate-y-1/2 overflow-y-auto rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-lg focus:outline-none"
       data-testid="delete-confirm-dialog"
     >
       <Dialog.Title class="headline text-xl text-cocoa-900">

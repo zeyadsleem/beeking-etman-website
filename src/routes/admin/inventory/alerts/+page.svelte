@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scrollable } from "$lib/actions/scrollable";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
   import EmptyState from "$lib/components/admin/EmptyState.svelte";
   import { t } from "$lib/i18n/messages";
@@ -47,7 +48,7 @@
       <p class="text-lg">{t(lang, "admin.alerts.empty")}</p>
     </div>
   {:else}
-    <div class="mt-8 overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
+    <div role="region" use:scrollable aria-label={t(lang, "admin.alerts.title")} class="mt-8 overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm">
       <table class="w-full min-w-max text-sm" data-testid="admin-alerts-table">
         <thead class="uppercase text-xs text-cocoa-500">
           <tr>

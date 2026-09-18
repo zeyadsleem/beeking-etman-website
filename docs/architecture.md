@@ -193,7 +193,10 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `src/routes/admin/+layout.server.ts` redirects anyone without
   `locals.user.role === "admin"` to `/login` on page loads, and every mutating
   form action re-checks the role server-side (defense-in-depth — layout guards
-  never cover POSTs). Pages: dashboard KPI/stats overview (`/admin`), orders
+  never cover POSTs). The mobile sidebar is a bits-ui `Dialog` owned by
+  `AdminShell` (Escape dismissal, focus containment/restoration, and a close
+  when the viewport reaches desktop so focus never stays in a hidden layer).
+  Pages: dashboard KPI/stats overview (`/admin`), orders
   list + detail with status transitions (cancellation is confirm-gated in the
   UI and restocks inventory server-side), product create/edit including
   variants and image upload, and category CRUD.

@@ -13,11 +13,11 @@
 </script>
 
 <section
-  class={`relative overflow-hidden rounded-3xl border border-honey-100 bg-gradient-to-br from-paper via-cream to-cream-deep px-6 py-10 sm:px-10 sm:py-14 ${className}`}
+  class={`relative rounded-2xl bg-cream px-5 py-8 sm:px-10 sm:py-12 ${className}`}
 >
   <div class="relative">
     {#if eyebrow}<p class="eyebrow">{eyebrow}</p>{/if}
-    <h1 class="headline mt-2 text-4xl leading-tight text-cocoa-900">{title}</h1>
-    {#if subtitle}<p class="mt-3 max-w-xl text-cocoa-500">{subtitle}</p>{/if}
+    <h1 class="headline mt-2 text-3xl leading-tight text-cocoa-900 sm:text-4xl">{title}</h1>
+    {#if subtitle}<p class="mt-3 max-w-xl leading-relaxed text-cocoa-600">{subtitle}</p>{/if}
   </div>
 </section>

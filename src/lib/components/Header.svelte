@@ -2,6 +2,7 @@
   import { page } from "$app/state";
   import { goto, invalidateAll } from "$app/navigation";
   import { Dialog } from "bits-ui";
+  import { onMount } from "svelte";
   import { cartCount, openDrawer } from "$lib/cart-store.svelte";
   import { edgeForDir, isEdgeSwipe } from "$lib/edge-swipe";
   import { getDir, t, type Lang } from "$lib/i18n/messages";
@@ -31,6 +32,15 @@
   let mobileOpen = $state(false);
   let touchStart: { x: number; y: number } | null = $state(null);
   const LG_BREAKPOINT = 1024;
+
+  onMount(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = (): void => {
+      if (desktop.matches) mobileOpen = false;
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  });
 
   function onTouchStart(event: TouchEvent) {
     if (mobileOpen || window.innerWidth >= LG_BREAKPOINT || event.touches.length !== 1) return;
@@ -117,26 +127,26 @@
 <svelte:window ontouchstart={onTouchStart} ontouchend={onTouchEnd} ontouchcancel={onTouchCancel} />
 
 <header class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper">
-  <div class="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-4 py-3">
-    <div class="col-start-1 flex min-w-0 items-center gap-4 justify-self-start lg:gap-5">
+  <div class="header-grid mx-auto max-w-7xl px-4 py-3" class:has-search={showHeaderSearch}>
+    <div class="header-brand flex min-w-0 items-center gap-4 lg:gap-5">
       <a href="/" class="flex shrink-0 items-center transition-opacity hover:opacity-90" aria-label={t(lang, "brand.tagline")}>
         <Logo alt={t(lang, "brand.tagline")} class="h-11 w-11 lg:h-14 lg:w-14" />
       </a>
-
-      <nav class="hidden min-w-0 items-center gap-3 text-sm font-semibold text-cocoa-700 lg:flex xl:gap-4" aria-label={t(lang, "nav.main")}>
-        {#each NAV_ITEMS as item (item.href)}
-          {@const active = item.href === "/" ? page.url.pathname === "/" : page.url.pathname.startsWith(item.href)}
-          <a
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            class="inline-flex min-h-11 shrink-0 items-center border-b-2 transition-colors hover:text-honey-700 {active ? "border-honey-700 font-bold text-honey-700" : "border-transparent"}"
-          >{t(lang, item.labelKey)}</a>
-        {/each}
-      </nav>
     </div>
 
-      {#if showHeaderSearch}
-      <div class="col-span-3 row-start-2 w-full min-w-0 max-lg:hidden lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:max-w-sm lg:justify-self-start">
+    <nav class="header-nav hidden min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>
+      {#each NAV_ITEMS as item (item.href)}
+        {@const active = item.href === "/" ? page.url.pathname === "/" : page.url.pathname.startsWith(item.href)}
+        <a
+          href={item.href}
+          aria-current={active ? "page" : undefined}
+          class="inline-flex min-h-11 shrink-0 items-center border-b-2 transition-colors hover:text-honey-700 {active ? "border-honey-700 font-bold text-honey-700" : "border-transparent"}"
+        >{t(lang, item.labelKey)}</a>
+      {/each}
+    </nav>
+
+    {#if showHeaderSearch}
+      <div class="header-search hidden min-w-0 lg:block">
         <SearchSuggestions
           lang={lang}
           initial={q}
@@ -148,9 +158,9 @@
           onSelect={(value) => goto(value)}
         />
       </div>
-      {/if}
+    {/if}
 
-    <div class="col-start-3 flex items-center gap-2 justify-self-end">
+    <div class="header-actions flex min-w-0 flex-wrap items-center justify-end gap-2">
       <Button
         variant="outline"
         type="button"
@@ -312,3 +322,67 @@
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
+
+<style>
+  .header-grid {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+  }
+  .header-brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .header-actions {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+  @media (min-width: 64rem) {
+    .header-grid {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .header-nav {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .header-search {
+      grid-column: 2;
+      grid-row: 2;
+      inline-size: clamp(14rem, 22vw, 20rem);
+    }
+    .header-grid:not(.has-search) .header-nav {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (min-width: 80rem) {
+    .header-grid {
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+    }
+    .header-brand {
+      grid-column: 1;
+    }
+    .header-nav {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .header-grid:not(.has-search) .header-nav {
+      grid-column: 2;
+    }
+    .header-search {
+      grid-column: 3;
+      grid-row: 1;
+    }
+    .header-actions {
+      grid-column: 4;
+      grid-row: 1;
+    }
+    .header-grid:not(.has-search) {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    .header-grid:not(.has-search) .header-actions {
+      grid-column: 3;
+    }
+  }
+</style>

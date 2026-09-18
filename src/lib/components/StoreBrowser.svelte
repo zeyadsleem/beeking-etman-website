@@ -75,7 +75,7 @@
     {/each}
   </ToggleGroup.Root>
 
-  <div class="flex items-center gap-2">
+  <div class="flex shrink-0 flex-wrap items-center gap-2">
     <span class="text-sm font-medium text-cocoa-700">{t(lang, "products.sortLabel")}</span>
     <Select.Root
       type="single"
@@ -143,7 +143,7 @@
   </div>
 
   {#if data.totalPages > 1}
-    <nav class="mt-10 flex items-center justify-center gap-4" aria-label={t(lang, "products.paginationAria")}>
+    <nav class="mt-10 flex flex-wrap items-center justify-center gap-3" aria-label={t(lang, "products.paginationAria")}>
       <Button
         variant="outline"
         type="button"

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scrollable } from "$lib/actions/scrollable";
   import { enhance } from "$app/forms";
   import Search from "@lucide/svelte/icons/search";
   import UsersRound from "@lucide/svelte/icons/users-round";
@@ -114,7 +115,7 @@
       />
     </div>
   {:else}
-    <div class="mt-8 hidden overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm md:block" data-testid="admin-users-table">
+    <div role="region" use:scrollable aria-label={t(lang, "admin.users.title")} class="mt-8 hidden overflow-x-auto rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm md:block" data-testid="admin-users-table">
       <table class="w-full min-w-max text-sm">
         <thead>
           <tr class="border-b border-cocoa-100 text-left text-xs uppercase tracking-wide text-cocoa-500">

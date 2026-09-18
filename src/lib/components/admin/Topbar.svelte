@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import { Dialog } from "bits-ui";
   import LogOut from "@lucide/svelte/icons/log-out";
   import Menu from "@lucide/svelte/icons/menu";
   import Button from "$lib/components/Button.svelte";
@@ -40,14 +41,14 @@
 </script>
 
 <header class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-cocoa-100 bg-parchment/90 px-4 backdrop-blur-md sm:px-6">
-  <button
+  <Dialog.Trigger
     type="button"
     onclick={onMenu}
     aria-label={t(lang, "admin.shell.menu")}
-    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-cocoa-600 transition-colors hover:bg-cocoa-100 lg:hidden"
+    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-cocoa-600 transition-colors hover:bg-cocoa-100 lg:hidden"
   >
     <Menu class="h-5 w-5" strokeWidth={2} />
-  </button>
+  </Dialog.Trigger>
 
   <div class="flex min-w-0 items-center gap-2 text-sm">
     <span class="truncate font-semibold text-cocoa-800">{crumb}</span>
@@ -69,7 +70,7 @@
         </div>
       </div>
       <form method="POST" action="/admin/logout">
-        <Button variant="ghost" type="submit">
+        <Button variant="ghost" type="submit" aria-label={t(lang, "admin.shell.signOut")}>
           <LogOut class="h-4 w-4" strokeWidth={2} />
           <span class="hidden sm:inline">{t(lang, "admin.shell.signOut")}</span>
         </Button>

@@ -22,7 +22,7 @@
 <div class="mt-8">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "orders.title")}</SectionTitle>
   {#if data.orders.length === 0}
-    <div class="mt-8 flex flex-col items-center rounded-2xl border border-dashed border-cocoa-200 bg-parchment p-14 text-center">
+    <div class="empty-state">
       <p class="text-lg font-semibold text-cocoa-600">{t(lang, "orders.empty")}</p>
       <Button variant="primary" href="/products" class="mt-5">{t(lang, "orders.browse")}</Button>
     </div>
@@ -50,7 +50,7 @@
     </ul>
 
     {#if data.totalPages > 1}
-      <nav class="mt-10 flex items-center justify-center gap-4" aria-label={t(lang, "products.paginationAria")}>
+      <nav class="mt-10 flex flex-wrap items-center justify-center gap-3" aria-label={t(lang, "products.paginationAria")}>
         <Button
           variant="outline"
           type="button"
