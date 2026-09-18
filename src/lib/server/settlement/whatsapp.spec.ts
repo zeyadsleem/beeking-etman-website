@@ -8,12 +8,15 @@ import {
 } from "./whatsapp";
 
 describe("normalizeWhatsappNumber", () => {
-  it("keeps digits only", () => {
+  it("converts international and Egyptian local forms to digits", () => {
     expect(normalizeWhatsappNumber("+20 100 000 0000")).toBe("201000000000");
-    expect(normalizeWhatsappNumber(" 0100-000-0000 ")).toBe("01000000000");
+    expect(normalizeWhatsappNumber("00201000000000")).toBe("201000000000");
+    expect(normalizeWhatsappNumber("0100-000-0000")).toBe("201000000000");
+    expect(normalizeWhatsappNumber("01112345678")).toBe("201112345678");
   });
 
   it("rejects implausible or missing values", () => {
+    expect(normalizeWhatsappNumber("12345678")).toBeNull();
     expect(normalizeWhatsappNumber("123")).toBeNull();
     expect(normalizeWhatsappNumber("")).toBeNull();
     expect(normalizeWhatsappNumber(undefined)).toBeNull();
@@ -26,6 +29,10 @@ describe("whatsappLink", () => {
     expect(whatsappLink("201000000000", "طلب 123")).toBe(
       "https://wa.me/201000000000?text=%D8%B7%D9%84%D8%A8%20123",
     );
+  });
+
+  it("refuses an unnormalized number", () => {
+    expect(() => whatsappLink("01012345678", "x")).toThrow();
   });
 });
 
@@ -49,7 +56,9 @@ describe("order messages", () => {
   });
 
   it("addresses the customer by name for the shop", () => {
-    expect(adminOrderWhatsappText({ number: "HNY-1", name: "أحمد" }, "ar")).toContain("أحمد");
-    expect(adminOrderWhatsappText({ number: "HNY-1", name: "Ahmed" }, "ar")).toContain("HNY-1");
+    const arabic = adminOrderWhatsappText({ number: "HNY-1", name: "أحمد" }, "ar");
+    expect(arabic).toContain("أحمد");
+    expect(arabic).toContain("HNY-1");
+    expect(adminOrderWhatsappText({ number: "HNY-2", name: "Ahmed" }, "en")).toContain("Ahmed");
   });
 });

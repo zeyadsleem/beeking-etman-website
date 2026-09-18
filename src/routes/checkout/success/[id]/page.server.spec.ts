@@ -204,7 +204,10 @@ describe("success page load", () => {
 
     const withWhatsapp = data as unknown as { whatsappUrl: string | null };
     expect(withWhatsapp.whatsappUrl).toContain("https://wa.me/201000000000?text=");
-    expect(decodeURIComponent(withWhatsapp.whatsappUrl ?? "")).toContain("HNY-");
+    const decoded = decodeURIComponent(withWhatsapp.whatsappUrl ?? "");
+    expect(decoded).toContain("HNY-");
+    expect(decoded).toContain(t("ar", "checkout.paymentTitle"));
+    expect(decoded).toContain(t("ar", "checkout.method.instapay"));
   });
 
   it("reports claimed, paid, and refunded states", async () => {

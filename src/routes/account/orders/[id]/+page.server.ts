@@ -57,6 +57,10 @@ export const load: PageServerLoad = async (event) => {
   const method = parsePaymentMethod(order.paymentMethod);
   const isTransfer = method === "instapay" || method === "wallet";
   const paymentStatus = parsePaymentStatus(order.paymentStatus);
+  const claimable =
+    isTransfer &&
+    order.status !== "cancelled" &&
+    (paymentStatus === "unpaid" || paymentStatus === "failed");
   const whatsappUrl = config.whatsappNumber
     ? whatsappLink(
         config.whatsappNumber,
@@ -80,11 +84,8 @@ export const load: PageServerLoad = async (event) => {
     items,
     payment: {
       methodLabelKey: method && isV1PaymentMethod(method) ? PAYMENT_METHOD_LABEL_KEY[method] : null,
-      account: isTransfer && method ? receivingAccountFor(config, method) : null,
-      claimable:
-        isTransfer &&
-        order.status !== "cancelled" &&
-        (paymentStatus === "unpaid" || paymentStatus === "failed"),
+      account: isTransfer && method && claimable ? receivingAccountFor(config, method) : null,
+      claimable,
     },
     whatsappUrl,
   };

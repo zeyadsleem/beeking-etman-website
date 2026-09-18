@@ -189,6 +189,7 @@ interface DetailData {
   order: AdminOrderRow;
   items: AdminOrderItemRow[];
   transitions: readonly OrderStatus[];
+  customerWhatsappUrl: string | null;
   lang: Lang;
 }
 
@@ -236,6 +237,16 @@ afterAll(() => {
 beforeEach(buildDb);
 
 describe("admin order detail load", () => {
+  it("builds an international customer WhatsApp link from the local phone", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db);
+
+    const data = asData(await load(fakeEvent(id)));
+
+    expect(data.customerWhatsappUrl).toContain("https://wa.me/201012345678?text=");
+    expect(decodeURIComponent(data.customerWhatsappUrl ?? "")).toContain("HNY-");
+  });
+
   it("returns the order with its items and allowed transitions", async () => {
     const db = currentDb();
     const id = await seedOrder(db);

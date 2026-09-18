@@ -40,24 +40,26 @@
     </p>
   </section>
 
-  <section class="mt-4 rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-sm">
-    <h2 class="headline text-xl text-cocoa-900">{t(lang, "orderDetail.payment")}</h2>
-    {#if data.payment.methodLabelKey}
-      <p class="mt-3 text-sm text-cocoa-600">{t(lang, data.payment.methodLabelKey)}</p>
-    {/if}
-    {#if data.payment.account && data.payment.claimable}
-      <p class="mt-1 text-sm text-cocoa-600">
-        <span class="font-bold text-cocoa-900">{t(lang, "orderDetail.transferTo")}</span>
-        <span class="font-extrabold" dir="ltr">{data.payment.account}</span>
-      </p>
-      <p class="mt-1 text-xs text-cocoa-500">{t(lang, "orderDetail.transferHint")}</p>
-    {/if}
-    {#if data.whatsappUrl}
-      <Button variant="outline" href={data.whatsappUrl} class="mt-4" data-testid="whatsapp-cta">
-        {t(lang, "orderDetail.whatsapp")}
-      </Button>
-    {/if}
-  </section>
+  {#if data.payment.methodLabelKey || (data.payment.account && data.payment.claimable) || data.whatsappUrl}
+    <section class="mt-4 rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-sm">
+      <h2 class="headline text-xl text-cocoa-900">{t(lang, "orderDetail.payment")}</h2>
+      {#if data.payment.methodLabelKey}
+        <p class="mt-3 text-sm text-cocoa-600">{t(lang, data.payment.methodLabelKey)}</p>
+      {/if}
+      {#if data.payment.account && data.payment.claimable}
+        <p class="mt-1 text-sm text-cocoa-600">
+          <span class="font-bold text-cocoa-900">{t(lang, "orderDetail.transferTo")}</span>
+          <span class="font-extrabold" dir="ltr">{data.payment.account}</span>
+        </p>
+        <p class="mt-1 text-xs text-cocoa-500">{t(lang, "orderDetail.transferHint")}</p>
+      {/if}
+      {#if data.whatsappUrl}
+        <Button variant="outline" href={data.whatsappUrl} class="mt-4" data-testid="whatsapp-cta">
+          {t(lang, "orderDetail.whatsapp")}
+        </Button>
+      {/if}
+    </section>
+  {/if}
 
   <section class="mt-4 rounded-2xl border border-cocoa-100 bg-parchment p-6 shadow-warm-sm">
     <h2 class="headline text-xl text-cocoa-900">{t(lang, "orderDetail.items")}</h2>
