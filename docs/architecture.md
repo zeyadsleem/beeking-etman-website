@@ -23,14 +23,9 @@ Living description of the honey storefront system.
 - `src/lib/currency.ts` — `formatEGP`: formats integer qirsh (1/100 EGP) with
   the `ar-EG` currency locale.
 - `src/lib/cart.ts` — pure cart helpers (add/remove/quantity/totals); flat
-  shipping (EGP 60, free ≥ EGP 600). Cart model is a union:
-  `CartEntry = CartLine | BlendLine` and `CartItem = RegularCartItem |
-BlendCartItem`, so a composed blend rides the cart as one line
-  (`isBlendItem`, `itemId`, `lineTotal`/`blendTotal`).
-- `src/lib/blends.ts` — pure config/logic for the blends studio: 5 goal
-  presets, 5 base honeys with their half/full catalog slugs, 5 additives with
-  product slugs, per-additive recommended doses per jar size (`DOSE_FOR`),
-  `MAX_DOSE`, `isAdditiveKey`, `presetDoses`.
+  shipping (EGP 60, free ≥ EGP 600). `CartItem` extends the serialized
+  `CartLine` (`variantId`, `quantity`) with the display fields
+  (`itemId`, `lineTotal`).
 - `src/lib/cart-store.svelte.ts` — Svelte 5 client cart store, syncs to the
   signed cookie via `POST /api/cart`.
 - `src/lib/server/cart-cookie.ts` — signed `beeking_cart` cookie (HMAC, HttpOnly,
@@ -66,9 +61,8 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
 - `src/lib/server/orders.ts` — transactional order service (`createOrder`,
   `generateOrderNumber` → `HNY-######`); idempotent per nonce (proof-cookie
   verified at the route, ownership-checked on replay); retries order-number
-  collisions with a fresh number; messages localized per `lang`. Expands each
-  blend line into base-honey + additive order units (per-variant
-  `store_order_item` rows with a `variant_id` snapshot). Stock reservation and
+  collisions with a fresh number; messages localized per `lang`. Writes one
+  `store_order_item` row per cart line with a `variant_id` snapshot. Stock reservation and
   cancel-restock live in the `0016` database triggers, gated per order on
   `stock_version`: new orders write `stock_version = 'atomic'` and rely on the
   triggers (`OUT_OF_STOCK` aborts the whole insert batch); legacy orders keep
@@ -94,7 +88,6 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   `SearchSuggestions` (bits-ui `Combobox`, `dir` follows the active language),
   `SectionTitle`, `Price`, `QuantityPicker`.
 - Routes: `/` (home), `/products` + `/products/[slug]` (catalog, server-paged),
-  `/blends` (interactive Phaser blend lab — see "Blend Lab (/blends)" below),
   `/cart`, `/checkout` + `/checkout/success/[id]`, `/login`, `/register`,
   `/account` (profile hub: name/password/sign-out), `/account/addresses`
   (saved-address CRUD), `/account/orders` + `/account/orders/[id]`
@@ -148,9 +141,6 @@ totalPages }`, page size 12). `resolveCartItems` returns `{ items, missing }`.
   at order time. `POST /api/cart` sanitizes unsigned input before signing. A
   `storage` listener keeps cart state in sync across tabs; `resolveCartItems`
   reports missing variants so the checkout page prunes them from the UI.
-- Blend items (`/blends`) are composed client-side but re-priced from the DB at
-  resolve/order time (base variant price + Σ additive price × qty), so a
-  composed blend's total can't be tampered with via the cookie.
 - The catalog is server-sorted and paged (`/products`, 12/page); search goes
   through SQLite FTS5 (indexing both Arabic and English name/description).
 - Language is Arabic by default and switchable to English (`lang` cookie); all
@@ -277,24 +267,3 @@ The site runs entirely on Cloudflare's Free plan at $0/month:
   hydrates and works normally. `vp env doctor` reports all checks passing; this
   is a Vite+ dev integration behavior, not an app bug. E2E therefore runs
   against the preview server.
-
-## Blend Lab (/blends)
-
-Interactive honey-blending game built with Phaser 3 (v3.90) on Svelte 5 runes. One game serves
-every device: `Phaser.AUTO` uses WebGL when available and falls back to Canvas automatically.
-
-- State: single `BlendsGame` runes class (`src/lib/blend-lab/game-state.svelte.ts`) drives steps
-  goal → honey → prep → stir → pour → order. All stations/components read state via context.
-- Pure logic (stir math, color mixing, pricing, benefits data) lives in plain TS modules under
-  `src/lib/blend-lab/` with vitest coverage.
-- Rendering is split by concern: Phaser owns the world only (`src/lib/blend-lab/phaser/` —
-  `constants.ts`, `textures.ts` procedural art, `bridge.ts`, `scenes/`, `create-game.ts`);
-  all text, commerce, and i18n UI stay in Svelte DOM overlays
-  (`src/routes/blends/BlendGame.svelte`) so RTL Arabic and cart flows never touch canvas text.
-- The two worlds talk through a typed bridge: Svelte→Phaser via immutable snapshots pushed on a
-  `$effect`; Phaser→Svelte via direct `BlendsGame` calls plus typed inspect events.
-- Every canvas action has an accessible DOM twin in the sr-only action bar
-  (`src/lib/blend-lab/ui/ActionBar.svelte`) — keyboard users and e2e tests drive it instead of
-  pixel coordinates.
-- Art is fully procedural (Graphics + canvas textures); no binary assets ship for the lab.
-- Ordering reuses the cart store `addBlend` contract unchanged; backend orders API untouched.

@@ -1,4 +1,4 @@
-import type { AdditiveKey, JarSize } from "./blends";
+import { z } from "zod";
 import { DEFAULT_GOVERNORATE, computeShipping, type GovernorateCode } from "./shipping";
 
 export interface CartLine {
@@ -6,27 +6,7 @@ export interface CartLine {
   quantity: number;
 }
 
-export interface BlendLineAdditive {
-  key: AdditiveKey;
-  variantId: string;
-  qty: number;
-}
-
-export interface BlendLine {
-  kind: "blend";
-  id: string;
-  baseVariantId: string;
-  jarSize: JarSize;
-  additives: BlendLineAdditive[];
-}
-
-export type CartEntry = CartLine | BlendLine;
-
-export function isBlendEntry(line: CartEntry): line is BlendLine {
-  return (line as BlendLine).kind === "blend";
-}
-
-export interface RegularCartItem extends CartLine {
+export interface CartItem extends CartLine {
   productId: string;
   name: string;
   variantName: string;
@@ -38,40 +18,35 @@ export interface RegularCartItem extends CartLine {
   stock: number;
 }
 
-export interface BlendAdditive {
-  key: AdditiveKey;
-  variantId: string;
-  productId: string;
-  name: string;
-  image: string;
-  qty: number;
-  price: number;
-  stock: number;
-}
+const CartItemSchema = z.object({
+  variantId: z.string(),
+  productId: z.string(),
+  name: z.string(),
+  variantName: z.string(),
+  slug: z.string(),
+  categorySlug: z.string(),
+  department: z.string(),
+  image: z.string(),
+  quantity: z.number(),
+  price: z.number(),
+  stock: z.number(),
+});
 
-export interface BlendCartItem {
-  kind: "blend";
-  id: string;
-  baseVariantId: string;
-  productId: string;
-  name: string;
-  variantName: string;
-  image: string;
-  jarSize: JarSize;
-  basePrice: number;
-  stock: number;
-  quantity: number;
-  additives: BlendAdditive[];
-}
-
-export type CartItem = RegularCartItem | BlendCartItem;
-
-export function isBlendItem(item: CartItem): item is BlendCartItem {
-  return (item as BlendCartItem).kind === "blend";
+/**
+ * Parses a stored cart payload entry by entry so a single invalid entry (for
+ * example a legacy blend line) drops alone instead of discarding the valid
+ * regular lines around it.
+ */
+export function parseStoredCartItems(value: unknown): CartItem[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    const parsed = CartItemSchema.safeParse(entry);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 export function itemId(item: CartItem): string {
-  return isBlendItem(item) ? item.id : item.variantId;
+  return item.variantId;
 }
 
 export interface AddableProduct {
@@ -90,10 +65,10 @@ export interface AddableVariant {
   stock: number;
 }
 
-export function regularItemPayload(
+export function cartItemPayload(
   product: AddableProduct,
   variant: AddableVariant,
-): Omit<RegularCartItem, "quantity"> {
+): Omit<CartItem, "quantity"> {
   return {
     variantId: variant.id,
     productId: product.id,
@@ -108,12 +83,8 @@ export function regularItemPayload(
   };
 }
 
-export function blendTotal(item: BlendCartItem): number {
-  return item.basePrice + item.additives.reduce((sum, a) => sum + a.price * a.qty, 0);
-}
-
 export function lineTotal(item: CartItem): number {
-  return isBlendItem(item) ? blendTotal(item) * item.quantity : item.price * item.quantity;
+  return item.price * item.quantity;
 }
 
 export interface CartTotals {
@@ -124,10 +95,6 @@ export interface CartTotals {
 }
 
 export const FREE_SHIPPING_THRESHOLD = 600_00;
-
-export interface CartTotalsInput {
-  governorate?: GovernorateCode;
-}
 
 export function computeTotals(
   items: CartItem[],
@@ -141,74 +108,22 @@ export function computeTotals(
 
 export function addItem(
   items: CartItem[],
-  product: Omit<RegularCartItem, "quantity">,
+  product: Omit<CartItem, "quantity">,
   quantity: number,
 ): CartItem[] {
   if (quantity <= 0 || product.stock <= 0) return items;
-  const existing = items.find((i) => !isBlendItem(i) && i.variantId === product.variantId);
+  const existing = items.find((i) => i.variantId === product.variantId);
   const merged = existing ? existing.quantity + quantity : quantity;
   const next = Math.min(merged, product.stock);
   if (!existing) return [...items, { ...product, quantity: next }];
-  return items.map((i) =>
-    !isBlendItem(i) && i.variantId === product.variantId ? { ...i, quantity: next } : i,
-  );
-}
-
-/**
- * Produces a signature from a full BlendCartItem (used for merging in the
- * cart store where additives carry extra display fields).
- */
-export function blendItemSignature(
-  baseVariantId: string,
-  jarSize: JarSize,
-  additives: { key: AdditiveKey; variantId: string; qty: number }[],
-): string {
-  const sorted = [...additives]
-    .sort((a, b) => a.key.localeCompare(b.key) || a.variantId.localeCompare(b.variantId))
-    .map((a) => `${a.variantId}:${a.qty}`)
-    .join(",");
-  return `${baseVariantId}:${jarSize}:${sorted}`;
-}
-
-export function addBlendItem(
-  items: CartItem[],
-  blend: Omit<BlendCartItem, "kind" | "id">,
-): CartItem[] {
-  const sig = blendItemSignature(blend.baseVariantId, blend.jarSize, blend.additives);
-  const existing = items.find(
-    (i) => isBlendItem(i) && blendItemSignature(i.baseVariantId, i.jarSize, i.additives) === sig,
-  );
-  if (existing && isBlendItem(existing)) {
-    const next = Math.min(existing.quantity + Math.max(0, blend.quantity), existing.stock);
-    return items.map((i) => (i === existing ? { ...i, quantity: next } : i));
-  }
-  const item: BlendCartItem = {
-    ...blend,
-    kind: "blend",
-    id: `blend-${crypto.randomUUID()}`,
-    quantity: Math.min(Math.max(1, blend.quantity), blend.stock),
-  };
-  return [...items, item];
+  return items.map((i) => (i.variantId === product.variantId ? { ...i, quantity: next } : i));
 }
 
 export function adjustQuantity(items: CartItem[], variantId: string, delta: number): CartItem[] {
   return items
-    .map((i) =>
-      !isBlendItem(i) && i.variantId === variantId ? { ...i, quantity: i.quantity + delta } : i,
-    )
+    .map((i) => (i.variantId === variantId ? { ...i, quantity: i.quantity + delta } : i))
     .filter((i) => i.quantity > 0)
-    .map((i) => (!isBlendItem(i) ? { ...i, quantity: Math.min(i.quantity, i.stock) } : i));
-}
-
-export function adjustBlendQuantity(items: CartItem[], id: string, delta: number): CartItem[] {
-  return items
-    .map((i) => (isBlendItem(i) && i.id === id ? { ...i, quantity: i.quantity + delta } : i))
-    .filter((i) => i.quantity > 0)
-    .map((i) => (isBlendItem(i) ? { ...i, quantity: Math.min(i.quantity, i.stock) } : i));
-}
-
-export function removeItem(items: CartItem[], variantId: string): CartItem[] {
-  return items.filter((i) => isBlendItem(i) || i.variantId !== variantId);
+    .map((i) => ({ ...i, quantity: Math.min(i.quantity, i.stock) }));
 }
 
 export function removeById(items: CartItem[], id: string): CartItem[] {

@@ -5,7 +5,6 @@ import { unlinkSync, existsSync } from "node:fs";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
-import { isBlendItem } from "$lib/cart";
 import { getProductWithVariants, listProducts, resolveCartItems } from "./store";
 import { clampLimit, findCategoryByQuery, truncateQueryToByteLimit } from "./store";
 import { ftsNormalizeSqlExpr } from "./arabic";
@@ -230,7 +229,6 @@ describe("store queries with variants", () => {
     expect(missing).toEqual([]);
     expect(items).toHaveLength(1);
     const [first] = items;
-    if (isBlendItem(first)) throw new Error("expected regular item");
     expect(first.variantName).toBe("500 جرام");
     expect(first.quantity).toBe(6);
     expect(first.price).toBe(380_00);
@@ -242,58 +240,5 @@ describe("store queries with variants", () => {
       items: [],
       missing: ["nope"],
     });
-  });
-
-  it("resolveCartItems builds a blend line with base + additive", async () => {
-    const { db, v1, variants } = await buildDb();
-    const additive = variants.find((v) => v.name === "1 ك")!;
-    const { items, missing } = await resolveCartItems(db, [
-      {
-        kind: "blend",
-        id: "blend-x",
-        baseVariantId: v1.id,
-        jarSize: "half",
-        additives: [{ key: "propolis", variantId: additive.id, qty: 2 }],
-      },
-    ]);
-    expect(missing).toEqual([]);
-    expect(items).toHaveLength(1);
-    const b = items[0];
-    if (!isBlendItem(b)) throw new Error("expected blend item");
-    expect(b.name).toBe("عسل سدر مصري");
-    expect(b.variantName).toBe("نص كيلو");
-    expect(b.basePrice).toBe(380_00);
-    expect(b.additives).toHaveLength(1);
-    expect(b.additives[0].name).toBe("بروبليس");
-    expect(b.additives[0].qty).toBe(2);
-    expect(b.additives[0].price).toBe(700_00);
-    expect(b.additives[0].stock).toBe(4);
-  });
-
-  it("resolveCartItems clamps blend additive quantity to stock", async () => {
-    const { db, v1, variants } = await buildDb();
-    const additive = variants.find((v) => v.name === "1 ك")!;
-    const { items } = await resolveCartItems(db, [
-      {
-        kind: "blend",
-        id: "blend-x",
-        baseVariantId: v1.id,
-        jarSize: "full",
-        additives: [{ key: "royalJelly", variantId: additive.id, qty: 99 }],
-      },
-    ]);
-    const b = items[0];
-    if (!isBlendItem(b)) throw new Error("expected blend item");
-    expect(b.variantName).toBe("كيلو");
-    expect(b.additives[0].qty).toBe(4);
-  });
-
-  it("resolveCartItems reports missing blend base variant", async () => {
-    const { db } = await buildDb();
-    const { items, missing } = await resolveCartItems(db, [
-      { kind: "blend", id: "blend-y", baseVariantId: "nope", jarSize: "full", additives: [] },
-    ]);
-    expect(items).toEqual([]);
-    expect(missing).toEqual(["nope"]);
   });
 });

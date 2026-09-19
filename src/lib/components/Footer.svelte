@@ -26,7 +26,6 @@
       <a href="/" class="w-fit text-cocoa-600 transition-colors hover:text-honey-700">{t(lang, "nav.home")}</a>
       <a href="/honey" class="w-fit text-cocoa-600 transition-colors hover:text-honey-700">{t(lang, "nav.storeHoney")}</a>
       <a href="/equipment" class="w-fit text-cocoa-600 transition-colors hover:text-honey-700">{t(lang, "nav.storeEquipment")}</a>
-      <a href="/blends" class="w-fit text-cocoa-600 transition-colors hover:text-honey-700">{t(lang, "blends.nav")}</a>
       <a href="/about" class="w-fit text-cocoa-600 transition-colors hover:text-honey-700">{t(lang, "nav.about")}</a>
       <a href="/cart" class="w-fit text-cocoa-600 transition-colors hover:text-honey-700">{t(lang, "nav.cart")}</a>
     </nav>

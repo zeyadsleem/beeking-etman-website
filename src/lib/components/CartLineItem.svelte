@@ -3,9 +3,8 @@
   import Price from "./Price.svelte";
   import ProductArt from "./ProductArt.svelte";
   import { formatEGP } from "$lib/currency";
-  import { closeDrawer, removeFromCart, setBlendQuantity, setQuantity } from "$lib/cart-store.svelte";
-  import { isBlendItem, itemId, lineTotal } from "$lib/cart";
-  import { blendLineDetail } from "$lib/blends";
+  import { closeDrawer, removeFromCart, setQuantity } from "$lib/cart-store.svelte";
+  import { itemId, lineTotal } from "$lib/cart";
   import { t, type Lang } from "$lib/i18n/messages";
   import { productPath, isPlaceholderImage } from "$lib/storefront";
   import type { CartItem } from "$lib/cart";
@@ -14,15 +13,10 @@
 
   const isDrawer = $derived(size === "drawer");
   const itemHref = $derived(
-    isBlendItem(item) ? "/blends" : productPath({ department: item.department, categorySlug: item.categorySlug, slug: item.slug }),
+    productPath({ department: item.department, categorySlug: item.categorySlug, slug: item.slug }),
   );
   const detailClass = $derived(
     isDrawer ? "mt-0.5 text-xs leading-relaxed font-medium" : "text-sm leading-relaxed font-medium",
-  );
-  const artInfo = $derived(
-    isBlendItem(item)
-      ? { department: "honey", categorySlug: "" }
-      : { department: item.department, categorySlug: item.categorySlug },
   );
 </script>
 
@@ -39,7 +33,7 @@
       : "h-24 w-16 shrink-0 overflow-hidden rounded-xl border border-cocoa-100 bg-cocoa-100 sm:w-24"}
   >
     {#if isPlaceholderImage(item.image)}
-      <ProductArt department={artInfo.department} categorySlug={artInfo.categorySlug} />
+      <ProductArt department={item.department} categorySlug={item.categorySlug} />
     {:else}
       <img src={item.image} alt={item.name} class="h-full w-full bg-parchment object-contain" />
     {/if}
@@ -67,23 +61,13 @@
         </svg>
       </button>
     </div>
-    {#if isBlendItem(item)}
-      <span class="{detailClass} break-words text-cocoa-600">
-        {blendLineDetail(item.variantName, item.additives)}
-      </span>
-    {:else}
-      <span class="{detailClass} break-words text-cocoa-600">
-        {isDrawer
-          ? item.variantName
-          : t(lang, "cart.itemLine", { variantName: item.variantName, price: formatEGP(item.price, lang) })}
-      </span>
-    {/if}
+    <span class="{detailClass} break-words text-cocoa-600">
+      {isDrawer
+        ? item.variantName
+        : t(lang, "cart.itemLine", { variantName: item.variantName, price: formatEGP(item.price, lang) })}
+    </span>
     <div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1.5">
-      {#if isBlendItem(item)}
-        <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setBlendQuantity(item.id, q)} />
-      {:else}
-        <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
-      {/if}
+      <QuantityPicker lang={lang} value={item.quantity} max={item.stock} onChange={(q) => setQuantity(item.variantId, q)} />
       <Price amount={lineTotal(item)} lang={lang} className={isDrawer ? "text-sm font-bold text-cocoa-900" : "text-lg font-extrabold text-cocoa-900"} />
     </div>
   </div>

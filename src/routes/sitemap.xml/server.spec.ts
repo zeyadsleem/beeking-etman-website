@@ -120,9 +120,15 @@ describe("sitemap.xml", () => {
   it("lists the static entry points and the products page", async () => {
     body = await fetchSitemap();
 
-    for (const path of ["/", "/products", "/honey", "/equipment", "/blends", "/about"]) {
+    for (const path of ["/", "/products", "/honey", "/equipment", "/about"]) {
       expect(body).toContain(`<loc>${ORIGIN}${path}</loc>`);
     }
+  });
+
+  it("omits the retired /blends route", async () => {
+    body = await fetchSitemap();
+
+    expect(body).not.toContain(`<loc>${ORIGIN}/blends</loc>`);
   });
 
   it("lists each category and each published product under its department and category", async () => {

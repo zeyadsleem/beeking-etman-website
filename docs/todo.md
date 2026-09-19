@@ -126,8 +126,8 @@ e2e suite (`E2E_USE_BUILD=1`); runbook go-live checklist in the PR; `verify-prod
 
 ### BLEND — retire the studio, sell ready-made blends (AgDR-0002)
 
-- [ ] BLEND-1 — Remove the studio: `/blends` routes, Phaser lab, blend lib, cart item kind, order expansion, navigation, i18n, tests (AgDR-0002) — GH #12
-- [ ] BLEND-2 — 301 `/blends` → blends category; sitemap update; SEO check (AgDR-0002) — GH #12
+- [x] BLEND-1 — Remove the studio: `/blends` routes, Phaser lab, blend lib, cart item kind, order expansion, navigation, i18n, tests (AgDR-0002) — GH #12
+- [x] BLEND-2 — 301 `/blends` → blends category; sitemap update; SEO check (AgDR-0002) — GH #12
 - [ ] BLEND-3 — Ready-made blend products: weight variants, jar stock, ingredient text in descriptions, photos (AgDR-0002; owner data) — GH #13
 - [ ] BLEND-4 — Storefront + admin verification for blend products (AgDR-0002; SET-9 carries the purchase e2e) — GH #13
 

@@ -237,9 +237,6 @@ for (const lang of ["ar", "en"] as const) {
     await checkRoute(page, lang, "/honey", "h1 department hero", () => heading(page));
     await checkRoute(page, lang, "/honey/sidr", "h1 category hero", () => heading(page));
     await checkRoute(page, lang, PRODUCT_PATH, "h1 product name", () => heading(page));
-    await checkRoute(page, lang, "/blends", "testid blends-scene + h1", () =>
-      page.getByTestId("blends-scene"),
-    );
     await checkRoute(page, lang, "/cart", `h1 ${t(lang, "cart.title")} (empty)`, () =>
       heading(page, t(lang, "cart.title")),
     );

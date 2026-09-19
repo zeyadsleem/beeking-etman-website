@@ -237,6 +237,7 @@ export const adminAudit = sqliteTable(
   ],
 );
 
+// store_blend_benefit has no readers; its drop is drain-gated per AgDR-0002.
 export const blendBenefit = sqliteTable("store_blend_benefit", {
   id: text("id")
     .primaryKey()

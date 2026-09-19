@@ -1,10 +1,8 @@
 import { eq, inArray } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { computeTotals, regularItemPayload } from "$lib/cart";
+import { cartItemPayload, computeTotals } from "$lib/cart";
 import { DEFAULT_GOVERNORATE, type GovernorateCode } from "$lib/shipping";
-import type { BlendCartItem, CartEntry, CartItem } from "$lib/cart";
-import { isBlendEntry } from "$lib/cart";
-import { ADDITIVE_LABELS, isAdditiveKey, jarLabel } from "$lib/blends";
+import type { CartItem, CartLine } from "$lib/cart";
 import { localized, t, type Lang } from "$lib/i18n/messages";
 import type { PaymentMethod } from "$lib/settlement/types";
 import * as schema from "$lib/server/db/schema";
@@ -102,7 +100,7 @@ async function loadVariantSnapshots(
 }
 
 function validateCart(
-  lines: CartEntry[],
+  lines: CartLine[],
   snapshots: Map<string, VariantSnapshot>,
   lang: Lang,
 ): { ok: true; items: CartItem[]; units: OrderUnit[] } | { ok: false; outOfStock: string[] } {
@@ -111,111 +109,41 @@ function validateCart(
   const outOfStock = new Set<string>();
 
   for (const line of lines) {
-    if (isBlendEntry(line)) {
-      const base = snapshots.get(line.baseVariantId);
-      if (!base || !base.published) {
-        outOfStock.add(
-          base
-            ? localized(base.productName, base.productNameEn, lang)
-            : t(lang, "orders.unknownProduct"),
-        );
-        continue;
-      }
-      units.push({
-        variantId: base.id,
-        productId: base.productId,
-        name: localized(base.productName, base.productNameEn, lang),
-        variantName: jarLabel(lang, line.jarSize),
-        quantity: 1,
-        unitPrice: base.price,
-      });
-
-      const additives: Extract<CartItem, { kind: "blend" }>["additives"] = [];
-      let additiveMissing = false;
-      for (const a of line.additives) {
-        const v = snapshots.get(a.variantId);
-        if (!v || !v.published) {
-          outOfStock.add(
-            v ? localized(v.productName, v.productNameEn, lang) : t(lang, "orders.unknownProduct"),
-          );
-          additiveMissing = true;
-          continue;
-        }
-        units.push({
-          variantId: v.id,
-          productId: v.productId,
+    const v = snapshots.get(line.variantId);
+    if (!v || !v.published) {
+      outOfStock.add(
+        v ? localized(v.productName, v.productNameEn, lang) : t(lang, "orders.unknownProduct"),
+      );
+      continue;
+    }
+    units.push({
+      variantId: v.id,
+      productId: v.productId,
+      name: localized(v.productName, v.productNameEn, lang),
+      variantName: localized(v.name, v.nameEn, lang),
+      quantity: line.quantity,
+      unitPrice: v.price,
+    });
+    items.push({
+      ...cartItemPayload(
+        {
+          id: v.productId,
           name: localized(v.productName, v.productNameEn, lang),
-          variantName: "",
-          quantity: a.qty,
-          unitPrice: v.price,
-        });
-        const label = isAdditiveKey(a.key) ? ADDITIVE_LABELS[a.key] : undefined;
-        additives.push({
-          key: a.key,
-          variantId: v.id,
-          productId: v.productId,
-          name: label
-            ? localized(label.ar, label.en, lang)
-            : localized(v.productName, v.productNameEn, lang),
+          slug: "",
+          categorySlug: "",
+          department:
+            v.department === "honey" || v.department === "equipment" ? v.department : "honey",
+        },
+        {
+          id: v.id,
+          name: localized(v.name, v.nameEn, lang),
           image: v.image,
-          qty: a.qty,
           price: v.price,
           stock: v.stock,
-        });
-      }
-      if (additiveMissing) continue;
-      const item: BlendCartItem = {
-        kind: "blend",
-        id: line.id,
-        baseVariantId: base.id,
-        productId: base.productId,
-        name: localized(base.productName, base.productNameEn, lang),
-        variantName: jarLabel(lang, line.jarSize),
-        image: base.image,
-        jarSize: line.jarSize,
-        basePrice: base.price,
-        stock: base.stock,
-        quantity: 1,
-        additives,
-      };
-      items.push(item);
-    } else {
-      const v = snapshots.get(line.variantId);
-      if (!v || !v.published) {
-        outOfStock.add(
-          v ? localized(v.productName, v.productNameEn, lang) : t(lang, "orders.unknownProduct"),
-        );
-        continue;
-      }
-      units.push({
-        variantId: v.id,
-        productId: v.productId,
-        name: localized(v.productName, v.productNameEn, lang),
-        variantName: localized(v.name, v.nameEn, lang),
-        quantity: line.quantity,
-        unitPrice: v.price,
-      });
-      items.push({
-        ...regularItemPayload(
-          {
-            id: v.productId,
-            name: localized(v.productName, v.productNameEn, lang),
-            slug: "",
-            categorySlug: "",
-            department:
-              v.department === "honey" || v.department === "equipment" ? v.department : "honey",
-          },
-          {
-            id: v.id,
-            name: localized(v.name, v.nameEn, lang),
-            image: v.image,
-            price: v.price,
-            stock: v.stock,
-          },
-        ),
-        quantity: line.quantity,
-      });
-    }
+        },
+      ),
+      quantity: line.quantity,
+    });
   }
 
   const demand = new Map<string, { name: string; variantName: string; quantity: number }>();
@@ -267,7 +195,7 @@ export interface SettlementInput {
 
 export async function createOrder(
   db: LibSQLDatabase<typeof schema>,
-  lines: CartEntry[],
+  lines: CartLine[],
   customer: Customer,
   nonce: string,
   userId?: string,
@@ -292,15 +220,7 @@ export async function createOrder(
     return { ok: false, message: t(lang, "orders.cartEmpty"), outOfStock: [] };
   }
 
-  const variantIds: string[] = [];
-  for (const line of lines) {
-    if (isBlendEntry(line)) {
-      variantIds.push(line.baseVariantId);
-      for (const a of line.additives) variantIds.push(a.variantId);
-    } else {
-      variantIds.push(line.variantId);
-    }
-  }
+  const variantIds = lines.map((line) => line.variantId);
   const snapshots = await loadVariantSnapshots(db, [...new Set(variantIds)]);
   const validation = validateCart(lines, snapshots, lang);
   if (!validation.ok) {

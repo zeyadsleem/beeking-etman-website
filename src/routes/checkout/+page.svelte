@@ -3,7 +3,7 @@
   import { tick } from "svelte";
   import { clearCart } from "$lib/cart-store.svelte";
   import { formatEGP } from "$lib/currency";
-  import { isBlendItem, itemId, lineTotal } from "$lib/cart";
+  import { itemId, lineTotal } from "$lib/cart";
   import { computeShipping, GOVERNORATE_ORDER } from "$lib/shipping";
   import { trackBeginCheckout } from "$lib/analytics-events";
   import Button from "$lib/components/Button.svelte";
@@ -88,7 +88,7 @@
       trackBeginCheckout(
         data.items.map((i) => ({
           name: i.name,
-          price: isBlendItem(i) ? i.basePrice : i.price,
+          price: i.price,
           quantity: i.quantity,
         })),
         data.totals.total,
@@ -245,28 +245,10 @@
     <ul class="mt-4 space-y-3">
       {#each data.items as item (itemId(item))}
         <li class="flex flex-col gap-1 text-sm text-cocoa-700">
-          {#if isBlendItem(item)}
-            <div class="flex justify-between gap-2">
-              <span class="min-w-0 break-words">
-                {item.name} ({item.variantName}) × 1
-              </span>
-              <span class="shrink-0 font-semibold tabular-nums">{formatEGP(lineTotal(item), lang)}</span>
-            </div>
-            {#if item.additives.length > 0}
-              <ul class="flex flex-wrap gap-1">
-                {#each item.additives as a (a.variantId)}
-                  <li class="rounded-full bg-honey-50 px-2 py-0.5 text-[11px] text-cocoa-500">
-                    {a.name} × {a.qty}
-                  </li>
-                {/each}
-              </ul>
-            {/if}
-          {:else}
-            <div class="flex justify-between gap-2">
-              <span class="min-w-0 break-words">{t(lang, "checkout.itemLine", { name: item.name, variantName: item.variantName, quantity: item.quantity })}</span>
-              <span class="shrink-0 font-semibold tabular-nums">{formatEGP(lineTotal(item), lang)}</span>
-            </div>
-          {/if}
+          <div class="flex justify-between gap-2">
+            <span class="min-w-0 break-words">{t(lang, "checkout.itemLine", { name: item.name, variantName: item.variantName, quantity: item.quantity })}</span>
+            <span class="shrink-0 font-semibold tabular-nums">{formatEGP(lineTotal(item), lang)}</span>
+          </div>
         </li>
       {/each}
     </ul>
