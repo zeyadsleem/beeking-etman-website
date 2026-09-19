@@ -148,6 +148,9 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export const V1_PAYMENT_METHODS = ["cod", "instapay", "wallet"] as const;
 export type V1PaymentMethod = (typeof V1_PAYMENT_METHODS)[number];
 
+/** The v1 transfer set: methods that pay by transfer and claim through the review queue. */
+export const TRANSFER_PAYMENT_METHODS = ["instapay", "wallet"] as const;
+
 export function isV1PaymentMethod(value: string): value is V1PaymentMethod {
   return (V1_PAYMENT_METHODS as readonly string[]).includes(value);
 }
