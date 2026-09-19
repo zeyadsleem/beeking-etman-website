@@ -56,6 +56,7 @@ async function buildDb(): Promise<void> {
 
 interface SeedOptions {
   status?: AdminOrderRow["status"];
+  payment?: string;
   createdAt?: number;
 }
 
@@ -77,7 +78,7 @@ async function seedOrder(
     city: "القاهرة",
     total: 100_00,
     status: opts.status ?? "placed",
-    paymentStatus: "simulated",
+    paymentStatus: opts.payment ?? "simulated",
     userId: null,
     createdAt: opts.createdAt ?? Date.now(),
   });
@@ -190,6 +191,57 @@ describe("admin orders page load", () => {
     const data = await load(fakeEvent("http://localhost/admin/orders?status=bogus"));
 
     expect(data.status).toBeNull();
+    expect(data.total).toBe(2);
+  });
+
+  it("defaults the payment filter to null", async () => {
+    await seedOrder(currentDb());
+
+    const data = await load(fakeEvent("http://localhost/admin/orders"));
+
+    expect(data.payment).toBeNull();
+  });
+
+  it("filters the review queue by payment status in items and total", async () => {
+    const base = 1_700_000_000_000;
+    const db = currentDb();
+    await seedOrder(db, { payment: "unpaid", createdAt: base });
+    await seedOrder(db, { payment: "pending_review", createdAt: base + 1_000 });
+    await seedOrder(db, { payment: "pending_review", createdAt: base + 2_000 });
+
+    const data = await load(fakeEvent("http://localhost/admin/orders?payment=pending_review"));
+
+    expect(data.payment).toBe("pending_review");
+    expect(data.total).toBe(2);
+    expect(data.items.map((o) => o.paymentStatus)).toEqual(["pending_review", "pending_review"]);
+  });
+
+  it("composes the status and payment filters", async () => {
+    const base = 1_700_000_000_000;
+    const db = currentDb();
+    await seedOrder(db, { status: "confirmed", payment: "pending_review", createdAt: base });
+    await seedOrder(db, { status: "shipped", payment: "pending_review", createdAt: base + 1_000 });
+    await seedOrder(db, { status: "confirmed", payment: "paid", createdAt: base + 2_000 });
+
+    const data = await load(
+      fakeEvent("http://localhost/admin/orders?status=confirmed&payment=pending_review"),
+    );
+
+    expect(data.status).toBe("confirmed");
+    expect(data.payment).toBe("pending_review");
+    expect(data.total).toBe(1);
+    expect(data.items[0]?.paymentStatus).toBe("pending_review");
+  });
+
+  it("degrades an unknown payment to the unfiltered list with payment null", async () => {
+    const base = 1_700_000_000_000;
+    const db = currentDb();
+    await seedOrder(db, { payment: "unpaid", createdAt: base });
+    await seedOrder(db, { payment: "paid", createdAt: base + 1_000 });
+
+    const data = await load(fakeEvent("http://localhost/admin/orders?payment=bogus"));
+
+    expect(data.payment).toBeNull();
     expect(data.total).toBe(2);
   });
 

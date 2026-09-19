@@ -1,34 +1,53 @@
 <script lang="ts">
   import { formatEGP } from "$lib/currency";
   import AdminOrderStatusBadge from "$lib/components/AdminOrderStatusBadge.svelte";
+  import AdminPaymentStatusBadge from "$lib/components/AdminPaymentStatusBadge.svelte";
   import Button from "$lib/components/Button.svelte";
   import SectionTitle from "$lib/components/SectionTitle.svelte";
-  import { ADMIN_ORDER_STATUS_LABEL_KEY, STATUS_ORDER } from "$lib/settlement/types";
+  import {
+    ADMIN_ORDER_STATUS_LABEL_KEY,
+    ADMIN_PAYMENT_METHOD_LABEL_KEY,
+    ADMIN_PAYMENT_STATUS_LABEL_KEY,
+    PAYMENT_STATUSES,
+    STATUS_ORDER,
+    type PaymentStatus,
+  } from "$lib/settlement/types";
   import { formatDate, t } from "$lib/i18n/messages";
   import type { OrderStatus } from "$lib/server/admin/orders";
   import type { PageData } from "./$types";
 
-  let { data }: { data: PageData } = $props();
+  let { data }: {
+    data: Pick<
+      PageData,
+      "items" | "total" | "page" | "pageSize" | "status" | "payment" | "q" | "lang"
+    >;
+  } = $props();
   const lang = $derived(data.lang);
 
-  function filterHref(status: OrderStatus): string {
+  // Every filter link keeps the other active dimension and flips only its own,
+  // so the status and payment navs compose instead of resetting each other.
+  function filterHref(opts: {
+    status?: OrderStatus | null;
+    payment?: PaymentStatus | null;
+    page?: number;
+  }): string {
     const params = new URLSearchParams();
     if (data.q) params.set("q", data.q);
-    params.set("status", status);
-    return `/admin/orders?${params.toString()}`;
-  }
-
-  function allHref(): string {
-    return data.q ? `/admin/orders?q=${encodeURIComponent(data.q)}` : "/admin/orders";
-  }
-
-  function pageHref(page: number): string {
-    const params = new URLSearchParams();
-    if (data.q) params.set("q", data.q);
-    if (data.status) params.set("status", data.status);
-    if (page > 1) params.set("page", String(page));
+    if (opts.status) params.set("status", opts.status);
+    if (opts.payment) params.set("payment", opts.payment);
+    if (opts.page && opts.page > 1) params.set("page", String(opts.page));
     const query = params.toString();
-    return `/admin/orders${query ? `?${query}` : ""}`;
+    return query ? `/admin/orders?${query}` : "/admin/orders";
+  }
+
+  // The export route applies the same status/payment filters it is given;
+  // the free-text query is a screen-only refinement.
+  function exportHref(): string {
+    const params = new URLSearchParams();
+    if (data.status) params.set("status", data.status);
+    if (data.payment) params.set("payment", data.payment);
+    const query = params.toString();
+    return `/admin/orders/export${query ? `?${query}` : ""}`;
   }
 
   const hasNextPage = $derived(data.page * data.pageSize < data.total);
@@ -41,15 +60,23 @@
 <section class="mx-auto max-w-6xl">
   <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.orders.title")}</SectionTitle>
 
-  <div class="mt-4">
-    <Button variant="ghost" href="/admin/orders/export" class="text-sm">
+  <div class="mt-4 flex flex-wrap items-center gap-3">
+    <Button variant="ghost" href={exportHref()} class="text-sm">
       {t(lang, "admin.orders.exportCsv")}
+    </Button>
+    <Button
+      variant="outline"
+      href={filterHref({ status: data.status, payment: "pending_review" })}
+      class="text-sm"
+      data-testid="review-queue-shortcut"
+    >
+      {t(lang, "admin.orders.reviewQueue")}
     </Button>
   </div>
 
   <nav class="mt-6 flex flex-wrap gap-2" aria-label={t(lang, "admin.orders.filterAria")}>
     <a
-      href={allHref()}
+      href={filterHref({ payment: data.payment })}
       class="chip {data.status === null ? 'chip-active' : ''}"
       aria-current={data.status === null ? "true" : undefined}
     >
@@ -57,11 +84,30 @@
     </a>
     {#each STATUS_ORDER as status (status)}
       <a
-        href={filterHref(status)}
+        href={filterHref({ status, payment: data.payment })}
         class="chip {data.status === status ? 'chip-active' : ''}"
         aria-current={data.status === status ? "true" : undefined}
       >
         {t(lang, ADMIN_ORDER_STATUS_LABEL_KEY[status])}
+      </a>
+    {/each}
+  </nav>
+
+  <nav class="mt-3 flex flex-wrap gap-2" aria-label={t(lang, "admin.orders.paymentFilter")}>
+    <a
+      href={filterHref({ status: data.status })}
+      class="chip {data.payment === null ? 'chip-active' : ''}"
+      aria-current={data.payment === null ? "true" : undefined}
+    >
+      {t(lang, "admin.orders.all")}
+    </a>
+    {#each PAYMENT_STATUSES as payment (payment)}
+      <a
+        href={filterHref({ status: data.status, payment })}
+        class="chip {data.payment === payment ? 'chip-active' : ''}"
+        aria-current={data.payment === payment ? "true" : undefined}
+      >
+        {t(lang, ADMIN_PAYMENT_STATUS_LABEL_KEY[payment])}
       </a>
     {/each}
   </nav>
@@ -72,6 +118,8 @@
     role="search"
     class="mt-6 flex max-w-md items-center gap-2"
   >
+    {#if data.status}<input type="hidden" name="status" value={data.status} />{/if}
+    {#if data.payment}<input type="hidden" name="payment" value={data.payment} />{/if}
     <input
       type="search"
       name="q"
@@ -110,6 +158,17 @@
               <p class="text-cocoa-600">{order.phone} · {order.city}</p>
             </div>
             <AdminOrderStatusBadge status={order.status} {lang} />
+            <div class="text-sm">
+              <span class="block text-xs font-semibold text-cocoa-400">{t(lang, "admin.orders.paymentColumn")}</span>
+              <p class="mt-1 font-medium text-cocoa-800">
+                {order.paymentMethod ? t(lang, ADMIN_PAYMENT_METHOD_LABEL_KEY[order.paymentMethod]) : "—"}
+              </p>
+              {#if order.paymentStatus}
+                <div class="mt-1">
+                  <AdminPaymentStatusBadge status={order.paymentStatus} {lang} />
+                </div>
+              {/if}
+            </div>
             <div class="text-end">
               <span class="block text-xs font-semibold text-cocoa-400">{t(lang, "admin.orders.total")}</span>
               <span class="font-extrabold text-cocoa-900">{formatEGP(order.total, lang)}</span>
@@ -122,10 +181,20 @@
     {#if data.page > 1 || hasNextPage}
       <nav class="mt-10 flex items-center justify-center gap-4" aria-label={t(lang, "products.paginationAria")}>
         {#if data.page > 1}
-          <a href={pageHref(data.page - 1)} class="btn-outline text-sm">{t(lang, "admin.orders.prev")}</a>
+          <a
+            href={filterHref({ status: data.status, payment: data.payment, page: data.page - 1 })}
+            class="btn-outline text-sm"
+          >
+            {t(lang, "admin.orders.prev")}
+          </a>
         {/if}
         {#if hasNextPage}
-          <a href={pageHref(data.page + 1)} class="btn-outline text-sm">{t(lang, "admin.orders.next")}</a>
+          <a
+            href={filterHref({ status: data.status, payment: data.payment, page: data.page + 1 })}
+            class="btn-outline text-sm"
+          >
+            {t(lang, "admin.orders.next")}
+          </a>
         {/if}
       </nav>
     {/if}

@@ -5,7 +5,11 @@ import {
   allowedTransitions,
   ORDER_STATUSES,
   parseOrderStatus,
+  parsePaymentMethod,
+  parsePaymentStatus,
   type OrderStatus,
+  type PaymentMethod,
+  type PaymentStatus,
 } from "$lib/settlement/types";
 import {
   applyOrderTransition,
@@ -27,6 +31,8 @@ export interface AdminOrderRow {
   city: string;
   total: number;
   status: OrderStatus;
+  paymentStatus: PaymentStatus | null;
+  paymentMethod: PaymentMethod | null;
   createdAt: number;
 }
 
@@ -60,6 +66,8 @@ const orderColumns = {
   city: schema.order.city,
   total: schema.order.total,
   status: schema.order.status,
+  paymentStatus: schema.order.paymentStatus,
+  paymentMethod: schema.order.paymentMethod,
   createdAt: schema.order.createdAt,
 } as const;
 
@@ -73,19 +81,29 @@ function toAdminOrderRow(row: {
   city: string;
   total: number;
   status: string;
+  paymentStatus: string;
+  paymentMethod: string;
   createdAt: number;
 }): AdminOrderRow {
-  return { ...row, status: toOrderStatus(row.status) };
+  return {
+    ...row,
+    status: toOrderStatus(row.status),
+    paymentStatus: parsePaymentStatus(row.paymentStatus),
+    paymentMethod: parsePaymentMethod(row.paymentMethod),
+  };
 }
 
 export async function listOrders(
   db: LibSQLDatabase<typeof schema>,
-  opts?: { status?: OrderStatus; page?: number; query?: string },
+  opts?: { status?: OrderStatus; paymentStatus?: PaymentStatus; page?: number; query?: string },
 ): Promise<{ items: AdminOrderRow[]; total: number }> {
   const page = Math.max(1, Math.trunc(opts?.page ?? 1));
   const conditions: SQL[] = [];
   if (opts?.status) {
     conditions.push(inArray(schema.order.status, storedOrderStatusValues(opts.status)));
+  }
+  if (opts?.paymentStatus) {
+    conditions.push(eq(schema.order.paymentStatus, opts.paymentStatus));
   }
   const needle = opts?.query?.trim() ?? "";
   if (needle !== "") {
@@ -120,12 +138,29 @@ export async function listOrders(
   };
 }
 
+export interface AdminOrderSettlement {
+  paymentReference: string | null;
+  paymentReviewedBy: string | null;
+  holdExpiresAt: number | null;
+  paidAt: number | null;
+}
+
 export async function getOrderWithItems(
   db: LibSQLDatabase<typeof schema>,
   id: string,
-): Promise<{ order: AdminOrderRow & { shippingCost: number }; items: AdminOrderItemRow[] } | null> {
+): Promise<{
+  order: AdminOrderRow & { shippingCost: number } & AdminOrderSettlement;
+  items: AdminOrderItemRow[];
+} | null> {
   const row = await db
-    .select({ ...orderColumns, shippingCost: schema.order.shippingCost })
+    .select({
+      ...orderColumns,
+      shippingCost: schema.order.shippingCost,
+      paymentReference: schema.order.paymentReference,
+      paymentReviewedBy: schema.order.paymentReviewedBy,
+      holdExpiresAt: schema.order.holdExpiresAt,
+      paidAt: schema.order.paidAt,
+    })
     .from(schema.order)
     .where(eq(schema.order.id, id))
     .get();
@@ -143,7 +178,17 @@ export async function getOrderWithItems(
     .from(schema.orderItem)
     .where(eq(schema.orderItem.orderId, id));
 
-  return { order: { ...toAdminOrderRow(row), shippingCost: row.shippingCost }, items };
+  return {
+    order: {
+      ...toAdminOrderRow(row),
+      shippingCost: row.shippingCost,
+      paymentReference: row.paymentReference,
+      paymentReviewedBy: row.paymentReviewedBy,
+      holdExpiresAt: row.holdExpiresAt,
+      paidAt: row.paidAt,
+    },
+    items,
+  };
 }
 
 export type TransitionResult =

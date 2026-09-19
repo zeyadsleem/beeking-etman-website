@@ -63,6 +63,47 @@ export function customerOrderStatusLabelKey(value: string): MessageKey {
   return status ? CUSTOMER_ORDER_STATUS_LABEL_KEY[status] : "orders.unknown";
 }
 
+export function paymentEventTypeLabelKey(value: string): MessageKey {
+  return value in PAYMENT_EVENT_TYPE_LABEL_KEY
+    ? PAYMENT_EVENT_TYPE_LABEL_KEY[value as PaymentEventType]
+    : "admin.order.settlement.event.other";
+}
+
+export const ADMIN_PAYMENT_STATUS_LABEL_KEY: Record<PaymentStatus, MessageKey> = {
+  unpaid: "admin.orders.payment.unpaid",
+  pending_review: "admin.orders.payment.pending_review",
+  paid: "admin.orders.payment.paid",
+  failed: "admin.orders.payment.failed",
+  refunded: "admin.orders.payment.refunded",
+  simulated: "admin.orders.payment.simulated",
+};
+
+export const PAYMENT_EVENT_TYPE_LABEL_KEY: Record<PaymentEventType, MessageKey> = {
+  claim: "admin.order.settlement.event.claim",
+  verified: "admin.order.settlement.event.verified",
+  rejected: "admin.order.settlement.event.rejected",
+  refund: "admin.order.settlement.event.refund",
+  expiry: "admin.order.settlement.event.expiry",
+  note: "admin.order.settlement.event.note",
+};
+
+export const ADMIN_PAYMENT_METHOD_LABEL_KEY: Record<PaymentMethod, MessageKey> = {
+  cod: "checkout.method.cod",
+  instapay: "checkout.method.instapay",
+  wallet: "checkout.method.wallet",
+  simulated: "admin.orders.method.legacy",
+  paymob: "admin.orders.method.paymob",
+};
+
+export const ADMIN_PAYMENT_STATUS_BADGE_CLASS: Record<PaymentStatus, string> = {
+  unpaid: "border border-cocoa-200 bg-parchment text-cocoa-700",
+  pending_review: "bg-honey-100 text-honey-900",
+  paid: "bg-olive-100 text-olive-800",
+  failed: "bg-clay-100 text-clay-800",
+  refunded: "border border-cocoa-200 bg-cocoa-50 text-cocoa-700",
+  simulated: "bg-cocoa-50 text-cocoa-500",
+};
+
 export const ADMIN_ORDER_STATUS_BADGE_CLASS: Record<OrderStatus, string> = {
   pending_confirmation: "border border-cocoa-200 bg-parchment text-cocoa-700",
   confirmed: "bg-honey-50 text-honey-800",
@@ -144,3 +185,8 @@ export type PaymentEventType = (typeof PAYMENT_EVENT_TYPES)[number];
 
 export const PAYMENT_EVENT_ACTORS = ["customer", "admin", "system"] as const;
 export type PaymentEventActor = (typeof PAYMENT_EVENT_ACTORS)[number];
+
+// --- Settlement policy constants (shared with the client copy) ---
+
+/** Every `extend_hold` action moves the deadline out by this many hours. */
+export const HOLD_EXTENSION_HOURS = 24;

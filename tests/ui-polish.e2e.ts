@@ -79,6 +79,11 @@ function promote(email: string): void {
 
 async function addProduct(page: Page): Promise<void> {
   await visit(page, PRODUCT_PATH);
+  // Every page load fetches the cart, and the limiter allows 30 requests per
+  // minute per IP. This page-heavy suite can exhaust that budget before the
+  // click, so reset the cart window first — the same pattern the register
+  // flows use.
+  clearRateLimitRows("cart:");
   const synced = page.waitForResponse(
     (response) => response.url().includes("/api/cart") && response.request().method() === "POST",
   );

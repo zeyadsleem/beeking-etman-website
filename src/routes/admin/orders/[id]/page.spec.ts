@@ -44,6 +44,8 @@ async function buildDb(): Promise<void> {
   const db = drizzle(client, { schema });
   await db.run(`DROP TABLE IF EXISTS store_order_item`);
   await db.run(`DROP TABLE IF EXISTS store_product_variant`);
+  await db.run(`DROP TABLE IF EXISTS store_payment_event`);
+  await db.run(`DROP TABLE IF EXISTS store_admin_audit`);
   await db.run(`DROP TABLE IF EXISTS store_order`);
   await db.run(`
     CREATE TABLE store_order (
@@ -85,15 +87,45 @@ async function buildDb(): Promise<void> {
       ), 0)
       WHERE id IN (SELECT variant_id FROM store_order_item WHERE order_id = NEW.id AND variant_id IS NOT NULL);
     END`);
+  await db.run(`
+    CREATE TABLE store_payment_event (
+      id TEXT PRIMARY KEY NOT NULL, order_id TEXT NOT NULL, type TEXT NOT NULL,
+      actor TEXT NOT NULL DEFAULT 'system', actor_user_id TEXT, method TEXT,
+      reference TEXT, note TEXT, created_at INTEGER NOT NULL
+    )`);
+  await db.run(`
+    CREATE TABLE store_admin_audit (
+      id TEXT PRIMARY KEY NOT NULL, admin_user_id TEXT, action TEXT NOT NULL,
+      target_type TEXT NOT NULL, target_id TEXT NOT NULL, details TEXT,
+      created_at INTEGER NOT NULL
+    )`);
+  await db.run(`DROP TABLE IF EXISTS user`);
+  await db.run(`
+    CREATE TABLE user (
+      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
+      email_verified INTEGER NOT NULL DEFAULT 0, image TEXT,
+      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+      role TEXT, banned INTEGER DEFAULT false NOT NULL,
+      ban_reason TEXT, ban_expires INTEGER
+    )`);
   testDb = db;
   state.database = db;
 }
 
 let orderCounter = 0;
 
+interface SeedOrderOptions {
+  status?: OrderStatus;
+  paymentStatus?: string;
+  paymentMethod?: string;
+  paymentReference?: string | null;
+  paymentReviewedBy?: string | null;
+  holdExpiresAt?: number | null;
+}
+
 async function seedOrder(
   db: LibSQLDatabase<typeof schema>,
-  opts: { status?: OrderStatus } = {},
+  opts: SeedOrderOptions = {},
 ): Promise<string> {
   orderCounter += 1;
   const id = crypto.randomUUID();
@@ -107,7 +139,11 @@ async function seedOrder(
     city: "القاهرة",
     total: 100_00,
     status: opts.status ?? "pending_confirmation",
-    paymentStatus: "simulated",
+    paymentStatus: opts.paymentStatus ?? "simulated",
+    paymentMethod: opts.paymentMethod ?? "instapay",
+    paymentReference: opts.paymentReference ?? null,
+    paymentReviewedBy: opts.paymentReviewedBy ?? null,
+    holdExpiresAt: opts.holdExpiresAt ?? null,
     userId: null,
     createdAt: Date.now(),
   });
@@ -161,6 +197,7 @@ async function seedVariant(
 
 interface EventOptions {
   role?: string;
+  userId?: string;
   langCookie?: Lang;
 }
 
@@ -181,13 +218,31 @@ function fakeEvent(
       method: "POST",
       body,
     }),
-    locals: { user: opts.role === undefined ? undefined : { role: opts.role } },
+    locals: {
+      user: opts.role === undefined ? undefined : { id: opts.userId, role: opts.role },
+    },
   } as unknown as RequestEvent;
+}
+
+interface DetailEvent {
+  id: string;
+  type: string;
+  reference: string | null;
+  note: string | null;
+  createdAt: number;
 }
 
 interface DetailData {
   order: AdminOrderRow;
   items: AdminOrderItemRow[];
+  events: DetailEvent[];
+  settlement: {
+    canVerify: boolean;
+    canReject: boolean;
+    canRefund: boolean;
+    canExtendHold: boolean;
+  };
+  reviewerLabel: string | null;
   transitions: readonly OrderStatus[];
   customerWhatsappUrl: string | null;
   lang: Lang;
@@ -217,17 +272,40 @@ function successOf(result: unknown): string {
   return String((result as { success: unknown }).success);
 }
 
-type UpdateAction = (event: RequestEvent) => Promise<unknown>;
+type Action = (event: RequestEvent) => Promise<unknown>;
 type LoadFn = (event: RequestEvent) => Promise<unknown>;
 
 let load: LoadFn;
-let update: UpdateAction;
+let update: Action;
+let markPaid: Action;
+let rejectClaim: Action;
+let refund: Action;
+let extendHold: Action;
 
 beforeAll(async () => {
   const module = await import("./+page.server");
   load = module.load as unknown as LoadFn;
-  update = (module.actions as { update: UpdateAction }).update;
+  const actions = module.actions as Record<string, Action>;
+  update = actions.update;
+  markPaid = actions.mark_paid;
+  rejectClaim = actions.reject_claim;
+  refund = actions.refund;
+  extendHold = actions.extend_hold;
 });
+
+// logAdminAction is fire-and-forget by design; poll briefly so the assertion
+// sees the row the same request wrote without coupling the spec to its timing.
+async function auditRowsFor(action: string) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const rows = await currentDb()
+      .select()
+      .from(schema.adminAudit)
+      .where(eq(schema.adminAudit.action, action));
+    if (rows.length > 0) return rows;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  return [];
+}
 
 afterAll(() => {
   client?.close();
@@ -270,6 +348,54 @@ describe("admin order detail load", () => {
     const data = asData(await load(fakeEvent(id)));
 
     expect(data.transitions).toEqual([]);
+  });
+
+  it("returns the settlement timeline and the available review actions", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "pending_review", paymentMethod: "wallet" });
+    await db.insert(schema.paymentEvent).values({
+      orderId: id,
+      type: "claim",
+      actor: "customer",
+      reference: "TRX-3",
+      createdAt: 1234,
+    });
+
+    const data = asData(await load(fakeEvent(id)));
+
+    expect(data.settlement).toEqual({
+      canVerify: true,
+      canReject: true,
+      canRefund: false,
+      canExtendHold: true,
+    });
+    expect(data.events).toHaveLength(1);
+    expect(data.events[0]).toMatchObject({
+      type: "claim",
+      reference: "TRX-3",
+      createdAt: 1234,
+    });
+  });
+
+  it("labels the reviewer with the admin name and falls back to the stored id", async () => {
+    const db = currentDb();
+    await db.insert(schema.user).values({
+      id: "admin-1",
+      name: "منى",
+      email: "mona@example.com",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const id = await seedOrder(db, { paymentStatus: "paid", paymentReviewedBy: "admin-1" });
+
+    const data = asData(await load(fakeEvent(id)));
+
+    expect(data.reviewerLabel).toBe("منى");
+
+    const orphanId = await seedOrder(db, { paymentStatus: "paid", paymentReviewedBy: "ghost" });
+    const orphan = asData(await load(fakeEvent(orphanId)));
+
+    expect(orphan.reviewerLabel).toBe("ghost");
   });
 
   it("throws a 404 for an unknown order id", async () => {
@@ -397,5 +523,228 @@ describe("admin order detail update action", () => {
 
     expect(result.status).toBe(500);
     expect(result.message).toBe(t("ar", "errors.unexpected"));
+  });
+
+  it("ignores a posted order id and transitions the route order only", async () => {
+    const db = currentDb();
+    const first = await seedOrder(db);
+    const second = await seedOrder(db);
+
+    const message = successOf(
+      await update(fakeEvent(first, { role: "admin" }, { id: second, status: "confirmed" })),
+    );
+
+    expect(message).toBe(t("ar", "admin.order.updated"));
+    const rows = await db
+      .select({ id: schema.order.id, status: schema.order.status })
+      .from(schema.order);
+    expect(rows.find((row) => row.id === first)?.status).toBe("confirmed");
+    expect(rows.find((row) => row.id === second)?.status).toBe("pending_confirmation");
+  });
+});
+
+describe("admin order detail settlement actions", () => {
+  it("marks a transfer order paid and writes the verified event and audit rows", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "pending_review", paymentMethod: "instapay" });
+
+    const message = successOf(
+      await markPaid(fakeEvent(id, { role: "admin", userId: "admin-1" }, { reference: "TRX-7" })),
+    );
+
+    expect(message).toBe(t("ar", "admin.order.paymentRecorded"));
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order).toMatchObject({ paymentStatus: "paid", paymentReference: "TRX-7" });
+    const events = await db
+      .select()
+      .from(schema.paymentEvent)
+      .where(eq(schema.paymentEvent.orderId, id));
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ type: "verified", reference: "TRX-7" });
+    const audits = await auditRowsFor("order.payment_mark_paid");
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({ targetType: "order", targetId: id, adminUserId: "admin-1" });
+    expect(JSON.parse(audits[0]?.details ?? "{}")).toEqual({
+      to: "paid",
+      reference: "TRX-7",
+      note: null,
+    });
+  });
+
+  it("verifies with a note only, records it in the audit, and keeps the claim reference", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, {
+      paymentStatus: "pending_review",
+      paymentReference: "TRX-9",
+    });
+
+    const message = successOf(
+      await markPaid(fakeEvent(id, { role: "admin" }, { note: "cash counted" })),
+    );
+
+    expect(message).toBe(t("ar", "admin.order.paymentRecorded"));
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order).toMatchObject({ paymentStatus: "paid", paymentReference: "TRX-9" });
+    const events = await db
+      .select()
+      .from(schema.paymentEvent)
+      .where(eq(schema.paymentEvent.orderId, id));
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ type: "verified", note: "cash counted", reference: null });
+    const audits = await auditRowsFor("order.payment_mark_paid");
+    expect(JSON.parse(audits[0]?.details ?? "{}")).toEqual({
+      to: "paid",
+      reference: null,
+      note: "cash counted",
+    });
+  });
+
+  it("rejects guests and non-admins for every settlement action", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "pending_review" });
+
+    for (const action of [markPaid, rejectClaim, refund, extendHold]) {
+      expect(failureOf(await action(fakeEvent(id))).status).toBe(403);
+      expect(failureOf(await action(fakeEvent(id, { role: "user" }))).status).toBe(403);
+    }
+
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order?.paymentStatus).toBe("pending_review");
+    expect(await db.select().from(schema.paymentEvent)).toHaveLength(0);
+    expect(await auditRowsFor("order.payment_mark_paid")).toHaveLength(0);
+  });
+
+  it("requires input for mark_paid and appends nothing on failure", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "unpaid" });
+
+    const result = failureOf(await markPaid(fakeEvent(id, { role: "admin" }, {})));
+
+    expect(result.status).toBe(400);
+    expect(result.message).toBe(t("ar", "admin.order.invalidInput"));
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order?.paymentStatus).toBe("unpaid");
+    expect(await db.select().from(schema.paymentEvent)).toHaveLength(0);
+  });
+
+  it("maps a settled order to 409 for mark_paid", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "paid" });
+
+    const result = failureOf(
+      await markPaid(fakeEvent(id, { role: "admin" }, { note: "late receipt" })),
+    );
+
+    expect(result.status).toBe(409);
+    expect(result.message).toBe(t("ar", "admin.order.invalidTransition"));
+  });
+
+  it("rejects a claim and writes the rejected event and audit rows", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "pending_review" });
+
+    const message = successOf(
+      await rejectClaim(fakeEvent(id, { role: "admin" }, { note: "no transfer found" })),
+    );
+
+    expect(message).toBe(t("ar", "admin.order.paymentRecorded"));
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order?.paymentStatus).toBe("failed");
+    const events = await db
+      .select()
+      .from(schema.paymentEvent)
+      .where(eq(schema.paymentEvent.orderId, id));
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ type: "rejected", note: "no transfer found" });
+    const audits = await auditRowsFor("order.payment_reject_claim");
+    expect(audits).toHaveLength(1);
+    expect(JSON.parse(audits[0]?.details ?? "{}")).toEqual({
+      to: "failed",
+      note: "no transfer found",
+    });
+  });
+
+  it("requires a note to reject a claim", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "pending_review" });
+
+    expect(failureOf(await rejectClaim(fakeEvent(id, { role: "admin" }, {}))).status).toBe(400);
+    expect(await db.select().from(schema.paymentEvent)).toHaveLength(0);
+  });
+
+  it("refunds a paid order and writes the refund event and audit rows", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "paid" });
+
+    const message = successOf(
+      await refund(
+        fakeEvent(id, { role: "admin" }, { note: "customer changed mind", reference: "RF-1" }),
+      ),
+    );
+
+    expect(message).toBe(t("ar", "admin.order.paymentRecorded"));
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order?.paymentStatus).toBe("refunded");
+    const events = await db
+      .select()
+      .from(schema.paymentEvent)
+      .where(eq(schema.paymentEvent.orderId, id));
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: "refund",
+      reference: "RF-1",
+      note: "customer changed mind",
+    });
+    const audits = await auditRowsFor("order.payment_refund");
+    expect(audits).toHaveLength(1);
+    expect(JSON.parse(audits[0]?.details ?? "{}")).toEqual({
+      to: "refunded",
+      reference: "RF-1",
+      note: "customer changed mind",
+    });
+  });
+
+  it("requires both the reason and the reference to refund", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "paid" });
+
+    expect(
+      failureOf(await refund(fakeEvent(id, { role: "admin" }, { reference: "RF-1" }))).status,
+    ).toBe(400);
+    expect(
+      failureOf(await refund(fakeEvent(id, { role: "admin" }, { note: "reason" }))).status,
+    ).toBe(400);
+    expect(await db.select().from(schema.paymentEvent)).toHaveLength(0);
+  });
+
+  it("extends the hold and writes the note event and audit rows", async () => {
+    const db = currentDb();
+    // The route action uses the real clock, so a far-future deadline keeps the
+    // expected extension deterministic.
+    const farFuture = 4_100_000_000_000;
+    const id = await seedOrder(db, { holdExpiresAt: farFuture });
+
+    const message = successOf(await extendHold(fakeEvent(id, { role: "admin" })));
+
+    expect(message).toBe(t("ar", "admin.order.paymentRecorded"));
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order?.holdExpiresAt).toBe(farFuture + 24 * 3_600_000);
+    const events = await db
+      .select()
+      .from(schema.paymentEvent)
+      .where(eq(schema.paymentEvent.orderId, id));
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ type: "note", note: "hold extended 24h" });
+    const audits = await auditRowsFor("order.payment_extend_hold");
+    expect(audits).toHaveLength(1);
+    expect(JSON.parse(audits[0]?.details ?? "{}")).toEqual({ hours: 24 });
+  });
+
+  it("refuses to extend a shipped order", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { status: "shipped" });
+
+    expect(failureOf(await extendHold(fakeEvent(id, { role: "admin" }))).status).toBe(409);
+    expect(await db.select().from(schema.paymentEvent)).toHaveLength(0);
   });
 });
