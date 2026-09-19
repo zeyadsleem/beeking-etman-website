@@ -23,7 +23,12 @@ import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
 import { getLang } from "$lib/server/lang";
 import { isAdminRole } from "$lib/server/admin/roles";
-import { sendOrderStatusUpdate } from "$lib/server/email";
+import {
+  sendOrderStatusUpdate,
+  sendPaymentConfirmed,
+  sendPaymentFailed,
+  sendRefund,
+} from "$lib/server/email";
 import {
   adminOrderWhatsappText,
   normalizeWhatsappNumber,
@@ -91,6 +96,8 @@ export const load: PageServerLoad = async (event) => {
 interface SettlementPlan {
   run: (actorUserId: string | null, now: number) => Promise<SettlementActionResult>;
   auditDetails: Record<string, unknown>;
+  /** Best-effort customer notification for a successful action. */
+  notify?: (db: LibSQLDatabase<typeof schema>, orderId: string) => Promise<void>;
 }
 
 // The failure payload stays concrete: `ReturnType<typeof fail>` would widen it
@@ -106,7 +113,7 @@ async function runSettlementAction(
   if (!isAdminRole(event.locals.user?.role)) {
     return fail(403, { message: t(lang, "errors.unexpected") });
   }
-  const { run, auditDetails } = plan(await event.request.formData());
+  const { run, auditDetails, notify } = plan(await event.request.formData());
 
   let result: SettlementActionResult;
   try {
@@ -124,6 +131,15 @@ async function runSettlementAction(
           : "admin.order.invalidTransition",
       ),
     });
+  }
+
+  // Best-effort settlement email — never block the recorded admin action.
+  if (notify) {
+    try {
+      await notify(db, event.params.id);
+    } catch (e) {
+      console.error(`[admin/order] ${action} notification failed`, e);
+    }
   }
 
   logAdminAction(db, {
@@ -174,7 +190,7 @@ export const actions: Actions = {
 
     // Best-effort status-update email — never block the admin action.
     try {
-      await sendOrderStatusUpdate(event.platform, db, id, next);
+      await sendOrderStatusUpdate(db, id, next);
     } catch (e) {
       console.error("[admin/order] status update email failed", e);
     }
@@ -203,6 +219,7 @@ export const actions: Actions = {
           reference: cleanSettlementText(reference),
           note: cleanSettlementText(note),
         },
+        notify: sendPaymentConfirmed,
       };
     }),
 
@@ -213,6 +230,7 @@ export const actions: Actions = {
         run: (actorUserId, now) =>
           rejectClaim(db, { orderId: event.params.id, note, actorUserId, now }),
         auditDetails: { to: "failed", note: cleanSettlementText(note) },
+        notify: sendPaymentFailed,
       };
     }),
 
@@ -228,6 +246,8 @@ export const actions: Actions = {
           reference: cleanSettlementText(reference),
           note: cleanSettlementText(note),
         },
+        notify: (actionDb, orderId) =>
+          sendRefund(actionDb, orderId, cleanSettlementText(reference) ?? ""),
       };
     }),
 

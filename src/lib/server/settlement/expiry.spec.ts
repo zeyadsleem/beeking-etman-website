@@ -4,10 +4,11 @@ import { eq } from "drizzle-orm";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
+import { sendHoldExpired } from "$lib/server/email";
 
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
-import { HOLD_EXPIRY_GRACE_MS, releaseExpiredHolds } from "./expiry";
+import { HOLD_EXPIRY_GRACE_MS, releaseExpiredHolds, type ReleasedHold } from "./expiry";
 import { runSettlementJobs } from "./jobs";
 
 const DB_FILE = "settlement-expiry-test.db";
@@ -23,6 +24,7 @@ let client: ReturnType<typeof createClient> | null = null;
 async function buildDb() {
   client ??= createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
+  await db.run(`DROP TABLE IF EXISTS store_notification`);
   await db.run(`DROP TABLE IF EXISTS store_order_item`);
   await db.run(`DROP TABLE IF EXISTS store_product_variant`);
   await db.run(`DROP TABLE IF EXISTS store_payment_event`);
@@ -87,6 +89,27 @@ async function buildDb() {
       note TEXT,
       created_at INTEGER NOT NULL
     )`);
+  // Mirrors the 0018 DDL (email delivery spec §3.2).
+  await db.run(`
+    CREATE TABLE store_notification (
+      id                  text PRIMARY KEY NOT NULL,
+      type                text NOT NULL,
+      channel             text NOT NULL DEFAULT 'email',
+      recipient           text NOT NULL,
+      from_address        text NOT NULL DEFAULT '',
+      subject             text NOT NULL,
+      body                text NOT NULL,
+      status              text NOT NULL DEFAULT 'pending'
+                          CHECK (status IN ('pending','sending','sent','failed','dead')),
+      attempt_count       integer NOT NULL DEFAULT 0,
+      next_attempt_at     integer,
+      last_error          text,
+      provider_message_id text,
+      locked_at           integer,
+      idempotency_key     text,
+      created_at          integer NOT NULL,
+      sent_at             integer
+    )`);
   // This fixture mirrors only the 0019 `trg_order_status_cancel_restock` trigger
   // (spec §3.5): only pre-shipment statuses restock.
   await db.run(`
@@ -106,6 +129,23 @@ async function buildDb() {
   return db;
 }
 
+type Db = Awaited<ReturnType<typeof buildDb>>;
+
+function released(orderId: string, previousStatus: ReleasedHold["previousStatus"]): ReleasedHold {
+  return { id: orderId, previousStatus };
+}
+
+/** Mirrors the EM-4 worker wiring: the run hands every release to the notifier. */
+async function notifyReleased(db: Db, holds: readonly ReleasedHold[]): Promise<void> {
+  for (const hold of holds) {
+    await sendHoldExpired(db, hold.id, hold.previousStatus);
+  }
+}
+
+function notifier(db: Db) {
+  return (holds: readonly ReleasedHold[]) => notifyReleased(db, holds);
+}
+
 interface SeedOptions {
   status?: string;
   paymentStatus?: string;
@@ -114,10 +154,7 @@ interface SeedOptions {
   stockVersion?: "atomic" | "legacy";
 }
 
-async function seedOrder(
-  db: Awaited<ReturnType<typeof buildDb>>,
-  opts: SeedOptions = {},
-): Promise<string> {
+async function seedOrder(db: Db, opts: SeedOptions = {}): Promise<string> {
   const id = crypto.randomUUID();
   await db.insert(schema.order).values({
     id,
@@ -139,7 +176,7 @@ async function seedOrder(
 }
 
 async function seedHold(
-  db: Awaited<ReturnType<typeof buildDb>>,
+  db: Db,
   opts: SeedOptions & { quantity?: number } = {},
 ): Promise<{ orderId: string; variantId: string; quantity: number }> {
   const variantId = crypto.randomUUID();
@@ -166,17 +203,21 @@ async function seedHold(
   return { orderId, variantId, quantity };
 }
 
-async function orderRow(db: Awaited<ReturnType<typeof buildDb>>, id: string) {
+async function orderRow(db: Db, id: string) {
   const row = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
   if (!row) throw new Error(`order ${id} not found`);
   return row;
 }
 
-async function expiryEvents(db: Awaited<ReturnType<typeof buildDb>>, orderId: string) {
+async function expiryEvents(db: Db, orderId: string) {
   return db.select().from(schema.paymentEvent).where(eq(schema.paymentEvent.orderId, orderId));
 }
 
-async function variantStock(db: Awaited<ReturnType<typeof buildDb>>, variantId: string) {
+async function notificationRows(db: Db) {
+  return db.select().from(schema.notification);
+}
+
+async function variantStock(db: Db, variantId: string) {
   const row = await db
     .select({ stock: schema.productVariant.stock })
     .from(schema.productVariant)
@@ -187,7 +228,7 @@ async function variantStock(db: Awaited<ReturnType<typeof buildDb>>, variantId: 
 }
 
 describe("releaseExpiredHolds selection", () => {
-  let db: Awaited<ReturnType<typeof buildDb>>;
+  let db: Db;
   beforeEach(async () => {
     db = await buildDb();
   });
@@ -200,7 +241,7 @@ describe("releaseExpiredHolds selection", () => {
       holdExpiresAt: EXPIRED_AT,
     });
 
-    expect(await releaseExpiredHolds(db, NOW)).toEqual([orderId]);
+    expect(await releaseExpiredHolds(db, NOW)).toEqual([released(orderId, "pending_confirmation")]);
 
     expect(await orderRow(db, orderId)).toMatchObject({
       status: "cancelled",
@@ -212,6 +253,93 @@ describe("releaseExpiredHolds selection", () => {
     expect(events[0]).toMatchObject({ type: "expiry", actor: "system", createdAt: NOW });
   });
 
+  it("enqueues the rule-1 copy for a hold the shop never accepted", async () => {
+    const { orderId } = await seedHold(db, {
+      status: "pending_confirmation",
+      method: "cod",
+      holdExpiresAt: EXPIRED_AT,
+    });
+
+    const result = await releaseExpiredHolds(db, NOW, notifier(db));
+
+    expect(result).toEqual([released(orderId, "pending_confirmation")]);
+    const rows = await notificationRows(db);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      type: "status_update",
+      channel: "email",
+      recipient: "a@example.com",
+      status: "pending", // enqueue-only; the worker's drain delivers it
+    });
+    const payload = JSON.parse(rows[0]!.body) as { html: string; text: string };
+    for (const rendering of [payload.html, payload.text]) {
+      expect(rendering).toContain("انتهت مهلة حجز الطلب قبل تأكيده");
+      expect(rendering).not.toContain("انتهت مهلة استلام التحويل");
+      expect(rendering).not.toMatch(/تم الدفع|paid/i);
+    }
+  });
+
+  it("enqueues the rule-2 copy for an accepted transfer order whose money never arrived", async () => {
+    const { orderId } = await seedHold(db, {
+      status: "confirmed",
+      paymentStatus: "unpaid",
+      method: "instapay",
+      holdExpiresAt: EXPIRED_AT,
+    });
+
+    const result = await releaseExpiredHolds(db, NOW, notifier(db));
+
+    expect(result).toEqual([released(orderId, "confirmed")]);
+    const rows = await notificationRows(db);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      type: "status_update",
+      recipient: "a@example.com",
+      status: "pending",
+    });
+    const payload = JSON.parse(rows[0]!.body) as { html: string; text: string };
+    for (const rendering of [payload.html, payload.text]) {
+      expect(rendering).toContain("انتهت مهلة استلام التحويل");
+      expect(rendering).not.toContain("قبل تأكيده");
+      expect(rendering).not.toMatch(/تم الدفع|paid/i);
+    }
+  });
+
+  it("still releases the hold when the notifier throws", async () => {
+    const { orderId, variantId, quantity } = await seedHold(db, {
+      status: "pending_confirmation",
+      method: "instapay",
+      holdExpiresAt: EXPIRED_AT,
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    let result: ReleasedHold[] = [];
+    try {
+      result = await releaseExpiredHolds(db, NOW, async () => {
+        throw new Error("notifier down");
+      });
+    } finally {
+      error.mockRestore();
+    }
+
+    expect(result).toEqual([released(orderId, "pending_confirmation")]);
+    expect((await orderRow(db, orderId)).status).toBe("cancelled");
+    expect(await variantStock(db, variantId)).toBe(quantity);
+    expect(await expiryEvents(db, orderId)).toHaveLength(1);
+    expect(await notificationRows(db)).toHaveLength(0);
+  });
+
+  it("enqueues exactly one status update across replayed runs", async () => {
+    const { orderId } = await seedHold(db, { holdExpiresAt: EXPIRED_AT });
+
+    const first = await releaseExpiredHolds(db, NOW, notifier(db));
+    const second = await releaseExpiredHolds(db, NOW, notifier(db));
+
+    expect(first).toEqual([released(orderId, "pending_confirmation")]);
+    expect(second).toEqual([]);
+    expect(await notificationRows(db)).toHaveLength(1);
+  });
+
   it("applies rule 1 to a COD order the shop never accepted", async () => {
     const { orderId, variantId, quantity } = await seedHold(db, {
       status: "pending_confirmation",
@@ -220,7 +348,7 @@ describe("releaseExpiredHolds selection", () => {
       holdExpiresAt: EXPIRED_AT,
     });
 
-    expect(await releaseExpiredHolds(db, NOW)).toEqual([orderId]);
+    expect(await releaseExpiredHolds(db, NOW)).toEqual([released(orderId, "pending_confirmation")]);
 
     expect(await orderRow(db, orderId)).toMatchObject({
       status: "cancelled",
@@ -243,7 +371,9 @@ describe("releaseExpiredHolds selection", () => {
       holdExpiresAt: WITHIN_GRACE_AT,
     });
 
-    expect(await releaseExpiredHolds(db, NOW)).toEqual([atBoundary]);
+    expect(await releaseExpiredHolds(db, NOW)).toEqual([
+      released(atBoundary, "pending_confirmation"),
+    ]);
     expect((await orderRow(db, atBoundary)).status).toBe("cancelled");
     expect((await orderRow(db, oneMsYounger)).status).toBe("pending_confirmation");
     expect((await orderRow(db, withinGrace)).status).toBe("pending_confirmation");
@@ -263,8 +393,14 @@ describe("releaseExpiredHolds selection", () => {
       holdExpiresAt: EXPIRED_AT,
     });
 
-    expect((await releaseExpiredHolds(db, NOW)).sort()).toEqual(
-      [confirmed.orderId, processing.orderId].sort(),
+    const result = await releaseExpiredHolds(db, NOW);
+
+    expect(result).toHaveLength(2);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        released(confirmed.orderId, "confirmed"),
+        released(processing.orderId, "processing"),
+      ]),
     );
 
     expect(await orderRow(db, confirmed.orderId)).toMatchObject({
@@ -370,7 +506,7 @@ describe("releaseExpiredHolds selection", () => {
 });
 
 describe("releaseExpiredHolds idempotency", () => {
-  let db: Awaited<ReturnType<typeof buildDb>>;
+  let db: Db;
   beforeEach(async () => {
     db = await buildDb();
   });
@@ -378,7 +514,7 @@ describe("releaseExpiredHolds idempotency", () => {
   it("releases stock and appends one event across replayed runs", async () => {
     const { orderId, variantId, quantity } = await seedHold(db, { holdExpiresAt: EXPIRED_AT });
 
-    expect(await releaseExpiredHolds(db, NOW)).toEqual([orderId]);
+    expect(await releaseExpiredHolds(db, NOW)).toEqual([released(orderId, "pending_confirmation")]);
     expect(await releaseExpiredHolds(db, NOW)).toEqual([]);
 
     expect(await variantStock(db, variantId)).toBe(quantity);
@@ -390,7 +526,7 @@ describe("releaseExpiredHolds idempotency", () => {
 
     const runs = await Promise.all([releaseExpiredHolds(db, NOW), releaseExpiredHolds(db, NOW)]);
 
-    expect(runs.flat()).toEqual([orderId]);
+    expect(runs.flat().map((hold) => hold.id)).toEqual([orderId]);
     expect(await variantStock(db, variantId)).toBe(quantity);
     expect(await expiryEvents(db, orderId)).toHaveLength(1);
   });
@@ -426,23 +562,26 @@ describe("releaseExpiredHolds idempotency", () => {
 });
 
 describe("runSettlementJobs", () => {
-  let db: Awaited<ReturnType<typeof buildDb>>;
+  let db: Db;
   beforeEach(async () => {
     db = await buildDb();
   });
 
-  it("releases expired holds through the EM-4 hook", async () => {
+  it("releases expired holds and hands them to the notifier", async () => {
     const { orderId, variantId, quantity } = await seedHold(db, { holdExpiresAt: EXPIRED_AT });
 
-    expect(await runSettlementJobs(db, NOW)).toEqual([orderId]);
+    const result = await runSettlementJobs(db, NOW, notifier(db));
 
+    expect(result).toEqual([released(orderId, "pending_confirmation")]);
     expect((await orderRow(db, orderId)).status).toBe("cancelled");
     expect(await variantStock(db, variantId)).toBe(quantity);
     expect(await expiryEvents(db, orderId)).toHaveLength(1);
+    expect(await notificationRows(db)).toHaveLength(1);
   });
 });
 
 afterAll(() => {
+  client?.close();
   for (const file of [DB_FILE, `${DB_FILE}-wal`, `${DB_FILE}-shm`]) {
     if (existsSync(file)) unlinkSync(file);
   }

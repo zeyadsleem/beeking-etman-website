@@ -15,6 +15,15 @@ const AWAITING_CONFIRMATION_STATUSES = ["pending_confirmation"] as const;
 const ACCEPTED_STATUSES = ["confirmed", "processing"] as const;
 const OPEN_PAYMENT_STATUSES = ["unpaid", "pending_review"] as const;
 
+/** Pre-cancel status of a released hold; it selects the rule-specific copy. */
+export type ReleasedHoldStatus = "pending_confirmation" | "confirmed" | "processing";
+
+/** A hold this run cancelled; `previousStatus` distinguishes rule 1 from rule 2. */
+export interface ReleasedHold {
+  id: string;
+  previousStatus: ReleasedHoldStatus;
+}
+
 /**
  * Rule 1: the shop never accepted the order (any method).
  * Rule 2: the shop accepted a transfer order but the money never arrived.
@@ -36,14 +45,21 @@ function expiredHoldSelection(cutoff: number): SQL | undefined {
 }
 
 /**
- * The UPDATE status set for the rule that selected the row. The selection can
- * only return these three statuses; a stored value outside them means corrupt
- * data, so fail loudly instead of cancelling an order with no restock.
+ * The single canonical status a selected row can hold. A stored value outside
+ * the three means corrupt data, so fail loudly instead of cancelling an order
+ * with no restock.
  */
-function expiryRuleStatuses(storedStatus: string): readonly string[] {
-  if (storedStatus === "pending_confirmation") return AWAITING_CONFIRMATION_STATUSES;
-  if (storedStatus === "confirmed" || storedStatus === "processing") return ACCEPTED_STATUSES;
+function releasedHoldStatus(storedStatus: string): ReleasedHoldStatus {
+  if (storedStatus === "pending_confirmation") return "pending_confirmation";
+  if (storedStatus === "confirmed" || storedStatus === "processing") return storedStatus;
   throw new Error(`[settlement/expiry] unexpected hold status: "${storedStatus}"`);
+}
+
+/** The UPDATE status set for the rule that selected the row. */
+function expiryRuleStatuses(storedStatus: string): readonly ReleasedHoldStatus[] {
+  return releasedHoldStatus(storedStatus) === "pending_confirmation"
+    ? AWAITING_CONFIRMATION_STATUSES
+    : ACCEPTED_STATUSES;
 }
 
 /**
@@ -89,13 +105,16 @@ async function cancelExpiredHold(
 
 /**
  * Releases every stock hold that expired beyond the grace window, returning
- * the ids cancelled in this run. The caller supplies the clock so tests and
- * the worker share one deterministic deadline.
+ * the holds cancelled in this run. The optional `onReleased` notifier runs
+ * once after the loop and is best-effort: a notification failure is logged
+ * and never undoes or aborts a released hold. The caller supplies the clock
+ * so tests and the worker share one deterministic deadline.
  */
 export async function releaseExpiredHolds(
   db: LibSQLDatabase<typeof schema>,
   now: number = Date.now(),
-): Promise<string[]> {
+  onReleased?: (released: readonly ReleasedHold[]) => Promise<void>,
+): Promise<ReleasedHold[]> {
   const cutoff = now - HOLD_EXPIRY_GRACE_MS;
   const expired = await db
     .select({ id: schema.order.id, status: schema.order.status })
@@ -103,10 +122,18 @@ export async function releaseExpiredHolds(
     .where(expiredHoldSelection(cutoff))
     .orderBy(schema.order.holdExpiresAt, schema.order.id);
 
-  const released: string[] = [];
+  const released: ReleasedHold[] = [];
   for (const order of expired) {
     if (await cancelExpiredHold(db, order.id, order.status, cutoff, now)) {
-      released.push(order.id);
+      released.push({ id: order.id, previousStatus: releasedHoldStatus(order.status) });
+    }
+  }
+
+  if (onReleased) {
+    try {
+      await onReleased(released);
+    } catch (e) {
+      console.error("[settlement/expiry] release notification failed", e);
     }
   }
   return released;
