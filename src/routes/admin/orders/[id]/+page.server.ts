@@ -11,12 +11,12 @@ import {
 import {
   cleanSettlementText,
   extendHold,
-  HOLD_EXTENSION_HOURS,
   rejectClaim,
   refundPayment,
   verifyPayment,
   type SettlementActionResult,
 } from "$lib/server/admin/settlement";
+import { HOLD_EXTENSION_HOURS } from "$lib/settlement/types";
 import { logAdminAction } from "$lib/server/admin/audit";
 import { t } from "$lib/i18n/messages";
 import { db } from "$lib/server/db";
@@ -54,8 +54,6 @@ export const load: PageServerLoad = async (event) => {
     .select({
       id: schema.paymentEvent.id,
       type: schema.paymentEvent.type,
-      actor: schema.paymentEvent.actor,
-      actorUserId: schema.paymentEvent.actorUserId,
       reference: schema.paymentEvent.reference,
       note: schema.paymentEvent.note,
       createdAt: schema.paymentEvent.createdAt,
@@ -200,7 +198,11 @@ export const actions: Actions = {
       return {
         run: (actorUserId, now) =>
           verifyPayment(db, { orderId: event.params.id, reference, note, actorUserId, now }),
-        auditDetails: { to: "paid", reference: cleanSettlementText(reference) },
+        auditDetails: {
+          to: "paid",
+          reference: cleanSettlementText(reference),
+          note: cleanSettlementText(note),
+        },
       };
     }),
 

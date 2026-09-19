@@ -118,6 +118,7 @@ interface SeedOrderOptions {
   status?: OrderStatus;
   paymentStatus?: string;
   paymentMethod?: string;
+  paymentReference?: string | null;
   paymentReviewedBy?: string | null;
   holdExpiresAt?: number | null;
 }
@@ -140,6 +141,7 @@ async function seedOrder(
     status: opts.status ?? "pending_confirmation",
     paymentStatus: opts.paymentStatus ?? "simulated",
     paymentMethod: opts.paymentMethod ?? "instapay",
+    paymentReference: opts.paymentReference ?? null,
     paymentReviewedBy: opts.paymentReviewedBy ?? null,
     holdExpiresAt: opts.holdExpiresAt ?? null,
     userId: null,
@@ -225,8 +227,6 @@ function fakeEvent(
 interface DetailEvent {
   id: string;
   type: string;
-  actor: string;
-  actorUserId: string | null;
   reference: string | null;
   note: string | null;
   createdAt: number;
@@ -372,7 +372,6 @@ describe("admin order detail load", () => {
     expect(data.events).toHaveLength(1);
     expect(data.events[0]).toMatchObject({
       type: "claim",
-      actor: "customer",
       reference: "TRX-3",
       createdAt: 1234,
     });
@@ -525,6 +524,23 @@ describe("admin order detail update action", () => {
     expect(result.status).toBe(500);
     expect(result.message).toBe(t("ar", "errors.unexpected"));
   });
+
+  it("ignores a posted order id and transitions the route order only", async () => {
+    const db = currentDb();
+    const first = await seedOrder(db);
+    const second = await seedOrder(db);
+
+    const message = successOf(
+      await update(fakeEvent(first, { role: "admin" }, { id: second, status: "confirmed" })),
+    );
+
+    expect(message).toBe(t("ar", "admin.order.updated"));
+    const rows = await db
+      .select({ id: schema.order.id, status: schema.order.status })
+      .from(schema.order);
+    expect(rows.find((row) => row.id === first)?.status).toBe("confirmed");
+    expect(rows.find((row) => row.id === second)?.status).toBe("pending_confirmation");
+  });
 });
 
 describe("admin order detail settlement actions", () => {
@@ -544,11 +560,43 @@ describe("admin order detail settlement actions", () => {
       .from(schema.paymentEvent)
       .where(eq(schema.paymentEvent.orderId, id));
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ type: "verified", actor: "admin", actorUserId: "admin-1" });
+    expect(events[0]).toMatchObject({ type: "verified", reference: "TRX-7" });
     const audits = await auditRowsFor("order.payment_mark_paid");
     expect(audits).toHaveLength(1);
     expect(audits[0]).toMatchObject({ targetType: "order", targetId: id, adminUserId: "admin-1" });
-    expect(JSON.parse(audits[0]?.details ?? "{}")).toEqual({ to: "paid", reference: "TRX-7" });
+    expect(JSON.parse(audits[0]?.details ?? "{}")).toEqual({
+      to: "paid",
+      reference: "TRX-7",
+      note: null,
+    });
+  });
+
+  it("verifies with a note only, records it in the audit, and keeps the claim reference", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, {
+      paymentStatus: "pending_review",
+      paymentReference: "TRX-9",
+    });
+
+    const message = successOf(
+      await markPaid(fakeEvent(id, { role: "admin" }, { note: "cash counted" })),
+    );
+
+    expect(message).toBe(t("ar", "admin.order.paymentRecorded"));
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order).toMatchObject({ paymentStatus: "paid", paymentReference: "TRX-9" });
+    const events = await db
+      .select()
+      .from(schema.paymentEvent)
+      .where(eq(schema.paymentEvent.orderId, id));
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ type: "verified", note: "cash counted", reference: null });
+    const audits = await auditRowsFor("order.payment_mark_paid");
+    expect(JSON.parse(audits[0]?.details ?? "{}")).toEqual({
+      to: "paid",
+      reference: null,
+      note: "cash counted",
+    });
   });
 
   it("rejects guests and non-admins for every settlement action", async () => {

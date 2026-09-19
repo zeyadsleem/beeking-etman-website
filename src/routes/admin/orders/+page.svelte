@@ -40,6 +40,16 @@
     return query ? `/admin/orders?${query}` : "/admin/orders";
   }
 
+  // The export route applies the same status/payment filters it is given;
+  // the free-text query is a screen-only refinement.
+  function exportHref(): string {
+    const params = new URLSearchParams();
+    if (data.status) params.set("status", data.status);
+    if (data.payment) params.set("payment", data.payment);
+    const query = params.toString();
+    return `/admin/orders/export${query ? `?${query}` : ""}`;
+  }
+
   const hasNextPage = $derived(data.page * data.pageSize < data.total);
 </script>
 
@@ -51,7 +61,7 @@
   <SectionTitle as="h1" className="text-4xl">{t(lang, "admin.orders.title")}</SectionTitle>
 
   <div class="mt-4 flex flex-wrap items-center gap-3">
-    <Button variant="ghost" href="/admin/orders/export" class="text-sm">
+    <Button variant="ghost" href={exportHref()} class="text-sm">
       {t(lang, "admin.orders.exportCsv")}
     </Button>
     <Button

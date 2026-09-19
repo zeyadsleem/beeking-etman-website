@@ -66,7 +66,7 @@ export function customerOrderStatusLabelKey(value: string): MessageKey {
 export function paymentEventTypeLabelKey(value: string): MessageKey {
   return value in PAYMENT_EVENT_TYPE_LABEL_KEY
     ? PAYMENT_EVENT_TYPE_LABEL_KEY[value as PaymentEventType]
-    : "admin.order.settlement.event.note";
+    : "admin.order.settlement.event.other";
 }
 
 export const ADMIN_PAYMENT_STATUS_LABEL_KEY: Record<PaymentStatus, MessageKey> = {
@@ -185,3 +185,8 @@ export type PaymentEventType = (typeof PAYMENT_EVENT_TYPES)[number];
 
 export const PAYMENT_EVENT_ACTORS = ["customer", "admin", "system"] as const;
 export type PaymentEventActor = (typeof PAYMENT_EVENT_ACTORS)[number];
+
+// --- Settlement policy constants (shared with the client copy) ---
+
+/** Every `extend_hold` action moves the deadline out by this many hours. */
+export const HOLD_EXTENSION_HOURS = 24;

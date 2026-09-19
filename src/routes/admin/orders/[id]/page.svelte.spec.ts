@@ -21,8 +21,6 @@ function normalized(value: string): string {
 interface DetailEvent {
   id: string;
   type: string;
-  actor: string;
-  actorUserId: string | null;
   reference: string | null;
   note: string | null;
   createdAt: number;
@@ -51,8 +49,6 @@ const order: DetailOrder = {
   paymentStatus: "simulated",
   paymentMethod: "instapay",
   paymentReference: null,
-  paymentClaimedAt: null,
-  paymentReviewedAt: null,
   paymentReviewedBy: null,
   holdExpiresAt: null,
   paidAt: null,
@@ -187,8 +183,6 @@ describe("admin order settlement panel", () => {
           {
             id: "event-1",
             type: "claim",
-            actor: "customer",
-            actorUserId: null,
             reference: "TRX-3",
             note: null,
             createdAt: Date.parse("2026-08-23T11:00:00Z"),
@@ -216,7 +210,20 @@ describe("admin order settlement panel", () => {
       .element(page.getByRole("button", { name: t("ar", "admin.order.verify") }))
       .toBeInTheDocument();
     await expect
+      .element(page.getByRole("textbox", { name: t("ar", "admin.order.fieldReferenceOptional") }))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByRole("textbox", { name: t("ar", "admin.order.fieldNoteOptional") }))
+      .toBeInTheDocument();
+    await expect
       .element(page.getByRole("button", { name: t("ar", "admin.order.rejectClaim") }))
+      .toBeInTheDocument();
+    await expect
+      .element(
+        page.getByRole("button", {
+          name: t("ar", "admin.order.extendHold", { hours: 24 }),
+        }),
+      )
       .toBeInTheDocument();
     await expect
       .element(page.getByRole("button", { name: t("ar", "admin.order.refund") }))

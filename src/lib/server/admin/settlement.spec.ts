@@ -238,7 +238,10 @@ describe("refundPayment", () => {
   });
 
   it("moves paid to refunded and appends a refund event", async () => {
-    const id = await seedOrder(db, { paymentStatus: "paid" });
+    const id = await seedOrder(db, {
+      paymentStatus: "paid",
+      paymentReference: "TRX-9",
+    });
 
     expect(
       await refundPayment(db, {
@@ -251,7 +254,13 @@ describe("refundPayment", () => {
     ).toEqual({ ok: true });
 
     const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
-    expect(order).toMatchObject({ paymentStatus: "refunded", paymentReviewedAt: 7000 });
+    // The refund reference lives in the event and audit; the original transfer
+    // reference stays on the order.
+    expect(order).toMatchObject({
+      paymentStatus: "refunded",
+      paymentReference: "TRX-9",
+      paymentReviewedAt: 7000,
+    });
     const events = await eventsFor(db, id);
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({

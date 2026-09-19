@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { desc, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import * as schema from "$lib/server/db/schema";
@@ -41,10 +41,15 @@ export const GET: RequestHandler = async (event) => {
   const statusParam = url.searchParams.get("status");
   const statusFilter = statusParam ? parseOrderStatus(statusParam) : null;
   if (statusParam && !statusFilter) error(400, "Invalid status");
+  const paymentParam = url.searchParams.get("payment");
+  const paymentFilter = paymentParam ? parsePaymentStatus(paymentParam) : null;
+  if (paymentParam && !paymentFilter) error(400, "Invalid payment");
 
-  const where = statusFilter
-    ? inArray(schema.order.status, storedOrderStatusValues(statusFilter))
-    : undefined;
+  const conditions: SQL[] = [];
+  if (statusFilter)
+    conditions.push(inArray(schema.order.status, storedOrderStatusValues(statusFilter)));
+  if (paymentFilter) conditions.push(eq(schema.order.paymentStatus, paymentFilter));
+  const where = conditions.length ? and(...conditions) : undefined;
 
   // Fetch all matching orders (admin volume — small table)
   const orders = await db
@@ -82,7 +87,11 @@ export const GET: RequestHandler = async (event) => {
     action: "order.export",
     targetType: "order",
     targetId: statusFilter ?? "all",
-    details: { status: statusFilter ?? "all", count: orders.length },
+    details: {
+      status: statusFilter ?? "all",
+      payment: paymentFilter ?? "all",
+      count: orders.length,
+    },
     userId: event.locals.user?.id,
   });
 

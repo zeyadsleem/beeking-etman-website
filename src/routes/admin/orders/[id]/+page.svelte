@@ -10,6 +10,7 @@
   import { formatDate, t } from "$lib/i18n/messages";
   import {
     ADMIN_PAYMENT_METHOD_LABEL_KEY,
+    HOLD_EXTENSION_HOURS,
     paymentEventTypeLabelKey,
   } from "$lib/settlement/types";
   import type { ActionData, PageData } from "./$types";
@@ -155,8 +156,12 @@
         {#if data.settlement.canVerify}
           <form method="POST" action="?/mark_paid" class="flex flex-wrap items-end gap-2">
             <label class="field-label">
-              {t(lang, "admin.order.fieldReference")}
+              {t(lang, "admin.order.fieldReferenceOptional")}
               <input name="reference" class="field" maxlength="200" autocomplete="off" />
+            </label>
+            <label class="field-label">
+              {t(lang, "admin.order.fieldNoteOptional")}
+              <input name="note" class="field" maxlength="200" autocomplete="off" />
             </label>
             <Button type="submit" variant="primary">{t(lang, "admin.order.verify")}</Button>
           </form>
@@ -185,7 +190,9 @@
         {/if}
         {#if data.settlement.canExtendHold}
           <form method="POST" action="?/extend_hold">
-            <Button type="submit" variant="ghost">{t(lang, "admin.order.extendHold")}</Button>
+            <Button type="submit" variant="ghost">
+              {t(lang, "admin.order.extendHold", { hours: HOLD_EXTENSION_HOURS })}
+            </Button>
           </form>
         {/if}
       </div>

@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
 import { applyPaymentTransition, paymentEventStatement } from "$lib/server/settlement/lifecycle";
+import { HOLD_EXTENSION_HOURS } from "$lib/settlement/types";
 import { affectedRowCount, retryOnBusy } from "$lib/server/sqlite";
 
 export type SettlementActionResult =
@@ -81,7 +82,11 @@ export async function rejectClaim(
   return result.ok ? { ok: true } : { ok: false, reason: result.reason };
 }
 
-/** Records a full refund; the money moves outside the system. */
+/**
+ * Records a full refund; the money moves outside the system. The original
+ * transfer reference stays on the order — the refund reference lives in the
+ * event and the audit row.
+ */
 export async function refundPayment(
   db: LibSQLDatabase<typeof schema>,
   input: AdminSettlementInput,
@@ -95,7 +100,6 @@ export async function refundPayment(
       orderId: input.orderId,
       from: ["paid"],
       to: "refunded",
-      reference,
       reviewedBy: input.actorUserId ?? null,
       now: input.now,
       event: {
@@ -109,8 +113,6 @@ export async function refundPayment(
   );
   return result.ok ? { ok: true } : { ok: false, reason: result.reason };
 }
-
-export const HOLD_EXTENSION_HOURS = 24;
 
 const HOLD_EXTENSION_MS = HOLD_EXTENSION_HOURS * 3_600_000;
 

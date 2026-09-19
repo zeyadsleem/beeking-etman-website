@@ -104,7 +104,9 @@ describe("settlement transition guards", () => {
     expect(allowedPaymentTransitions("unpaid")).toEqual(["pending_review", "paid", "failed"]);
     expect(canTransitionPayment("unpaid", "pending_review")).toBe(true);
     expect(canTransitionPayment("pending_review", "paid")).toBe(true);
+    expect(allowedPaymentTransitions("failed")).toEqual(["pending_review"]);
     expect(canTransitionPayment("failed", "pending_review")).toBe(true);
+    expect(canTransitionPayment("failed", "paid")).toBe(false);
     expect(canTransitionPayment("paid", "refunded")).toBe(true);
     expect(canTransitionPayment("paid", "pending_review")).toBe(false);
     expect(canTransitionPayment("refunded", "paid")).toBe(false);

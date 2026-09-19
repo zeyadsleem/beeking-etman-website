@@ -140,8 +140,6 @@ export async function listOrders(
 
 export interface AdminOrderSettlement {
   paymentReference: string | null;
-  paymentClaimedAt: number | null;
-  paymentReviewedAt: number | null;
   paymentReviewedBy: string | null;
   holdExpiresAt: number | null;
   paidAt: number | null;
@@ -159,8 +157,6 @@ export async function getOrderWithItems(
       ...orderColumns,
       shippingCost: schema.order.shippingCost,
       paymentReference: schema.order.paymentReference,
-      paymentClaimedAt: schema.order.paymentClaimedAt,
-      paymentReviewedAt: schema.order.paymentReviewedAt,
       paymentReviewedBy: schema.order.paymentReviewedBy,
       holdExpiresAt: schema.order.holdExpiresAt,
       paidAt: schema.order.paidAt,
@@ -187,8 +183,6 @@ export async function getOrderWithItems(
       ...toAdminOrderRow(row),
       shippingCost: row.shippingCost,
       paymentReference: row.paymentReference,
-      paymentClaimedAt: row.paymentClaimedAt,
-      paymentReviewedAt: row.paymentReviewedAt,
       paymentReviewedBy: row.paymentReviewedBy,
       holdExpiresAt: row.holdExpiresAt,
       paidAt: row.paidAt,

@@ -18,7 +18,9 @@ export { parseOrderStatus, parsePaymentStatus } from "$lib/settlement/types";
 const PAYMENT_TRANSITIONS: Readonly<Record<PaymentStatus, readonly PaymentStatus[]>> = {
   unpaid: ["pending_review", "paid", "failed"],
   pending_review: ["paid", "failed"],
-  failed: ["pending_review", "paid"],
+  // A rejected claim reopens through a corrected customer claim; the admin
+  // never verifies a rejected claim directly.
+  failed: ["pending_review"],
   paid: ["refunded"],
   refunded: [],
   // Pre-pivot rows are settled history; v1 services never move them.

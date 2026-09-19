@@ -71,4 +71,29 @@ describe("admin orders list", () => {
       .element(unpaid)
       .toHaveAttribute("href", "/admin/orders?q=HNY&status=shipped&payment=unpaid");
   });
+
+  it("links status chips and pagination with the payment filter preserved", async () => {
+    render(OrdersPage, listData({ q: "HNY", status: "shipped", payment: "paid", total: 25 }));
+
+    const confirmed = page.getByRole("link", {
+      name: t("ar", "admin.orders.confirmed"),
+      exact: true,
+    });
+    await expect
+      .element(confirmed)
+      .toHaveAttribute("href", "/admin/orders?q=HNY&status=confirmed&payment=paid");
+
+    const next = page.getByRole("link", { name: t("ar", "admin.orders.next"), exact: true });
+    await expect
+      .element(next)
+      .toHaveAttribute("href", "/admin/orders?q=HNY&status=shipped&payment=paid&page=2");
+  });
+
+  it("exports with the active status and payment filters", async () => {
+    render(OrdersPage, listData({ status: "shipped", payment: "paid" }));
+
+    await expect
+      .element(page.getByRole("link", { name: t("ar", "admin.orders.exportCsv"), exact: true }))
+      .toHaveAttribute("href", "/admin/orders/export?status=shipped&payment=paid");
+  });
 });
