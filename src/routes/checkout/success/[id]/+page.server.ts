@@ -138,14 +138,17 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
   claim: async (event) => {
     const lang = getLang(event);
+
+    const ipAllowed = await CLAIM_IP_LIMIT.allow(`claim-ip:${clientAddressKey(event)}`);
+    if (!ipAllowed) {
+      return fail(429, { claimError: t(lang, "errors.tooManyAttempts") });
+    }
+
     const row = await loadAccessibleOrder(event, event.params.id);
     if (!row) error(404, t(lang, "order.notFound"));
 
-    const [orderAllowed, ipAllowed] = await Promise.all([
-      CLAIM_ORDER_LIMIT.allow(`claim:${row.id}`),
-      CLAIM_IP_LIMIT.allow(`claim-ip:${clientAddressKey(event)}`),
-    ]);
-    if (!orderAllowed || !ipAllowed) {
+    const orderAllowed = await CLAIM_ORDER_LIMIT.allow(`claim:${row.id}`);
+    if (!orderAllowed) {
       return fail(429, { claimError: t(lang, "errors.tooManyAttempts") });
     }
 

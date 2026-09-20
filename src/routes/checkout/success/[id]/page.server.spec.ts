@@ -11,8 +11,10 @@ vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 const mockState = vi.hoisted(() => ({
   db: undefined as unknown,
-  allow: true,
+  allowIp: true,
+  allowOrder: true,
   limiterOptions: [] as { windowMs: number; max: number }[],
+  limiterCalls: [] as string[],
 }));
 
 vi.mock("$lib/server/db", () => ({
@@ -34,7 +36,12 @@ vi.mock("$lib/server/rate-limit", () => ({
   clientAddressKey: () => "test",
   createDbRateLimiter: (_db: unknown, options: { windowMs: number; max: number }) => {
     mockState.limiterOptions.push(options);
-    return { allow: async () => mockState.allow };
+    return {
+      allow: async (key: string) => {
+        mockState.limiterCalls.push(key);
+        return key.startsWith("claim-ip:") ? mockState.allowIp : mockState.allowOrder;
+      },
+    };
   },
 }));
 
@@ -191,7 +198,9 @@ function claimEvent(id: string, cookies: Cookies, form: Record<string, string> =
 }
 
 beforeEach(async () => {
-  mockState.allow = true;
+  mockState.allowIp = true;
+  mockState.allowOrder = true;
+  mockState.limiterCalls.length = 0;
   await buildDb();
 });
 
@@ -203,6 +212,27 @@ describe("claim rate limits", () => {
         { windowMs: 3_600_000, max: 20 },
       ]),
     );
+  });
+
+  it("throttles an unknown order by IP before any order lookup", async () => {
+    mockState.allowIp = false;
+
+    const result = await actions.claim(claimEvent(crypto.randomUUID(), cookieJar()));
+
+    expect(result).toMatchObject({ status: 429 });
+    expect(mockState.limiterCalls).toEqual(["claim-ip:test"]);
+  });
+
+  it("throttles a known order once its per-order limit rejects", async () => {
+    const id = await seedOrder();
+    const cookies = cookieJar();
+    await setOrderAccessCookie(cookies, id, "secret");
+    mockState.allowOrder = false;
+
+    const result = await actions.claim(claimEvent(id, cookies));
+
+    expect(result).toMatchObject({ status: 429 });
+    expect(mockState.limiterCalls).toEqual(["claim-ip:test", `claim:${id}`]);
   });
 });
 
@@ -364,16 +394,6 @@ describe("claim action", () => {
     await expect(actions.claim(claimEvent(id, cookieJar()))).rejects.toMatchObject({
       status: 404,
     });
-  });
-
-  it("returns 429 when a limit rejects the request", async () => {
-    const id = await seedOrder();
-    const cookies = cookieJar();
-    await setOrderAccessCookie(cookies, id, "secret");
-    mockState.allow = false;
-
-    const result = await actions.claim(claimEvent(id, cookies));
-    expect(result).toMatchObject({ status: 429 });
   });
 
   it("refuses a claim on a COD order", async () => {

@@ -39,7 +39,7 @@ export async function sendEmail(
 ): Promise<void> {
   const binding = platform?.env.EMAIL;
   if (!binding) {
-    console.warn("[email] EMAIL binding unavailable — skipping send to", params.to);
+    console.warn("[email] EMAIL binding unavailable — skipping send");
     return;
   }
 
