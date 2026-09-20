@@ -122,14 +122,14 @@ e2e suite (`E2E_USE_BUILD=1`); runbook go-live checklist in the PR; `verify-prod
 - [ ] SET-9 — E2E journeys: COD, transfer claim → verify, hold expiry, blend retirement (MS §9 SET-9) — GH #14
 - [ ] SET-10 — Coverage reporting + threshold for the settlement modules (MS §9 SET-10) — GH #14
 - [ ] SET-11 — Security review pass + fixes (claims untrusted, rate limits, PII masking, IDOR) (MS §9 SET-11) — GH #15
-- [ ] SET-12 — Docs truth pass: architecture, runbook, data model, go-live checklist; include one staging smoke that a real claim appends exactly one `store_payment_event` row on D1 (MS §9 SET-12) — GH #15
+- [ ] SET-12 — Docs truth pass: architecture, runbook, data model, go-live checklist; include one staging smoke that a real claim appends exactly one `store_payment_event` row on D1 (MS §9 SET-12) — GH #15; runbook must include the #13 blends category insert and the `/blends` → `/honey/blends`, `/honey` chip, and sitemap checks (AgDR-0002)
 
 ### BLEND — retire the studio, sell ready-made blends (AgDR-0002)
 
 - [x] BLEND-1 — Remove the studio: `/blends` routes, Phaser lab, blend lib, cart item kind, order expansion, navigation, i18n, tests (AgDR-0002) — GH #12
 - [x] BLEND-2 — 301 `/blends` → blends category; sitemap update; SEO check (AgDR-0002) — GH #12
-- [ ] BLEND-3 — Ready-made blend products: weight variants, jar stock, ingredient text in descriptions, photos (AgDR-0002; owner data) — GH #13
-- [ ] BLEND-4 — Storefront + admin verification for blend products (AgDR-0002; SET-9 carries the purchase e2e) — GH #13
+- [ ] BLEND-3 — Ready-made blend products: weight variants, jar stock, ingredient text in descriptions, photos (AgDR-0002; owner data) — GH #13 (hand-off: `tests/blend-product.e2e.ts` marks the category/media assertions to update once products and photos land)
+- [x] BLEND-4 — Storefront + admin verification for blend products (AgDR-0002; SET-9 carries the purchase e2e) — GH #13 (storefront; admin verification pending BLEND-3)
 
 ### DI — D1 fold + shared vocabulary (spec §9)
 
