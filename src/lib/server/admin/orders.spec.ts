@@ -452,6 +452,17 @@ describe("transitionOrderStatus", () => {
     expect((await variantStocks(db)).get("250g")).toBe(2);
   });
 
+  it("cancels a legacy order with no line items without touching stock", async () => {
+    await seedProduct(db, [{ name: "250g", stock: 3 }]);
+    const orderId = await seedOrder(db);
+
+    expect(await transitionOrderStatus(db, orderId, "cancelled")).toEqual({ ok: true });
+
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, orderId)).get();
+    expect(order?.status).toBe("cancelled");
+    expect((await variantStocks(db)).get("250g")).toBe(3);
+  });
+
   it("cancelling a placed order restores stock through the variant_id snapshot", async () => {
     const productId = await seedProduct(db, [
       { name: "250g", stock: 0 },

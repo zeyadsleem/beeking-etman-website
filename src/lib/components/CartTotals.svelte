@@ -23,6 +23,6 @@
   </div>
   <div class="mt-3 flex justify-between border-t border-cocoa-100 pt-3 text-base font-extrabold text-cocoa-900">
     <dt>{t(lang, "cart.total")}</dt>
-    <dd>{formatEGP(totals.total, lang)}</dd>
+    <dd data-testid="cart-total">{formatEGP(totals.total, lang)}</dd>
   </div>
 </dl>

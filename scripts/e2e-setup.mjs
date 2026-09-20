@@ -129,6 +129,9 @@ writeFileSync(
     `ORDER_ACCESS_SECRET=${randomBytes(32).toString("hex")}`,
     `ORIGIN=http://localhost:${PORT}`,
     "ADMIN_EMAIL=e2e@example.com",
+    // Transfer methods appear at checkout only when their account is set;
+    // tests/settlement.e2e.ts covers the InstaPay claim journey.
+    "PAYMENT_INSTAPAY_ADDRESS=e2e@instapay",
     "",
   ].join("\n"),
   { mode: 0o600 },

@@ -32,6 +32,60 @@ export default defineConfig({
   ]),
   test: {
     expect: { requireAssertions: true },
+    // Coverage is a global Vitest option (per-project coverage is unsupported),
+    // scoped to the settlement modules the M1 launch gate depends on. The
+    // browser project contributes no settlement files, so the floor only
+    // measures the server project's suites. Floors sit just below the
+    // 2026-09-20 measurement; see docs/production-runbook.md "Coverage floor".
+    coverage: {
+      provider: "v8",
+      reporter: ["text-summary", "html", "lcov"],
+      reportsDirectory: "./coverage",
+      include: ["src/lib/server/settlement/**/*.ts", "src/lib/server/admin/settlement.ts"],
+      exclude: ["**/*.spec.ts", "**/*.test.ts"],
+      thresholds: {
+        statements: 95,
+        branches: 90,
+        functions: 95,
+        lines: 95,
+        "src/lib/server/settlement/lifecycle.ts": {
+          statements: 95,
+          branches: 90,
+          functions: 95,
+          lines: 95,
+        },
+        "src/lib/server/settlement/expiry.ts": {
+          statements: 90,
+          branches: 88,
+          functions: 95,
+          lines: 90,
+        },
+        "src/lib/server/settlement/claims.ts": {
+          statements: 80,
+          branches: 75,
+          functions: 95,
+          lines: 80,
+        },
+        "src/lib/server/settlement/config.ts": {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
+        "src/lib/server/settlement/whatsapp.ts": {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
+        "src/lib/server/admin/settlement.ts": {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
+      },
+    },
     projects: [
       {
         extends: "./vite.config.ts",
