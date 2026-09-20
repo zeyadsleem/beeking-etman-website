@@ -119,8 +119,8 @@ e2e suite (`E2E_USE_BUILD=1`); runbook go-live checklist in the PR; `verify-prod
 - [ ] SET-6 — Admin review queue, settlement panel, audited actions (verify, reject, refund, extend hold) (MS §9 SET-6) — GH #9
 - [ ] SET-7 — `runSettlementJobs` hold expiry + wire into EM's Cron worker or its stub (MS §9 SET-7; after EM-4 or its stub) — GH #10
 - [ ] SET-8 — Settlement email triggers + copy (MS §9 SET-8) — GH #11
-- [ ] SET-9 — E2E journeys: COD, transfer claim → verify, hold expiry, blend retirement (MS §9 SET-9) — GH #14
-- [ ] SET-10 — Coverage reporting + threshold for the settlement modules (MS §9 SET-10) — GH #14
+- [x] SET-9 — E2E journeys: COD, transfer claim → verify, hold expiry, blend retirement (MS §9 SET-9) — GH #14 (COD + transfer in `tests/settlement.e2e.ts`; `/blends` 301 + blend purchase carried by BLEND-2/BLEND-4 in `tests/blend-product.e2e.ts`; hold-expiry e2e is blocked by the missing worker runtime — Cloudflare Pages has no cron and EM-4 does not exist yet, so the expiry path stays covered by `src/lib/server/settlement/expiry.spec.ts` and the e2e lands with EM-4)
+- [x] SET-10 — Coverage reporting + threshold for the settlement modules (MS §9 SET-10) — GH #14 (`pnpm run test:coverage`, floor + rationale in `docs/production-runbook.md` "Coverage floor", CI artifact `coverage-report`)
 - [ ] SET-11 — Security review pass + fixes (claims untrusted, rate limits, PII masking, IDOR) (MS §9 SET-11) — GH #15
 - [ ] SET-12 — Docs truth pass: architecture, runbook, data model, go-live checklist; include one staging smoke that a real claim appends exactly one `store_payment_event` row on D1 (MS §9 SET-12) — GH #15; runbook must include the #13 blends category insert and the `/blends` → `/honey/blends`, `/honey` chip, and sitemap checks (AgDR-0002)
 

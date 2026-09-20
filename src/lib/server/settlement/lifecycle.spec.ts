@@ -12,6 +12,7 @@ import {
   applyPaymentTransition,
   canTransitionOrder,
   canTransitionPayment,
+  paymentEventStatement,
   recordPaymentEvent,
   storedOrderStatusValues,
 } from "./lifecycle";
@@ -275,6 +276,37 @@ describe("applyPaymentTransition", () => {
     ).toEqual({ ok: false, reason: "invalid_transition" });
     const row = await db.select({ paymentStatus: schema.order.paymentStatus }).from(schema.order);
     expect(row[0]?.paymentStatus).toBe("refunded");
+  });
+});
+
+describe("paymentEventStatement", () => {
+  let db: Awaited<ReturnType<typeof buildDb>>;
+  beforeEach(async () => {
+    db = await buildDb();
+  });
+
+  it("lists the insert columns in store_payment_event declaration order", () => {
+    const statement = paymentEventStatement(db, {
+      orderId: "order-1",
+      type: "claim",
+      actor: "customer",
+    });
+    const { sql: text } = (statement as unknown as { toSQL(): { sql: string } }).toSQL();
+    const identifiers = [...text.matchAll(/"([^"]+)"/g)].map((match) => match[1] ?? "");
+    // The SELECT values are positional, so this order must match
+    // src/lib/server/db/schema.ts exactly.
+    expect(identifiers).toEqual([
+      "store_payment_event",
+      "id",
+      "order_id",
+      "type",
+      "actor",
+      "actor_user_id",
+      "method",
+      "reference",
+      "note",
+      "created_at",
+    ]);
   });
 });
 

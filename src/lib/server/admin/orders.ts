@@ -15,6 +15,7 @@ import {
   applyOrderTransition,
   canTransitionOrder,
   storedOrderStatusValues,
+  type BatchStatement,
 } from "$lib/server/settlement/lifecycle";
 import { affectedRowCount, retryOnBusy } from "$lib/server/sqlite";
 
@@ -214,21 +215,29 @@ async function cancelLegacyOrder(
     .set({ status: "cancelled" })
     .where(and(eq(schema.order.id, orderId), eq(schema.order.status, currentStatus)));
 
-  const hasVariantItems = items.some((i) => i.variantId !== null);
-  const restockSql = hasVariantItems
-    ? db.run(sql`
-        UPDATE store_product_variant
-        SET stock = stock + COALESCE((
-          SELECT SUM(quantity)
-          FROM store_order_item
-          WHERE order_id = ${orderId} AND variant_id = store_product_variant.id
-        ), 0)
-        WHERE id IN (SELECT variant_id FROM store_order_item WHERE order_id = ${orderId} AND variant_id IS NOT NULL)
-          AND (SELECT changes()) = 1
-      `)
-    : db.run(sql`SELECT 1`);
+  // The restock gates itself on the status flip (`changes() = 1`), so a stale
+  // or replayed cancel never restocks twice. Built through the update builder
+  // (not raw `db.run`) because the D1 batch implementation only binds
+  // statements carrying a prepared `stmt`.
+  const restock = items.length
+    ? db
+        .update(schema.productVariant)
+        .set({
+          stock: sql`stock + COALESCE((
+            SELECT SUM(quantity)
+            FROM store_order_item
+            WHERE order_id = ${orderId} AND variant_id = store_product_variant.id
+          ), 0)`,
+        })
+        .where(
+          sql`id IN (SELECT variant_id FROM store_order_item WHERE order_id = ${orderId} AND variant_id IS NOT NULL) AND (SELECT changes()) = 1`,
+        )
+    : null;
 
-  const [flip] = await retryOnBusy(() => db.batch([statusUpdate, restockSql]));
+  const statements: [BatchStatement, ...BatchStatement[]] = restock
+    ? [statusUpdate, restock]
+    : [statusUpdate];
+  const [flip] = await retryOnBusy(() => db.batch(statements));
   if (affectedRowCount(flip) !== 1) {
     return { ok: false, reason: "invalid_transition" };
   }

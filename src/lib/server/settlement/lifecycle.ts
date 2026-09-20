@@ -161,15 +161,15 @@ export type BatchStatement = Parameters<LibSQLDatabase<typeof schema>["batch"]>[
  * Batch statement that appends a settlement event only when the immediately
  * preceding UPDATE in the same batch matched a row (`changes()`): the ledger
  * and the state stay consistent in both directions. The column list mirrors
- * `store_payment_event` in src/lib/server/db/schema.ts.
+ * `store_payment_event` in src/lib/server/db/schema.ts. Built through the
+ * insert builder (not raw `db.run`) because the D1 batch implementation only
+ * binds statements carrying a prepared `stmt`.
  */
 export function paymentEventStatement(
   db: LibSQLDatabase<typeof schema>,
   event: PaymentEventInput,
 ): BatchStatement {
-  return db.run(sql`
-    INSERT INTO store_payment_event
-      (id, order_id, type, actor, actor_user_id, method, reference, note, created_at)
+  return db.insert(schema.paymentEvent).select(sql`
     SELECT ${crypto.randomUUID()}, ${event.orderId}, ${event.type}, ${event.actor},
            ${event.actorUserId ?? null}, ${event.method ?? null},
            ${event.reference ?? null}, ${event.note ?? null}, ${event.now ?? Date.now()}

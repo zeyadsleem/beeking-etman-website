@@ -175,6 +175,31 @@ the migration can rewrite `paid` → `placed` and drop the legacy path.
    characters.
 6. Smoke-test the production URL.
 
+### Coverage floor
+
+`pnpm run test:coverage` runs the server test project with coverage, writes
+`coverage/` (text summary + html + lcov), and fails on a threshold regression.
+CI runs the same command after the unit tests and uploads the report as the
+`coverage-report` artifact.
+
+The floor covers the manual-settlement modules
+(`src/lib/server/settlement/**` plus `src/lib/server/admin/settlement.ts`) and
+was measured on 2026-09-20 (GH #14):
+
+| Scope                          | Statements | Branches | Functions | Lines  |
+| ------------------------------ | ---------- | -------- | --------- | ------ |
+| Settlement modules (aggregate) | 96.57%     | 94.11%   | 100%      | 96.62% |
+| Configured floor               | 95%        | 90%      | 95%       | 95%    |
+
+Per-file floors for the key settlement files sit just below each measured
+value, so a real regression fails the run while normal refactors do not.
+`claims.ts` carries the lowest floor (80% lines / 75% branches) because its
+concurrent-claim fallback is defensive rather than a primary path.
+`src/lib/server/email.ts` stays out of scope: it measures 75.47% lines /
+54.16% branches, and folding it in would hide settlement regressions behind
+unrelated email gaps. Raising the floor requires re-measuring and updating this
+section in the same PR.
+
 ### Hotfix
 
 Same as a normal deploy but on a branch cut from `main`. The
