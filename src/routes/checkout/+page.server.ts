@@ -142,7 +142,7 @@ export const actions: Actions = {
 
     // Best-effort order confirmation email — never block the redirect.
     try {
-      await sendOrderConfirmation(event.platform, db, result.orderId);
+      await sendOrderConfirmation(db, result.orderId);
     } catch (e) {
       console.error("[checkout] order confirmation email failed", e);
     }

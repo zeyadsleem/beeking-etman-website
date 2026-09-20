@@ -8,6 +8,7 @@ import * as schema from "$lib/server/db/schema";
 import { t, type MessageKey } from "$lib/i18n/messages";
 import { receivingAccountFor, settlementConfig } from "$lib/server/settlement/config";
 import { submitClaim, type ClaimResult } from "$lib/server/settlement/claims";
+import { sendPaymentClaimed } from "$lib/server/email";
 import { customerOrderWhatsappText, whatsappLink } from "$lib/server/settlement/whatsapp";
 import { parsePaymentMethod, parsePaymentStatus } from "$lib/settlement/types";
 import { clientAddressKey, createDbRateLimiter } from "$lib/server/rate-limit";
@@ -156,6 +157,13 @@ export const actions: Actions = {
     });
     if (!result.ok) {
       return fail(400, { claimError: t(lang, CLAIM_FAILURE_KEYS[result.reason]) });
+    }
+
+    // Best-effort settlement notifications — never fail a recorded claim.
+    try {
+      await sendPaymentClaimed(db, row.id);
+    } catch (e) {
+      console.error("[checkout/success] claim notification failed", e);
     }
     return { claimSubmitted: true };
   },

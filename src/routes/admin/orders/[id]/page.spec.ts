@@ -27,6 +27,13 @@ vi.mock("$lib/server/db", () => ({
   },
 }));
 
+vi.mock("$env/dynamic/private", () => ({
+  env: {
+    ORIGIN: "https://example.com",
+    ADMIN_NOTIFY_EMAILS: "",
+  },
+}));
+
 const DB_FILE = "admin-order-detail-test.db";
 
 let client: ReturnType<typeof createClient> | null = null;
@@ -42,6 +49,7 @@ function currentDb(): LibSQLDatabase<typeof schema> {
 async function buildDb(): Promise<void> {
   client ??= createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
+  await db.run(`DROP TABLE IF EXISTS store_notification`);
   await db.run(`DROP TABLE IF EXISTS store_order_item`);
   await db.run(`DROP TABLE IF EXISTS store_product_variant`);
   await db.run(`DROP TABLE IF EXISTS store_payment_event`);
@@ -98,6 +106,27 @@ async function buildDb(): Promise<void> {
       id TEXT PRIMARY KEY NOT NULL, admin_user_id TEXT, action TEXT NOT NULL,
       target_type TEXT NOT NULL, target_id TEXT NOT NULL, details TEXT,
       created_at INTEGER NOT NULL
+    )`);
+  // Mirrors the 0018 DDL (email delivery spec §3.2).
+  await db.run(`
+    CREATE TABLE store_notification (
+      id                  text PRIMARY KEY NOT NULL,
+      type                text NOT NULL,
+      channel             text NOT NULL DEFAULT 'email',
+      recipient           text NOT NULL,
+      from_address        text NOT NULL DEFAULT '',
+      subject             text NOT NULL,
+      body                text NOT NULL,
+      status              text NOT NULL DEFAULT 'pending'
+                          CHECK (status IN ('pending','sending','sent','failed','dead')),
+      attempt_count       integer NOT NULL DEFAULT 0,
+      next_attempt_at     integer,
+      last_error          text,
+      provider_message_id text,
+      locked_at           integer,
+      idempotency_key     text,
+      created_at          integer NOT NULL,
+      sent_at             integer
     )`);
   await db.run(`DROP TABLE IF EXISTS user`);
   await db.run(`
@@ -448,6 +477,37 @@ describe("admin order detail update action", () => {
     expect(message).toBe(t("ar", "admin.order.updated"));
     const row = await db.select({ status: schema.order.status }).from(schema.order).get();
     expect(row?.status).toBe("confirmed");
+    const notifications = await db.select().from(schema.notification);
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toMatchObject({
+      type: "status_update",
+      recipient: "a@example.com",
+      status: "pending",
+    });
+  });
+
+  it("enqueues shipped and delivered status updates with their labels", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { status: "confirmed" });
+
+    successOf(await update(fakeEvent(id, { role: "admin" }, { id, status: "shipped" })));
+    successOf(await update(fakeEvent(id, { role: "admin" }, { id, status: "delivered" })));
+
+    const notifications = await db.select().from(schema.notification);
+    expect(notifications).toHaveLength(2);
+    for (const notification of notifications) {
+      expect(notification).toMatchObject({
+        type: "status_update",
+        recipient: "a@example.com",
+        status: "pending",
+      });
+    }
+    const bodies = notifications.map(
+      (notification) => JSON.parse(notification.body).text as string,
+    );
+    expect(bodies.some((body) => body.includes("تم الشحن 📦"))).toBe(true);
+    expect(bodies.some((body) => body.includes("تم التسليم ✅"))).toBe(true);
+    expect(bodies.join("\n")).not.toMatch(/تم الدفع|paid/i);
   });
 
   it("localizes the success message via the lang cookie", async () => {
@@ -569,6 +629,17 @@ describe("admin order detail settlement actions", () => {
       reference: "TRX-7",
       note: null,
     });
+
+    const notifications = await currentDb().select().from(schema.notification);
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toMatchObject({
+      type: "payment_confirmed",
+      recipient: "a@example.com",
+      status: "pending",
+    });
+    const body = JSON.parse(notifications[0]!.body) as { html: string; text: string };
+    expect(body.text).toContain("تأكد الدفع");
+    expect(body.text).toContain("المبلغ المدفوع");
   });
 
   it("verifies with a note only, records it in the audit, and keeps the claim reference", async () => {
@@ -625,6 +696,22 @@ describe("admin order detail settlement actions", () => {
     const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
     expect(order?.paymentStatus).toBe("unpaid");
     expect(await db.select().from(schema.paymentEvent)).toHaveLength(0);
+    expect(await db.select().from(schema.notification)).toHaveLength(0);
+  });
+
+  it("keeps the recorded payment when the notification insert fails", async () => {
+    const db = currentDb();
+    const id = await seedOrder(db, { paymentStatus: "pending_review", paymentMethod: "instapay" });
+    await db.run(`DROP TABLE store_notification`);
+
+    const message = successOf(
+      await markPaid(fakeEvent(id, { role: "admin", userId: "admin-1" }, { reference: "TRX-7" })),
+    );
+
+    expect(message).toBe(t("ar", "admin.order.paymentRecorded"));
+    const order = await db.select().from(schema.order).where(eq(schema.order.id, id)).get();
+    expect(order?.paymentStatus).toBe("paid");
+    expect(await auditRowsFor("order.payment_mark_paid")).toHaveLength(1);
   });
 
   it("maps a settled order to 409 for mark_paid", async () => {
@@ -662,6 +749,17 @@ describe("admin order detail settlement actions", () => {
       to: "failed",
       note: "no transfer found",
     });
+
+    const notifications = await currentDb().select().from(schema.notification);
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toMatchObject({
+      type: "payment_failed",
+      recipient: "a@example.com",
+      status: "pending",
+    });
+    const body = JSON.parse(notifications[0]!.body) as { text: string };
+    expect(body.text).toContain("لم نتمكن من تأكيد التحويل");
+    expect(body.text).not.toMatch(/تم الدفع|paid/i);
   });
 
   it("requires a note to reject a claim", async () => {
@@ -702,6 +800,17 @@ describe("admin order detail settlement actions", () => {
       reference: "RF-1",
       note: "customer changed mind",
     });
+
+    const notifications = await currentDb().select().from(schema.notification);
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toMatchObject({
+      type: "refund",
+      recipient: "a@example.com",
+      status: "pending",
+    });
+    const body = JSON.parse(notifications[0]!.body) as { text: string };
+    expect(body.text).toContain("المبلغ المسترد");
+    expect(body.text).toContain("RF-1");
   });
 
   it("requires both the reason and the reference to refund", async () => {

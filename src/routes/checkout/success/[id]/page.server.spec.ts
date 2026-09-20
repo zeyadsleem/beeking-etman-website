@@ -23,9 +23,11 @@ vi.mock("$lib/server/db", () => ({
 vi.mock("$env/dynamic/private", () => ({
   env: {
     ORDER_ACCESS_SECRET: "secret",
+    ORIGIN: "https://example.com",
     PAYMENT_INSTAPAY_ADDRESS: "shop@instapay",
     PAYMENT_WALLET_NUMBER: "01000000000",
     WHATSAPP_NUMBER: "+20 100 000 0000",
+    ADMIN_NOTIFY_EMAILS: "ops@example.com",
   },
 }));
 vi.mock("$lib/server/rate-limit", () => ({
@@ -45,6 +47,7 @@ async function buildDb() {
   client ??= createClient({ url: `file:${DB_FILE}` });
   const db = drizzle(client, { schema });
   mockState.db = db;
+  await db.run(`DROP TABLE IF EXISTS store_notification`);
   await db.run(`DROP TABLE IF EXISTS store_payment_event`);
   await db.run(`DROP TABLE IF EXISTS store_order_item`);
   await db.run(`DROP TABLE IF EXISTS store_order`);
@@ -96,6 +99,27 @@ async function buildDb() {
       variant_name TEXT NOT NULL DEFAULT '',
       quantity INTEGER NOT NULL,
       unit_price INTEGER NOT NULL
+    )`);
+  // Mirrors the 0018 DDL (email delivery spec §3.2).
+  await db.run(`
+    CREATE TABLE store_notification (
+      id                  text PRIMARY KEY NOT NULL,
+      type                text NOT NULL,
+      channel             text NOT NULL DEFAULT 'email',
+      recipient           text NOT NULL,
+      from_address        text NOT NULL DEFAULT '',
+      subject             text NOT NULL,
+      body                text NOT NULL,
+      status              text NOT NULL DEFAULT 'pending'
+                          CHECK (status IN ('pending','sending','sent','failed','dead')),
+      attempt_count       integer NOT NULL DEFAULT 0,
+      next_attempt_at     integer,
+      last_error          text,
+      provider_message_id text,
+      locked_at           integer,
+      idempotency_key     text,
+      created_at          integer NOT NULL,
+      sent_at             integer
     )`);
   return db;
 }
@@ -283,6 +307,44 @@ describe("claim action", () => {
       actorUserId: "user-1",
       method: "instapay",
     });
+  });
+
+  it("enqueues the claim acknowledgement and the admin alert", async () => {
+    const id = await seedOrder();
+    const cookies = cookieJar();
+    await setOrderAccessCookie(cookies, id, "secret");
+
+    await expect(actions.claim(claimEvent(id, cookies))).resolves.toMatchObject({
+      claimSubmitted: true,
+    });
+
+    const db = mockState.db as Awaited<ReturnType<typeof buildDb>>;
+    const rows = await db.select().from(schema.notification);
+    expect(rows).toHaveLength(2); // customer + the single ADMIN_NOTIFY_EMAILS entry
+    expect(rows.map((row) => row.recipient).sort()).toEqual(["a@example.com", "ops@example.com"]);
+    for (const row of rows) {
+      expect(row.type).toBe("payment_claimed");
+      expect(row.status).toBe("pending");
+    }
+    const customer = rows.find((row) => row.recipient === "a@example.com");
+    expect(JSON.parse(customer?.body ?? "{}")).toMatchObject({
+      text: expect.stringContaining("سجّلنا إشعارك بالتحويل"),
+    });
+  });
+
+  it("records the claim even when the notification insert fails", async () => {
+    const id = await seedOrder();
+    const cookies = cookieJar();
+    await setOrderAccessCookie(cookies, id, "secret");
+    const db = mockState.db as Awaited<ReturnType<typeof buildDb>>;
+    await db.run(`DROP TABLE store_notification`);
+
+    await expect(actions.claim(claimEvent(id, cookies))).resolves.toMatchObject({
+      claimSubmitted: true,
+    });
+
+    const order = await db.select().from(schema.order);
+    expect(order[0]?.paymentStatus).toBe("pending_review");
   });
 
   it("answers a duplicate claim with the friendly already-claimed error", async () => {
