@@ -565,7 +565,7 @@ describe("transitionOrderStatus", () => {
     expect(stocks.get("1kg")).toBe(2);
   });
 
-  it("restocks blend additive units after cancellation using their variant_id snapshots", async () => {
+  it("restocks every order line from its variant_id snapshot after cancellation", async () => {
     const honeyProductId = await seedProduct(db, [{ name: "500g", stock: 0 }]);
     const additiveProductId = await seedProduct(db, [{ name: "5g", stock: 0 }]);
     const honeyVariant = await db

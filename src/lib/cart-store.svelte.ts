@@ -1,67 +1,31 @@
 import { browser } from "$app/environment";
-import { z } from "zod";
 import {
-  addBlendItem,
   addItem,
-  adjustBlendQuantity,
   adjustQuantity,
   computeTotals,
-  isBlendItem,
   itemId,
+  parseStoredCartItems,
   removeById,
 } from "./cart";
-import { ADDITIVE_KEYS, JAR_SIZES, type AdditiveKey } from "./blends";
-import type { BlendCartItem, CartEntry, CartItem, CartTotals, RegularCartItem } from "./cart";
+import type { CartItem, CartLine, CartTotals } from "./cart";
 import { trackAddToCart, trackRemoveFromCart } from "./analytics-events";
 
 const STORAGE_KEY = "beeking_cart_v2";
 // Pre-rename localStorage key, migrated to STORAGE_KEY on first load.
 const LEGACY_STORAGE_KEY = "honey_cart_v2";
 
-const AdditiveKeySchema = z.enum([...ADDITIVE_KEYS] as [AdditiveKey, ...AdditiveKey[]]);
-const JarSizeSchema = z.enum(JAR_SIZES);
-
-const RegularItemSchema = z.object({
-  variantId: z.string(),
-  productId: z.string(),
-  name: z.string(),
-  variantName: z.string(),
-  slug: z.string(),
-  categorySlug: z.string(),
-  department: z.string(),
-  image: z.string(),
-  quantity: z.number(),
-  price: z.number(),
-  stock: z.number(),
-});
-
-const BlendAdditiveSchema = z.object({
-  key: AdditiveKeySchema,
-  variantId: z.string(),
-  productId: z.string(),
-  name: z.string(),
-  image: z.string(),
-  qty: z.number(),
-  price: z.number(),
-  stock: z.number(),
-});
-
-const BlendItemSchema = z.object({
-  kind: z.literal("blend"),
-  id: z.string(),
-  baseVariantId: z.string(),
-  productId: z.string(),
-  name: z.string(),
-  variantName: z.string(),
-  image: z.string(),
-  jarSize: JarSizeSchema,
-  basePrice: z.number(),
-  stock: z.number(),
-  quantity: z.number().positive().int(),
-  additives: z.array(BlendAdditiveSchema),
-});
-
-const CartItemSchema = z.union([RegularItemSchema, BlendItemSchema]);
+/**
+ * Reads a stored payload, dropping individual invalid entries (for example
+ * legacy blend lines). Returns null for malformed JSON so callers leave the
+ * in-memory cart untouched instead of clearing it.
+ */
+function readStoredCart(raw: string): CartItem[] | null {
+  try {
+    return parseStoredCartItems(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
 
 interface CartUiState {
   items: CartItem[];
@@ -78,18 +42,8 @@ const syncing = $state<Set<string>>(new Set());
 /** Last sync error message — clears on next successful sync. */
 let syncError = $state<string | null>(null);
 
-function toEntries(items: CartItem[]): CartEntry[] {
-  return items.map((i) =>
-    isBlendItem(i)
-      ? {
-          kind: "blend" as const,
-          id: i.id,
-          baseVariantId: i.baseVariantId,
-          jarSize: i.jarSize,
-          additives: i.additives.map((a) => ({ key: a.key, variantId: a.variantId, qty: a.qty })),
-        }
-      : { variantId: i.variantId, quantity: i.quantity },
-  );
+function toEntries(items: CartItem[]): CartLine[] {
+  return items.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
 }
 
 /** Snapshot current items before an optimistic mutation so we can rollback. */
@@ -157,10 +111,11 @@ function bindCrossTabSync(): void {
   window.addEventListener("storage", (event) => {
     if ((event.key !== STORAGE_KEY && event.key !== LEGACY_STORAGE_KEY) || event.newValue === null)
       return;
-    const parsed = CartItemSchema.array().safeParse(JSON.parse(event.newValue));
-    state.items = parsed.success ? parsed.data : [];
+    const items = readStoredCart(event.newValue);
+    if (!items) return;
+    state.items = items;
     if (event.key === LEGACY_STORAGE_KEY) {
-      migrateLegacyStorage(event.newValue);
+      migrateLegacyStorage(items);
     }
     void fetch("/api/cart", {
       method: "POST",
@@ -170,9 +125,9 @@ function bindCrossTabSync(): void {
   });
 }
 
-function migrateLegacyStorage(raw: string): void {
+function migrateLegacyStorage(items: CartItem[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, raw);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
     // Storage unavailable; the legacy key stays readable.
@@ -187,9 +142,13 @@ export function loadCart(): void {
     const current = localStorage.getItem(STORAGE_KEY);
     const raw = current ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     if (raw) {
-      const parsed = CartItemSchema.array().safeParse(JSON.parse(raw));
-      state.items = parsed.success ? parsed.data : [];
-      if (parsed.success && !current) migrateLegacyStorage(raw);
+      const items = readStoredCart(raw);
+      if (items) {
+        state.items = items;
+        if (!current) migrateLegacyStorage(items);
+      } else {
+        state.items = [];
+      }
     }
   } catch {
     state.items = [];
@@ -204,8 +163,7 @@ interface CartNameRefreshItem {
 }
 
 async function refreshNamesFromServer(): Promise<void> {
-  const regularItems = state.items.filter((i) => !isBlendItem(i));
-  if (regularItems.length === 0) return;
+  if (state.items.length === 0) return;
   try {
     const res = await fetch("/api/cart");
     if (!res.ok) return;
@@ -213,7 +171,6 @@ async function refreshNamesFromServer(): Promise<void> {
     const byVariant = new Map(data.items.map((i) => [i.variantId, i]));
     let changed = false;
     state.items = state.items.map((item) => {
-      if (isBlendItem(item)) return item;
       const server = byVariant.get(item.variantId);
       if (!server || (server.name === item.name && server.variantName === item.variantName)) {
         return item;
@@ -233,7 +190,7 @@ async function refreshNamesFromServer(): Promise<void> {
   }
 }
 
-export function addToCart(product: Omit<RegularCartItem, "quantity">, quantity = 1): void {
+export function addToCart(product: Omit<CartItem, "quantity">, quantity = 1): void {
   const prev = snapshot();
   state.items = addItem(state.items, product, quantity);
   persist(prev, state.items, `add:${product.variantId}`);
@@ -246,35 +203,18 @@ export function addToCart(product: Omit<RegularCartItem, "quantity">, quantity =
   });
 }
 
-export function addBlend(blend: Omit<BlendCartItem, "kind" | "id">): void {
-  const prev = snapshot();
-  state.items = addBlendItem(state.items, blend);
-  persist(prev, state.items, `blend:${blend.baseVariantId}`);
-}
-
 export function setQuantity(variantId: string, quantity: number): void {
-  const current = state.items.find((i) => !isBlendItem(i) && i.variantId === variantId);
+  const current = state.items.find((i) => i.variantId === variantId);
   if (!current) return;
   const prev = snapshot();
   state.items = adjustQuantity(state.items, variantId, quantity - current.quantity);
   persist(prev, state.items, `qty:${variantId}`);
 }
 
-export function setBlendQuantity(id: string, quantity: number): void {
-  const current = state.items.find((i) => isBlendItem(i) && i.id === id);
-  if (!current) return;
-  const prev = snapshot();
-  state.items = adjustBlendQuantity(state.items, id, quantity - current.quantity);
-  persist(prev, state.items, `bqty:${id}`);
-}
-
 export function removeFromCart(id: string): void {
   const item = state.items.find((i) => itemId(i) === id);
   if (item) {
-    trackRemoveFromCart({
-      variantId: isBlendItem(item) ? item.baseVariantId : item.variantId,
-      name: item.name,
-    });
+    trackRemoveFromCart({ variantId: item.variantId, name: item.name });
   }
   const prev = snapshot();
   state.items = removeById(state.items, id);

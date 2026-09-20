@@ -1,8 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { dev } from "$app/environment";
 import type { Cookies } from "@sveltejs/kit";
-import { isAdditiveKey } from "$lib/blends";
-import type { BlendLineAdditive, CartEntry, CartLine } from "$lib/cart";
+import type { CartLine } from "$lib/cart";
 
 export const CART_COOKIE_NAME = "beeking_cart";
 // Pre-rename cookie name, still read (and retired on write) so carts created
@@ -34,39 +33,20 @@ function sanitizeRegularLine(entry: Record<string, unknown>): CartLine[] {
   return [{ variantId, quantity: Math.floor(quantity) }];
 }
 
-function sanitizeBlendLine(entry: Record<string, unknown>): CartEntry[] {
-  const { id, baseVariantId, jarSize, additives } = entry;
-  if (typeof id !== "string" || id.length === 0) return [];
-  if (typeof baseVariantId !== "string" || baseVariantId.length === 0) return [];
-  if (jarSize !== "half" && jarSize !== "full") return [];
-  if (!Array.isArray(additives)) return [];
-  const cleaned = additives.flatMap((raw): BlendLineAdditive[] => {
-    if (typeof raw !== "object" || raw === null) return [];
-    const { key, variantId, qty } = raw as Record<string, unknown>;
-    if (!isAdditiveKey(key)) return [];
-    if (typeof variantId !== "string" || variantId.length === 0) return [];
-    if (typeof qty !== "number" || !Number.isFinite(qty) || qty <= 0) return [];
-    return [{ key, variantId, qty: Math.floor(qty) }];
-  });
-  return [{ kind: "blend", id, baseVariantId, jarSize, additives: cleaned }];
-}
-
-export function sanitizeCartLines(input: unknown): CartEntry[] {
+export function sanitizeCartLines(input: unknown): CartLine[] {
   if (!Array.isArray(input)) return [];
   return input.flatMap((entry) => {
     if (typeof entry !== "object" || entry === null) return [];
-    const record = entry as Record<string, unknown>;
-    if (record.kind === "blend") return sanitizeBlendLine(record);
-    return sanitizeRegularLine(record);
+    return sanitizeRegularLine(entry as Record<string, unknown>);
   });
 }
 
-export function signCartCookie(secret: string, lines: CartEntry[]): string {
+export function signCartCookie(secret: string, lines: CartLine[]): string {
   const body = JSON.stringify(sanitizeCartLines(lines));
   return `${body}.${sign(secret, body)}`;
 }
 
-export function readCartFromString(raw: string, secret: string): CartEntry[] {
+export function readCartFromString(raw: string, secret: string): CartLine[] {
   const { body, sig } = splitPayload(raw);
   if (!body || !sig) return [];
   const expected = sign(secret, body);
@@ -80,13 +60,13 @@ export function readCartFromString(raw: string, secret: string): CartEntry[] {
   }
 }
 
-export function readCartCookie(cookies: Cookies, secret: string): CartEntry[] {
+export function readCartCookie(cookies: Cookies, secret: string): CartLine[] {
   const raw = cookies.get(CART_COOKIE_NAME) ?? cookies.get(LEGACY_CART_COOKIE_NAME);
   if (!raw) return [];
   return readCartFromString(raw, secret);
 }
 
-export function setCartCookie(cookies: Cookies, secret: string, lines: CartEntry[]): void {
+export function setCartCookie(cookies: Cookies, secret: string, lines: CartLine[]): void {
   cookies.set(CART_COOKIE_NAME, signCartCookie(secret, lines), {
     path: "/",
     httpOnly: true,

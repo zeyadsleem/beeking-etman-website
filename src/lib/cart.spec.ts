@@ -1,21 +1,16 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
-  addBlendItem,
   addItem,
-  adjustBlendQuantity,
   adjustQuantity,
-  blendItemSignature,
-  blendTotal,
   computeTotals,
   FREE_SHIPPING_THRESHOLD,
-  isBlendItem,
   itemId,
   lineTotal,
+  parseStoredCartItems,
   removeById,
-  removeItem,
 } from "./cart";
 import { computeShipping, DEFAULT_GOVERNORATE } from "./shipping";
-import type { BlendCartItem, CartItem } from "./cart";
+import type { CartItem } from "./cart";
 
 const product = {
   variantId: "v1",
@@ -65,14 +60,19 @@ describe("adjustQuantity", () => {
   });
 });
 
-describe("removeItem", () => {
+describe("removeById", () => {
   it("removes only the matching variant", () => {
     const other = { ...product, variantId: "v2" };
-    expect(
-      removeItem([item(product), item(other)], "v1").map((i) =>
-        isBlendItem(i) ? "" : i.variantId,
-      ),
-    ).toEqual(["v2"]);
+    expect(removeById([item(product), item(other)], "v1").map((i) => i.variantId)).toEqual(["v2"]);
+  });
+  it("matches lines by variant id", () => {
+    expect(itemId(item(product))).toBe("v1");
+  });
+});
+
+describe("lineTotal", () => {
+  it("multiplies the unit price by quantity", () => {
+    expect(lineTotal(item(product, 3))).toBe(3 * 380_00);
   });
 });
 
@@ -92,188 +92,33 @@ describe("computeTotals", () => {
   });
 });
 
-const blend = (overrides: Partial<BlendCartItem> = {}): BlendCartItem => ({
-  kind: "blend",
-  id: "blend-1",
-  baseVariantId: "base-1",
-  productId: "p-base",
-  name: "عسل سدر مصري",
-  variantName: "نص كيلو",
-  image: "https://example.com/honey.jpg",
-  jarSize: "half",
-  basePrice: 380_00,
-  stock: 5,
-  quantity: 1,
-  additives: [
-    {
-      key: "royalJelly",
-      variantId: "rj-1",
-      productId: "p-rj",
-      name: "غذاء ملكات",
-      image: "https://example.com/rj.jpg",
-      qty: 1,
-      price: 85_00,
-      stock: 3,
-    },
-    {
-      key: "propolis",
-      variantId: "pr-1",
-      productId: "p-pr",
-      name: "بروبليس",
-      image: "https://example.com/pr.jpg",
-      qty: 2,
-      price: 160_00,
-      stock: 4,
-    },
-  ],
-  ...overrides,
-});
+describe("parseStoredCartItems", () => {
+  const legacyBlend = {
+    kind: "blend",
+    id: "blend-1",
+    baseVariantId: "base-1",
+    jarSize: "half",
+    additives: [{ key: "royalJelly", variantId: "rj-1", qty: 1 }],
+    name: "خلطة",
+    variantName: "نص كيلو",
+    image: "https://example.com/blend.jpg",
+    basePrice: 380_00,
+    stock: 5,
+    quantity: 1,
+  };
 
-describe("blend items", () => {
-  it("isBlendItem and itemId resolve a blend by id", () => {
-    expect(isBlendItem(blend())).toBe(true);
-    expect(itemId(blend())).toBe("blend-1");
-    expect(itemId(item(product))).toBe("v1");
+  it("keeps regular lines and drops a legacy blend entry from a mixed payload", () => {
+    expect(parseStoredCartItems([legacyBlend, item(product, 2)])).toEqual([item(product, 2)]);
   });
-  it("blendTotal sums base and additive doses", () => {
-    expect(blendTotal(blend())).toBe(380_00 + 85_00 + 2 * 160_00);
-  });
-  it("lineTotal equals blendTotal for blends and price×qty otherwise", () => {
-    expect(lineTotal(blend())).toBe(blendTotal(blend()));
-    expect(lineTotal(blend({ quantity: 5 }))).toBe(blendTotal(blend()) * 5);
-    expect(lineTotal(item(product, 2))).toBe(2 * 380_00);
-  });
-  it("addBlendItem appends with a generated id", () => {
-    const { id: _id, kind: _kind, ...rest } = blend();
-    const added = addBlendItem([], rest)[0];
-    expect(isBlendItem(added)).toBe(true);
-    if (isBlendItem(added)) {
-      expect(added.id).toMatch(/^blend-/);
-      expect(added).toMatchObject(rest);
-    }
-  });
-  it("removeById removes only the matching line", () => {
-    const regular = item(product);
-    const lines: CartItem[] = [regular, blend()];
-    expect(removeById(lines, "blend-1")).toEqual([regular]);
-    expect(removeById(lines, "v1")).toEqual([blend()]);
-  });
-  it("computeTotals includes additive doses and counts quantity", () => {
-    const totals = computeTotals([blend()]);
-    expect(totals.itemCount).toBe(1);
-    expect(totals.subtotal).toBe(380_00 + 85_00 + 2 * 160_00);
 
-    const multi = computeTotals([blend({ quantity: 3 })]);
-    expect(multi.itemCount).toBe(3);
-    expect(multi.subtotal).toBe((380_00 + 85_00 + 2 * 160_00) * 3);
+  it("drops malformed entries individually", () => {
+    expect(parseStoredCartItems([{ variantId: "v1" }, item(product, 1)])).toEqual([
+      item(product, 1),
+    ]);
   });
-  it("adjustQuantity and removeItem never touch blends", () => {
-    const lines: CartItem[] = [blend()];
-    expect(adjustQuantity(lines, "rj-1", -1)).toEqual(lines);
-    expect(removeItem(lines, "rj-1")).toEqual(lines);
-  });
-  it("adjustBlendQuantity increments by id and removes at zero", () => {
-    const lines: CartItem[] = [blend()];
-    const up = adjustBlendQuantity(lines, "blend-1", 2);
-    expect(isBlendItem(up[0])).toBe(true);
-    if (isBlendItem(up[0])) expect(up[0].quantity).toBe(3);
-    expect(adjustBlendQuantity(lines, "blend-1", -1)).toHaveLength(0);
-  });
-  it("adjustBlendQuantity clamps to the blend stock cap", () => {
-    const lines: CartItem[] = [blend({ stock: 4 })];
-    const out = adjustBlendQuantity(lines, "blend-1", 3);
-    expect(isBlendItem(out[0])).toBe(true);
-    if (isBlendItem(out[0])) expect(out[0].quantity).toBe(4);
-  });
-});
 
-describe("blendItemSignature", () => {
-  it("produces a deterministic key from composition", () => {
-    const b = blend();
-    const sig = blendItemSignature(b.baseVariantId, b.jarSize, b.additives);
-    expect(sig).toBe("base-1:half:pr-1:2,rj-1:1");
-  });
-  it("is order-independent for additives", () => {
-    const b = blend();
-    const shuffled = [...b.additives].reverse();
-    const sig1 = blendItemSignature(b.baseVariantId, b.jarSize, b.additives);
-    const sig2 = blendItemSignature(b.baseVariantId, b.jarSize, shuffled);
-    expect(sig1).toBe(sig2);
-  });
-  it("differs when base variant differs", () => {
-    const b = blend();
-    const sig1 = blendItemSignature(b.baseVariantId, b.jarSize, b.additives);
-    const sig2 = blendItemSignature("base-2", b.jarSize, b.additives);
-    expect(sig1).not.toBe(sig2);
-  });
-  it("differs when jar size differs", () => {
-    const b = blend();
-    const sig1 = blendItemSignature(b.baseVariantId, "half", b.additives);
-    const sig2 = blendItemSignature(b.baseVariantId, "full", b.additives);
-    expect(sig1).not.toBe(sig2);
-  });
-  it("differs when additives differ", () => {
-    const b = blend();
-    const sig1 = blendItemSignature(b.baseVariantId, b.jarSize, b.additives);
-    const sig2 = blendItemSignature(
-      b.baseVariantId,
-      b.jarSize,
-      b.additives.filter((a) => a.key !== "propolis"),
-    );
-    expect(sig1).not.toBe(sig2);
-  });
-});
-
-describe("addBlendItem merging", () => {
-  it("merges identical blends into one line with incremented quantity", () => {
-    const b = blend();
-    const { id: _id, kind: _kind, ...rest } = b;
-    const cart = addBlendItem([], rest);
-    const merged = addBlendItem(cart, rest);
-    expect(merged).toHaveLength(1);
-    expect(isBlendItem(merged[0])).toBe(true);
-    if (isBlendItem(merged[0])) {
-      expect(merged[0].quantity).toBe(2);
-    }
-  });
-  it("keeps different blends as separate lines", () => {
-    const b1 = blend();
-    const b2 = blend({ baseVariantId: "base-2" });
-    const { id: _1, kind: _k1, ...r1 } = b1;
-    const { id: _2, kind: _k2, ...r2 } = b2;
-    const cart = addBlendItem([], r1);
-    const result = addBlendItem(cart, r2);
-    expect(result).toHaveLength(2);
-  });
-  it("merges three identical blends into quantity 3", () => {
-    const { id: _id, kind: _kind, ...rest } = blend();
-    let cart: CartItem[] = [];
-    cart = addBlendItem(cart, rest);
-    cart = addBlendItem(cart, rest);
-    cart = addBlendItem(cart, rest);
-    expect(cart).toHaveLength(1);
-    if (isBlendItem(cart[0])) {
-      expect(cart[0].quantity).toBe(3);
-    }
-  });
-  it("merges by summing the incoming quantity, capped at stock", () => {
-    const { id: _id, kind: _kind, ...rest } = blend({ quantity: 2, stock: 5 });
-    let cart = addBlendItem([], rest);
-    cart = addBlendItem(cart, rest);
-    expect(cart).toHaveLength(1);
-    if (isBlendItem(cart[0])) expect(cart[0].quantity).toBe(4);
-
-    const capped = addBlendItem(cart, { ...rest, quantity: 2 });
-    expect(capped).toHaveLength(1);
-    if (isBlendItem(capped[0])) expect(capped[0].quantity).toBe(5);
-  });
-  it("does not merge blends with different additives", () => {
-    const b1 = blend();
-    const b2 = blend({ additives: [{ ...b1.additives[0], qty: 3 }] });
-    const { id: _1, kind: _k1, ...r1 } = b1;
-    const { id: _2, kind: _k2, ...r2 } = b2;
-    const cart = addBlendItem([], r1);
-    const result = addBlendItem(cart, r2);
-    expect(result).toHaveLength(2);
+  it("returns an empty cart for a non-array payload", () => {
+    expect(parseStoredCartItems({ items: [] })).toEqual([]);
+    expect(parseStoredCartItems(null)).toEqual([]);
   });
 });

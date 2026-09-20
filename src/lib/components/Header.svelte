@@ -16,7 +16,6 @@
     { href: "/", labelKey: "nav.home" },
     { href: "/honey", labelKey: "nav.storeHoney" },
     { href: "/equipment", labelKey: "nav.storeEquipment" },
-    { href: "/blends", labelKey: "blends.nav" },
     { href: "/about", labelKey: "nav.about" },
   ] as const;
 

@@ -55,8 +55,8 @@ test("clicking another link during a view transition still navigates", async ({ 
   // this click must not be silently swallowed (see the onNavigate guard).
   // Header nav links are used instead of grid cards so the assertion does
   // not depend on catalog pagination or card render timing in CI.
-  await page.getByRole("link", { name: "الخلطات" }).first().click();
-  await expect(page).toHaveURL(/\/blends$/);
+  await page.getByRole("link", { name: "من نحن" }).first().click();
+  await expect(page).toHaveURL(/\/about$/);
 });
 
 test("clicking a product inside the cart drawer closes the drawer", async ({ page }) => {

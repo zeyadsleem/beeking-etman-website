@@ -13,7 +13,7 @@
   import Seo from "$lib/components/Seo.svelte";
   import { breadcrumbJsonLd, metaDescription, productJsonLd } from "$lib/seo";
   import { addToCart } from "$lib/cart-store.svelte";
-  import { regularItemPayload } from "$lib/cart";
+  import { cartItemPayload } from "$lib/cart";
   import { formatEGP } from "$lib/currency";
   import { trackProductView } from "$lib/analytics-events";
   import { t } from "$lib/i18n/messages";
@@ -66,7 +66,7 @@
     adding = true;
     addToCart(
       {
-        ...regularItemPayload(data.product, selectedVariant),
+        ...cartItemPayload(data.product, selectedVariant),
         image: galleryImages[0] ?? "",
       },
       quantity,

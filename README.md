@@ -1,8 +1,8 @@
 # مملكة النحل — Kingdom of Honey
 
 Arabic-first RTL storefront for Etman natural honey: catalog with variants,
-custom blend studio (`/blends`), signed-cookie cart, guest checkout with mock
-payment (no card data collected), optional accounts, and full ar/en i18n.
+signed-cookie cart, guest checkout with mock payment (no card data collected),
+optional accounts, and full ar/en i18n.
 
 ## Stack
 

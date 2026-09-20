@@ -1,19 +1,20 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { parse, serialize } from "cookie";
 import type { Cookies } from "@sveltejs/kit";
-import type { CartEntry } from "$lib/cart";
+import type { CartLine } from "$lib/cart";
 import {
   CART_COOKIE_NAME,
   clearCartCookie,
   readCartCookie,
   readCartFromString,
+  sanitizeCartLines,
   setCartCookie,
   signCartCookie,
 } from "./cart-cookie";
 
 const SECRET = "test-secret-for-cookie-signing";
 
-function headerFor(lines: CartEntry[]): string {
+function headerFor(lines: CartLine[]): string {
   return parse(serialize(CART_COOKIE_NAME, signCartCookie(SECRET, lines)))[CART_COOKIE_NAME] ?? "";
 }
 
@@ -41,40 +42,13 @@ describe("cart-cookie", () => {
   it("drops junk on read", () => {
     expect(readCartFromString("garbage", SECRET)).toEqual([]);
   });
-  it("round-trips a blend line", () => {
-    const lines = [
-      {
-        kind: "blend" as const,
-        id: "blend-1",
-        baseVariantId: "b1",
-        jarSize: "half" as const,
-        additives: [
-          { key: "royalJelly" as const, variantId: "rj1", qty: 1 },
-          { key: "propolis" as const, variantId: "pr1", qty: 2 },
-        ],
-      },
-    ];
-    expect(readCartFromString(headerFor(lines), SECRET)).toEqual(lines);
-  });
-  it("drops an unknown additive key but keeps the blend line", () => {
-    const lines: CartEntry[] = [
-      {
-        kind: "blend",
-        id: "blend-1",
-        baseVariantId: "b1",
-        jarSize: "half",
-        additives: [{ key: "bogus" as never, variantId: "rj1", qty: 1 }],
-      },
-    ];
-    expect(readCartFromString(signCartCookie(SECRET, lines), SECRET)).toEqual([
-      { kind: "blend", id: "blend-1", baseVariantId: "b1", jarSize: "half", additives: [] },
-    ]);
-  });
-  it("keeps a blend line without additives", () => {
-    const lines: CartEntry[] = [
-      { kind: "blend", id: "blend-1", baseVariantId: "b1", jarSize: "half", additives: [] },
-    ];
-    expect(readCartFromString(signCartCookie(SECRET, lines), SECRET)).toEqual(lines);
+  it("drops a legacy blend entry and keeps the regular line", () => {
+    expect(
+      sanitizeCartLines([
+        { kind: "blend", id: "blend-1", baseVariantId: "b1", jarSize: "half", additives: [] },
+        { variantId: "v1", quantity: 2 },
+      ]),
+    ).toEqual([{ variantId: "v1", quantity: 2 }]);
   });
 });
 

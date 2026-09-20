@@ -44,6 +44,9 @@ Chosen: **retire the blend studio and sell ready-made blends as catalog products
 - `/blends` and the Phaser lab are removed. A 301 redirect sends `/blends` to the blends category
   page. If the category does not exist at cutover, the redirect target is `/store` and moves to the
   category in a follow-up change.
+  - Shipped note (#12): `/store` has no page in this codebase — only the legacy `/store/honey` 301
+    shim — so the interim target shipped as `/honey`. #13 retargets it to the blends category page
+    once that category exists.
 - Each blend is a product with weight variants (for example 1 kg and 0.5 kg), its own price and jar
   stock, photos, and a description that lists the ingredients and their purpose.
 - No recipe accounting and no raw-material deduction run at order time. Stock lives on the

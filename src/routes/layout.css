@@ -640,25 +640,6 @@ html.has-nav .animate-float-delay {
   animation: added-checkmark 0.3s ease forwards;
 }
 
-/* Blend Lab game juice: a bouncy squash-and-stretch pulse driven by stir ticks. */
-@keyframes mix-stir-pulse {
-  0% {
-    transform: scale(1);
-  }
-  40% {
-    transform: scale(1.035, 0.96);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.mix-stir-pulse {
-  animation-name: mix-stir-pulse;
-  animation-iteration-count: 1;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
-
 @keyframes pop-in {
   0% {
     transform: scale(0.5);

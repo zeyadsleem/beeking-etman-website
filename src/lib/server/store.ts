@@ -1,9 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { CATEGORY_TREE, getCategoryBySlug } from "$lib/server/categories";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { jarLabel, ADDITIVE_LABELS, isAdditiveKey } from "$lib/blends";
-import type { BlendCartItem, CartEntry, CartItem, CartLine } from "$lib/cart";
-import { isBlendEntry } from "$lib/cart";
+import type { CartItem, CartLine } from "$lib/cart";
 import { localized, type Lang } from "$lib/i18n/messages";
 import * as schema from "$lib/server/db/schema";
 import { ftsNormalizeSqlExpr, normalizeArabic } from "$lib/server/arabic";
@@ -563,119 +561,48 @@ export interface ResolvedCart {
 
 export async function resolveCartItems(
   db: LibSQLDatabase<typeof schema>,
-  lines: CartEntry[],
+  lines: CartLine[],
   lang: Lang = "ar",
 ): Promise<ResolvedCart> {
   if (lines.length === 0) return { items: [], missing: [] };
-  const regularLines = lines.filter((l) => !isBlendEntry(l)) as CartLine[];
-  const blendLines = lines.filter(isBlendEntry);
   const items: CartItem[] = [];
   const missingSet = new Set<string>();
 
-  if (regularLines.length > 0) {
-    const ids = [...new Set(regularLines.map((l) => l.variantId))];
-    const variants = await db
+  const ids = [...new Set(lines.map((l) => l.variantId))];
+  const variants = await db
+    .select()
+    .from(schema.productVariant)
+    .where(inArray(schema.productVariant.id, ids));
+  if (variants.length === 0) {
+    for (const id of ids) missingSet.add(id);
+  } else {
+    const products = await db
       .select()
-      .from(schema.productVariant)
-      .where(inArray(schema.productVariant.id, ids));
-    if (variants.length === 0) {
-      for (const id of ids) missingSet.add(id);
-    } else {
-      const products = await db
-        .select()
-        .from(schema.product)
-        .where(inArray(schema.product.id, [...new Set(variants.map((v) => v.productId))]));
-      const productById = new Map(products.map((p) => [p.id, p]));
-      const variantById = new Map(variants.map((v) => [v.id, v]));
-      const categorySlugs = await loadCategorySlugs(db, [...productById.keys()]);
-      for (const line of regularLines) {
-        const v = variantById.get(line.variantId);
-        const p = v ? productById.get(v.productId) : undefined;
-        if (!v || !p) {
-          missingSet.add(line.variantId);
-          continue;
-        }
-        items.push({
-          variantId: v.id,
-          productId: p.id,
-          name: localized(p.name, p.nameEn, lang),
-          variantName: localized(v.name, v.nameEn, lang),
-          slug: p.slug,
-          categorySlug: categorySlugs.get(p.id) ?? "",
-          department: p.department,
-          image: v.image,
-          price: v.price,
-          stock: v.stock,
-          quantity: Math.min(line.quantity, v.stock),
-        });
-      }
-    }
-  }
-
-  if (blendLines.length > 0) {
-    const baseIds = [...new Set(blendLines.map((l) => l.baseVariantId))];
-    const additiveIds = [
-      ...new Set(blendLines.flatMap((l) => l.additives.map((a) => a.variantId))),
-    ];
-    const [baseVariants, additiveVariants] = await Promise.all([
-      db.select().from(schema.productVariant).where(inArray(schema.productVariant.id, baseIds)),
-      additiveIds.length
-        ? db
-            .select()
-            .from(schema.productVariant)
-            .where(inArray(schema.productVariant.id, additiveIds))
-        : Promise.resolve([]),
-    ]);
-    const allIds = [...new Set([...baseVariants, ...additiveVariants].map((v) => v.productId))];
-    const products = allIds.length
-      ? await db.select().from(schema.product).where(inArray(schema.product.id, allIds))
-      : [];
+      .from(schema.product)
+      .where(inArray(schema.product.id, [...new Set(variants.map((v) => v.productId))]));
     const productById = new Map(products.map((p) => [p.id, p]));
-    const baseById = new Map(baseVariants.map((v) => [v.id, v]));
-    const additiveById = new Map(additiveVariants.map((v) => [v.id, v]));
-
-    for (const line of blendLines) {
-      const base = baseById.get(line.baseVariantId);
-      const baseProduct = base ? productById.get(base.productId) : undefined;
-      if (!base || !baseProduct) {
-        missingSet.add(line.baseVariantId);
+    const variantById = new Map(variants.map((v) => [v.id, v]));
+    const categorySlugs = await loadCategorySlugs(db, [...productById.keys()]);
+    for (const line of lines) {
+      const v = variantById.get(line.variantId);
+      const p = v ? productById.get(v.productId) : undefined;
+      if (!v || !p) {
+        missingSet.add(line.variantId);
         continue;
       }
-      const additives: BlendCartItem["additives"] = [];
-      for (const a of line.additives) {
-        const variant = additiveById.get(a.variantId);
-        const product = variant ? productById.get(variant.productId) : undefined;
-        if (!variant || !product) continue;
-        const label = isAdditiveKey(a.key) ? ADDITIVE_LABELS[a.key] : undefined;
-        const name = label
-          ? localized(label.ar, label.en, lang)
-          : localized(product.name, product.nameEn, lang);
-        additives.push({
-          key: a.key,
-          variantId: variant.id,
-          productId: product.id,
-          name,
-          image: variant.image,
-          qty: Math.min(a.qty, variant.stock),
-          price: variant.price,
-          stock: variant.stock,
-        });
-      }
-      const item: BlendCartItem = {
-        kind: "blend",
-        id: line.id,
-        baseVariantId: base.id,
-        productId: baseProduct.id,
-        name: localized(baseProduct.name, baseProduct.nameEn, lang),
-        variantName: jarLabel(lang, line.jarSize),
-        image: base.image,
-        jarSize: line.jarSize,
-        basePrice: base.price,
-        stock: base.stock,
-        quantity: 1,
-        additives,
-      };
-      items.push(item);
+      items.push({
+        variantId: v.id,
+        productId: p.id,
+        name: localized(p.name, p.nameEn, lang),
+        variantName: localized(v.name, v.nameEn, lang),
+        slug: p.slug,
+        categorySlug: categorySlugs.get(p.id) ?? "",
+        department: p.department,
+        image: v.image,
+        price: v.price,
+        stock: v.stock,
+        quantity: Math.min(line.quantity, v.stock),
+      });
     }
   }
 

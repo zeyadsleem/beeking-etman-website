@@ -2,7 +2,7 @@
   import { productPhotos } from "$lib/product-media";
   import { AspectRatio } from "bits-ui";
   import { addToCart } from "$lib/cart-store.svelte";
-  import { regularItemPayload } from "$lib/cart";
+  import { cartItemPayload } from "$lib/cart";
   import Price from "./Price.svelte";
   import ProductArt from "./ProductArt.svelte";
   import { t, type Lang } from "$lib/i18n/messages";
@@ -30,7 +30,7 @@
     const v = product.variants[0];
     if (v.stock <= 0) return;
     addToCart({
-      ...regularItemPayload(product, v),
+      ...cartItemPayload(product, v),
       image: productPhotos(product, v.image)[0] ?? "",
     });
     // Flash the "added" state
