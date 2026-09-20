@@ -240,8 +240,8 @@ stock to a deadline, and verifies payment by hand. Read the architecture
 - [ ] Insert the production `blends` category (AgDR-0002). The seed refuses to
       run once orders exist, so the row is inserted directly (idempotent):
       `sh
-  wrangler d1 execute beeking --remote --command "INSERT INTO store_category (id, name, name_en, slug, department) VALUES (lower(hex(randomblob(16))), 'خلطات جاهزة', 'Ready-made blends', 'blends', 'honey') ON CONFLICT(slug) DO NOTHING"
-  `
+wrangler d1 execute beeking --remote --command "INSERT INTO store_category (id, name, name_en, slug, department) VALUES (lower(hex(randomblob(16))), 'خلطات جاهزة', 'Ready-made blends', 'blends', 'honey') ON CONFLICT(slug) DO NOTHING"
+`
       Verify: `/blends` returns 301 to `/honey/blends`, the `خلطات جاهزة` chip
       appears on `/honey`, and `/honey/blends` is listed in `/sitemap.xml`.
 - [ ] Run `pnpm run test:coverage` and confirm the settlement floor is green
