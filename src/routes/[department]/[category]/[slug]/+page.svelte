@@ -113,7 +113,7 @@
 />
 
 <div class="grid gap-8 lg:grid-cols-2">
-  <div class="lg:sticky lg:top-24 lg:self-start">
+  <div class="lg:sticky lg:top-24 lg:self-start" data-testid="product-media">
     {#if galleryIsPlaceholder}
       <div class="overflow-hidden rounded-3xl border border-honey-100 shadow-warm">
         <AspectRatio.Root ratio={1}>

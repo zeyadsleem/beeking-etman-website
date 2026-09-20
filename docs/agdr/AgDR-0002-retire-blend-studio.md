@@ -44,9 +44,16 @@ Chosen: **retire the blend studio and sell ready-made blends as catalog products
 - `/blends` and the Phaser lab are removed. A 301 redirect sends `/blends` to the blends category
   page. If the category does not exist at cutover, the redirect target is `/store` and moves to the
   category in a follow-up change.
-  - Shipped note (#12): `/store` has no page in this codebase — only the legacy `/store/honey` 301
-    shim — so the interim target shipped as `/honey`. #13 retargets it to the blends category page
-    once that category exists.
+  - Shipped note (#12, #13): `/store` has no page in this codebase — only the legacy `/store/honey`
+    301 shim — so the interim target shipped as `/honey` in #12. #13 added the `blends` category
+    (`خلطات جاهزة` / `Ready-made blends`) to the seed tree and made the redirect check the
+    `store_category` row: 301 to `/honey/blends` when a honey-department row exists, 302 to `/honey`
+    until then. The fallback is temporary on purpose — a 301 would be cached permanently and outlive
+    the category's creation. Production has no admin categories route and `scripts/seed.ts` refuses
+    to run once orders exist, so the row must be inserted directly (idempotent):
+    `wrangler d1 execute beeking --remote --command "INSERT INTO store_category (id, name, name_en, slug, department) VALUES (lower(hex(randomblob(16))), 'خلطات جاهزة', 'Ready-made blends', 'blends', 'honey') ON CONFLICT(slug) DO NOTHING"`.
+    Verify after the insert: `/blends` → 301 `/honey/blends`, the `خلطات جاهزة` chip on `/honey`, and
+    the `/honey/blends` entry in `/sitemap.xml`.
 - Each blend is a product with weight variants (for example 1 kg and 0.5 kg), its own price and jar
   stock, photos, and a description that lists the ingredients and their purpose.
 - No recipe accounting and no raw-material deduction run at order time. Stock lives on the

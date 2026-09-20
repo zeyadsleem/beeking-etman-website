@@ -136,6 +136,15 @@ const honeyNuts: CategoryNode[] = [
   },
 ];
 
+const honeyBlends: CategoryNode[] = [
+  {
+    slug: "blends",
+    name: "خلطات جاهزة",
+    nameEn: "Ready-made blends",
+    department: "honey",
+  },
+];
+
 const honeyNutsDept: CategoryNode[] = [
   {
     slug: "nuts",
@@ -492,6 +501,7 @@ export const CATEGORY_TREE: CategoryNode[] = [
   ...honeyVib,
   ...honeyComb,
   ...honeyNuts,
+  ...honeyBlends,
   ...honeyNutsDept,
   ...hiveEquipment,
   ...extraction,
