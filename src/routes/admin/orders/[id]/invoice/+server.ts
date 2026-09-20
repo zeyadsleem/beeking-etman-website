@@ -22,6 +22,9 @@ export const GET: RequestHandler = async (event) => {
 
   const html = generateInvoiceHtml(detail.order, detail.items);
   return new Response(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "private, no-store",
+    },
   });
 };

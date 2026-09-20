@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { existsSync, unlinkSync } from "node:fs";
-import { eq } from "drizzle-orm";
 import { createClient } from "@libsql/client";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -19,7 +18,7 @@ vi.mock("$lib/server/db", () => ({
   },
 }));
 
-const DB_FILE = "admin-orders-export-test.db";
+const DB_FILE = "admin-order-invoice-test.db";
 
 let client: ReturnType<typeof createClient> | null = null;
 let testDb: LibSQLDatabase<typeof schema> | null = null;
@@ -64,40 +63,36 @@ async function buildDb(): Promise<void> {
   state.database = db;
 }
 
-interface SeedOptions {
-  status?: string;
-  paymentStatus?: string;
-  paymentMethod?: string;
-}
-
-let orderCounter = 0;
-
-async function seedOrder(
-  db: LibSQLDatabase<typeof schema>,
-  opts: SeedOptions = {},
-): Promise<string> {
-  orderCounter += 1;
+async function seedOrder(db: LibSQLDatabase<typeof schema>): Promise<string> {
   const id = crypto.randomUUID();
   await db.insert(schema.order).values({
     id,
-    number: `HNY-${String(orderCounter).padStart(6, "0")}`,
+    number: `HNY-${id.slice(0, 6)}`,
     email: "a@example.com",
     name: "أحمد",
     phone: "01012345678",
     address: "شارع 9",
     city: "القاهرة",
     total: 100_00,
-    status: opts.status ?? "pending_confirmation",
-    paymentStatus: opts.paymentStatus ?? "unpaid",
-    paymentMethod: opts.paymentMethod ?? "instapay",
+    status: "pending_confirmation",
+    paymentStatus: "unpaid",
+    paymentMethod: "instapay",
     createdAt: Date.now(),
+  });
+  await db.insert(schema.orderItem).values({
+    orderId: id,
+    productId: crypto.randomUUID(),
+    productName: "عسل سدر مصري",
+    variantName: "كيلو",
+    quantity: 2,
+    unitPrice: 50_00,
   });
   return id;
 }
 
-function fakeEvent(query: string, role?: string): RequestEvent {
+function fakeEvent(id: string, role?: string): RequestEvent {
   return {
-    url: new URL(`http://localhost/admin/orders/export${query}`),
+    params: { id },
     locals: { user: role === undefined ? undefined : { role } },
   } as unknown as RequestEvent;
 }
@@ -116,57 +111,21 @@ afterAll(() => {
 
 beforeEach(buildDb);
 
-describe("admin orders CSV export", () => {
-  it("rejects guests and non-admins with 403", async () => {
-    await seedOrder(currentDb());
+describe("admin order invoice", () => {
+  it("serves the invoice as private, no-store HTML", async () => {
+    const id = await seedOrder(currentDb());
 
-    await expect(GET(fakeEvent(""))).rejects.toMatchObject({ status: 403 });
-    await expect(GET(fakeEvent("", "user"))).rejects.toMatchObject({ status: 403 });
-  });
+    const response = await GET(fakeEvent(id, "admin"));
 
-  it("rejects an invalid payment filter with 400", async () => {
-    await expect(GET(fakeEvent("?payment=bogus", "admin"))).rejects.toMatchObject({ status: 400 });
-  });
-
-  it("applies the payment filter and exports the payment columns", async () => {
-    const db = currentDb();
-    const claimable = await seedOrder(db, {
-      paymentStatus: "pending_review",
-      paymentMethod: "wallet",
-    });
-    await seedOrder(db, { paymentStatus: "paid", paymentMethod: "cod" });
-
-    const response = await GET(fakeEvent("?payment=pending_review", "admin"));
-    const csv = await response.text();
-
-    expect(response.headers.get("Content-Type")).toContain("text/csv");
+    expect(response.headers.get("Content-Type")).toContain("text/html");
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(csv).toContain("طريقة الدفع");
-    expect(csv).toContain("حالة الدفع");
-    expect(csv).toContain("محفظة");
-    expect(csv).toContain("بانتظار المراجعة");
-    expect(csv).not.toContain("قديم (غير محدد)");
-
-    const claimableRow = await db
-      .select({ number: schema.order.number })
-      .from(schema.order)
-      .where(eq(schema.order.id, claimable))
-      .get();
-    expect(csv).toContain(claimableRow?.number ?? "");
-    // Only the pending-review order appears in the export.
-    expect(csv.trim().split("\r\n")).toHaveLength(2);
+    expect(await response.text()).toContain("HNY-");
   });
 
-  it("composes the status and payment filters", async () => {
-    const db = currentDb();
-    await seedOrder(db, { status: "confirmed", paymentStatus: "pending_review" });
-    await seedOrder(db, { status: "shipped", paymentStatus: "pending_review" });
-    await seedOrder(db, { status: "confirmed", paymentStatus: "paid" });
+  it("rejects guests and non-admins with 403", async () => {
+    const id = await seedOrder(currentDb());
 
-    const csv = await (
-      await GET(fakeEvent("?status=confirmed&payment=pending_review", "admin"))
-    ).text();
-
-    expect(csv.trim().split("\r\n")).toHaveLength(2);
+    await expect(GET(fakeEvent(id))).rejects.toMatchObject({ status: 403 });
+    await expect(GET(fakeEvent(id, "user"))).rejects.toMatchObject({ status: 403 });
   });
 });

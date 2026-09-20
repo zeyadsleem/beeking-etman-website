@@ -157,10 +157,8 @@ describe("sendEmail", () => {
       text: "Hi",
     });
 
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("EMAIL binding unavailable"),
-      "test@example.com",
-    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("EMAIL binding unavailable"));
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("test@example.com");
     warn.mockRestore();
   });
 

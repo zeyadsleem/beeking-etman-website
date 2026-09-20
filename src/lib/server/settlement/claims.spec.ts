@@ -6,7 +6,7 @@ import * as schema from "$lib/server/db/schema";
 
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
-import { submitClaim } from "./claims";
+import { sanitizeReference, submitClaim } from "./claims";
 
 const DB_FILE = "settlement-claims-test.db";
 
@@ -79,6 +79,17 @@ async function seedOrder(
   });
   return id;
 }
+
+describe("sanitizeReference", () => {
+  it("strips control, format, and separator characters", () => {
+    expect(sanitizeReference("TRX\u0085-9")).toBe("TRX-9");
+    expect(sanitizeReference("TRX\uFEFF-9")).toBe("TRX-9");
+    expect(sanitizeReference("TRX\u2060-9")).toBe("TRX-9");
+    expect(sanitizeReference("TRX\u2028-9")).toBe("TRX-9");
+    expect(sanitizeReference("TRX\u2029-9")).toBe("TRX-9");
+    expect(sanitizeReference("TRX\u202E-9")).toBe("TRX-9");
+  });
+});
 
 describe("submitClaim", () => {
   let db: Awaited<ReturnType<typeof buildDb>>;
