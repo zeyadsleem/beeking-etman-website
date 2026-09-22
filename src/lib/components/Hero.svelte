@@ -23,7 +23,7 @@
         </div>
         <p class="hero-since">{t(lang, "hero.since")}</p>
       </div>
-      <div class="hero-seal-mobile" aria-hidden="true"><img src={seal} alt="" width="1024" height="1024" /></div>
+      <div class="hero-seal-mobile" aria-hidden="true"><img class="brand-seal" src={seal} alt="" width="384" height="384" /></div>
     </div>
     <h1 class="headline">{lang === "ar" ? "خير المناحل،" : "From the apiary,"}<br /><span>{lang === "ar" ? "لبيتك ولمنحلك." : "to your everyday."}</span></h1>
     <p class="hero-description">{lang === "ar" ? "عسل بطبيعته، ومنتجات خلية النحل، وأدوات يعتمد عليها النحّال. اكتشف كل ما تحتاجه في مكان واحد." : "Discover honey, hive products and dependable beekeeping equipment. Everything for your table and your apiary, in one place."}</p>
@@ -35,7 +35,7 @@
   </div>
   <div class="hero-visual">
     <img class="hero-product" src="/images/Beeking Etman/برطمان السدر المصرى.jpg" alt={t(lang, "hero.sidrAlt")} width="768" height="1024" fetchpriority="high" />
-    <div data-testid="hero-brand" class="hero-seal"><img data-testid="hero-brand-img" src={seal} alt={t(lang, "brand.tagline")} width="1024" height="1024" /></div>
+    <div data-testid="hero-brand" class="hero-seal"><img class="brand-seal" data-testid="hero-brand-img" src={seal} alt={t(lang, "brand.tagline")} width="384" height="384" /></div>
     <a class="hero-equipment" href="/equipment">
       <img src="/images/Beeking Etman/شمع اساس.jpg" alt={lang === "ar" ? "شمع أساس" : "Foundation wax sheets"} width="208" height="149" />
       <span><strong>{t(lang, "nav.storeEquipment")}</strong><small>{lang === "ar" ? "جهّز منحلك بثقة" : "Equip your apiary"}</small></span>

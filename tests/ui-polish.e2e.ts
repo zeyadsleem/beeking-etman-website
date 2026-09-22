@@ -100,12 +100,12 @@ async function addProduct(page: Page): Promise<void> {
  */
 async function headerGeometry(page: Page): Promise<void> {
   const result = await page.evaluate(() => {
-    const header = document.querySelector(".header-grid");
+    const header = document.querySelector("header");
     if (!header)
       return { controls: 0, outside: ["missing-header"], overlaps: [["", ""]], masked: true };
     const controls = Array.from(
       header.querySelectorAll("a, button, input, [data-testid='cart-count']"),
-    ).filter((element) => element.getClientRects().length > 0);
+    ).filter((element) => element.getClientRects().length > 0 && !element.closest("[inert]"));
     const boxes = controls.map((element) => ({
       element,
       label: (element.getAttribute("aria-label") ?? element.textContent ?? "").trim().slice(0, 40),

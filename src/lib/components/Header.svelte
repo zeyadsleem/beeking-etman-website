@@ -3,11 +3,13 @@
   import { goto, invalidateAll } from "$app/navigation";
   import { Dialog } from "bits-ui";
   import { onMount } from "svelte";
+  import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
   import { cartCount, openDrawer } from "$lib/cart-store.svelte";
   import { edgeForDir, isEdgeSwipe } from "$lib/edge-swipe";
   import { getDir, t, type Lang } from "$lib/i18n/messages";
   import Button from "./Button.svelte";
   import GlobeIcon from "./GlobeIcon.svelte";
+  import HeaderSearch from "./HeaderSearch.svelte";
   import Logo from "./Logo.svelte";
   import SearchSuggestions from "./SearchSuggestions.svelte";
   import UserIcon from "./UserIcon.svelte";
@@ -18,6 +20,11 @@
     { href: "/equipment", labelKey: "nav.storeEquipment" },
     { href: "/about", labelKey: "nav.about" },
   ] as const;
+
+  const ICON_BUTTON =
+    "grid h-11 w-11 shrink-0 place-items-center rounded-full border border-cocoa-200 bg-paper text-cocoa-700 transition-colors hover:border-honey-700 hover:text-honey-700";
+  const SIDEBAR_ITEM =
+    "flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800";
 
   let {
     user,
@@ -70,6 +77,7 @@
   const q = $derived(String(page.url.searchParams.get("q") ?? ""));
   const storeSearchPaths = new Set(["/products", "/honey", "/equipment"]);
   const showHeaderSearch = $derived(!storeSearchPaths.has(page.url.pathname));
+  const isAdmin = $derived(user?.role === "admin");
 
   $effect(() => {
     count = cartCount();
@@ -126,81 +134,58 @@
 <svelte:window ontouchstart={onTouchStart} ontouchend={onTouchEnd} ontouchcancel={onTouchCancel} />
 
 <header class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper">
-  <div class="header-grid mx-auto max-w-7xl px-4 py-3" class:has-search={showHeaderSearch}>
-    <div class="header-brand flex min-w-0 items-center gap-4 lg:gap-5">
+  <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
+    <div class="flex min-w-0 items-center gap-4 lg:gap-5">
       <a href="/" class="flex shrink-0 items-center transition-opacity hover:opacity-90" aria-label={t(lang, "brand.tagline")}>
-        <Logo alt={t(lang, "brand.tagline")} class="h-11 w-11 lg:h-14 lg:w-14" />
+        <Logo alt={t(lang, "brand.tagline")} class="h-11 w-11 lg:h-12 lg:w-12" />
       </a>
+
+      <nav class="hidden min-w-0 items-center gap-3 text-sm font-semibold text-cocoa-700 lg:flex xl:gap-4" aria-label={t(lang, "nav.main")}>
+        {#each NAV_ITEMS as item (item.href)}
+          {@const active = item.href === "/" ? page.url.pathname === "/" : page.url.pathname.startsWith(item.href)}
+          <a
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            class="inline-flex min-h-11 shrink-0 items-center border-b-2 transition-colors hover:text-honey-700 {active ? "border-honey-700 font-bold text-honey-700" : "border-transparent"}"
+          >{t(lang, item.labelKey)}</a>
+        {/each}
+      </nav>
     </div>
 
-    <nav class="header-nav hidden min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-cocoa-700 lg:flex" aria-label={t(lang, "nav.main")}>
-      {#each NAV_ITEMS as item (item.href)}
-        {@const active = item.href === "/" ? page.url.pathname === "/" : page.url.pathname.startsWith(item.href)}
-        <a
-          href={item.href}
-          aria-current={active ? "page" : undefined}
-          class="inline-flex min-h-11 shrink-0 items-center border-b-2 transition-colors hover:text-honey-700 {active ? "border-honey-700 font-bold text-honey-700" : "border-transparent"}"
-        >{t(lang, item.labelKey)}</a>
-      {/each}
-    </nav>
+    <div class="ms-auto flex items-center gap-2">
+      {#if showHeaderSearch}
+        <div class="header-search max-lg:hidden">
+          <HeaderSearch
+            {lang}
+            initial={q}
+            onSearch={search}
+            onSelect={(value) => goto(value)}
+          />
+        </div>
+      {/if}
 
-    {#if showHeaderSearch}
-      <div class="header-search hidden min-w-0 lg:block">
-        <SearchSuggestions
-          lang={lang}
-          initial={q}
-          placeholder={t(lang, "search.placeholder")}
-          ariaLabel={t(lang, "search.aria")}
-          inputClass="bg-parchment"
-          class="w-full"
-          onSearch={search}
-          onSelect={(value) => goto(value)}
-        />
-      </div>
-    {/if}
-
-    <div class="header-actions flex min-w-0 flex-wrap items-center justify-end gap-2">
-      <Button
-        variant="outline"
+      <button
         type="button"
         onclick={switchLanguage}
-        class="hidden shrink-0 items-center gap-2 px-4 py-2.5 lg:inline-flex"
+        class={`${ICON_BUTTON} max-lg:hidden`}
         aria-label={t(lang, "lang.switchTo")}
       >
-        <GlobeIcon size={17} />
-        <span class="text-sm font-semibold">{t(lang, "lang.short")}</span>
-      </Button>
+        <GlobeIcon size={19} />
+      </button>
 
-      {#if user}
-        {#if user.role === "admin"}
-          <Button
-            variant="outline"
-            href="/admin"
-            class="hidden shrink-0 items-center gap-2 px-4 py-2.5 lg:inline-flex"
-            aria-label={t(lang, "nav.admin")}
-          >
-            <span class="max-w-28 truncate text-sm font-semibold">{t(lang, "nav.admin")}</span>
-          </Button>
-        {/if}
-        <Button
-          variant="outline"
-          href="/account"
-          class="hidden shrink-0 items-center gap-2 px-4 py-2.5 lg:inline-flex"
-          aria-label={t(lang, "nav.account")}
-        >
-          <UserIcon size={17} />
-          <span class="max-w-28 truncate text-sm font-semibold">{user.name ?? t(lang, "nav.account")}</span>
-        </Button>
-      {:else}
-        <Button
-          variant="outline"
-          href="/login"
-          class="hidden shrink-0 items-center gap-2 px-4 py-2.5 lg:inline-flex"
-        >
-          <UserIcon size={17} />
-          <span class="text-sm font-semibold">{t(lang, "nav.login")}</span>
-        </Button>
+      {#if isAdmin}
+        <a href="/admin" class={`${ICON_BUTTON} max-lg:hidden`} aria-label={t(lang, "nav.admin")}>
+          <LayoutDashboard class="h-[19px] w-[19px]" strokeWidth={2} />
+        </a>
       {/if}
+
+      <a
+        href={user ? "/account" : "/login"}
+        class={ICON_BUTTON}
+        aria-label={user ? t(lang, "nav.account") : t(lang, "nav.login")}
+      >
+        <UserIcon size={19} />
+      </a>
 
       <Button variant="primary" type="button" onclick={openDrawer} class="relative h-11 w-11 shrink-0 px-0 py-0" aria-label={t(lang, "cart.open")}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -226,7 +211,7 @@
 
       <button
         type="button"
-        class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-cocoa-200 bg-paper text-cocoa-700 transition-colors hover:border-honey-700 hover:text-honey-700 lg:hidden"
+        class={`${ICON_BUTTON} lg:hidden`}
         aria-label={t(lang, "nav.menu")}
         aria-expanded={mobileOpen}
         onclick={() => (mobileOpen = true)}
@@ -293,102 +278,33 @@
           >{t(lang, item.labelKey)}</a>
         {/each}
         </nav>
+      </div>
 
-        <div class="mt-4 space-y-1 border-t border-cocoa-200 pt-4">
-          <button
-            type="button"
-            onclick={switchLanguageFromMenu}
-            class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800"
-          >
-            <GlobeIcon size={18} />
-            {t(lang, "lang.switchTo")}
-          </button>
+      <div class="border-t border-cocoa-200 bg-paper p-4">
+        <div class="flex flex-col gap-1">
           {#if user}
-            {#if user.role === "admin"}
-              <a
-                href="/admin"
-                onclick={closeMobile}
-                class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800"
-              >
-                {t(lang, "nav.admin")}
+            <a href="/account" onclick={closeMobile} class={SIDEBAR_ITEM}>
+              <UserIcon size={18} />
+              <span class="truncate">{user.name ?? t(lang, "nav.account")}</span>
+            </a>
+            {#if isAdmin}
+              <a href="/admin" onclick={closeMobile} class={SIDEBAR_ITEM}>
+                <LayoutDashboard class="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                <span>{t(lang, "nav.admin")}</span>
               </a>
             {/if}
-            <a href="/account" onclick={closeMobile} class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">
-              <UserIcon size={18} />
-              {user.name ?? t(lang, "nav.account")}
-            </a>
           {:else}
-            <a href="/login" onclick={closeMobile} class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800">
+            <a href="/login" onclick={closeMobile} class={SIDEBAR_ITEM}>
               <UserIcon size={18} />
-              {t(lang, "nav.login")}
+              <span>{t(lang, "nav.login")}</span>
             </a>
           {/if}
+          <button type="button" onclick={switchLanguageFromMenu} class={SIDEBAR_ITEM}>
+            <GlobeIcon size={18} />
+            <span>{t(lang, "lang.switchTo")}</span>
+          </button>
         </div>
       </div>
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
-
-<style>
-  .header-grid {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 0.75rem 1.5rem;
-  }
-  .header-brand {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .header-actions {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
-  }
-  @media (min-width: 64rem) {
-    .header-grid {
-      grid-template-columns: minmax(0, 1fr) auto;
-    }
-    .header-nav {
-      grid-column: 1;
-      grid-row: 2;
-    }
-    .header-search {
-      grid-column: 2;
-      grid-row: 2;
-      inline-size: clamp(14rem, 22vw, 20rem);
-    }
-    .header-grid:not(.has-search) .header-nav {
-      grid-column: 1 / -1;
-    }
-  }
-  @media (min-width: 80rem) {
-    .header-grid {
-      grid-template-columns: auto minmax(0, 1fr) auto auto;
-    }
-    .header-brand {
-      grid-column: 1;
-    }
-    .header-nav {
-      grid-column: 2;
-      grid-row: 1;
-    }
-    .header-grid:not(.has-search) .header-nav {
-      grid-column: 2;
-    }
-    .header-search {
-      grid-column: 3;
-      grid-row: 1;
-    }
-    .header-actions {
-      grid-column: 4;
-      grid-row: 1;
-    }
-    .header-grid:not(.has-search) {
-      grid-template-columns: auto minmax(0, 1fr) auto;
-    }
-    .header-grid:not(.has-search) .header-actions {
-      grid-column: 3;
-    }
-  }
-</style>

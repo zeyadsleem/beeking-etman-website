@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { afterNavigate, beforeNavigate, onNavigate } from "$app/navigation";
   import { page } from "$app/state";
   import { getDir, t } from "$lib/i18n/messages";
@@ -28,6 +29,11 @@
     void initPostHog(posthogKey()).then(() => {
       setPersonProperties({ lang: data.lang });
     });
+  });
+
+  onMount(() => {
+    if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.register("/sw.js");
   });
 
   // Track client-side navigations as pageviews for SPA routing.

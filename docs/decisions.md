@@ -1767,3 +1767,42 @@ rendered the old values.
 ship (`pending_confirmation` → `confirmed` → `processing`/`shipped`). Legacy
 rows still transition because `placed` parses as `confirmed`. The lifecycle
 module is the seam the claim, admin review, and expiry tasks build on.
+
+## 2026-09-22: Offline shell (service worker) + asset weight budget
+
+**Context:** The storefront shipped ~30 MB of static imagery (628 KB logo,
+1.4 MB wax seals, 1.5–2 MB product PNGs) with no client-side cache, so repeat
+visits re-fetched everything and pages were unavailable offline. The operator
+asked for compression, removal of unused assets, caching so pages survive a
+lost connection, and CSS filters that pull the raster logo/seal onto the
+honey–amber–cocoa palette.
+
+**Decision:**
+
+- Recompress catalog imagery in place (same filenames, so seed/DB references
+  stay valid): PNGs quantized to 256 colours, JPEGs at quality 82, max edge
+  1200 px, metadata stripped; logo 320×408/128 colours, seals 384×384.
+  `static/images` went 30 MB → 5 MB.
+- Delete verified-unused assets: `about-top.png`,
+  `hero-background-honey.jpeg`, and nine unreferenced catalog photos
+  (cross-checked against `scripts/seed.ts`, `d1-seed.sql`, and `local.db`).
+- Add `static/sw.js`: network-first for HTML navigations and `__data.json`
+  (client-side navigation works offline for visited routes), cache-first for
+  `/_app/immutable/*`, stale-while-revalidate for other same-origin GETs,
+  `/api/*` never cached. Registered in production builds only
+  (`import.meta.env.PROD` in `+layout.svelte`).
+- Root `_headers` (adapter-cloudflare requires it outside `static/`): immutable
+  for `/fonts/*`, one week for `/images/*`, `no-cache` for `/sw.js`; the
+  adapter keeps its own immutable `/_app/immutable/*` rules.
+- Brand rasters are tinted in CSS (`.brand-logo`, `.brand-seal`) instead of
+  re-exporting artwork; the dead `.seal` class is removed.
+- The storefront header is a single flex row at every width: icon-only actions
+  (search, language, admin dashboard, account, cart), the desktop search
+  collapses to an icon that expands the input sideways on click, the mobile
+  header keeps cart + account, and the drawer bottom holds account, dashboard
+  and language. Replaces the `.header-grid` layout that wrapped nav + search
+  onto a second row between 1024 px and 1279 px.
+
+**Consequences:** Offline visits render the cached shell and previously visited
+routes; `__data.json` is network-first, so prices/stock can be stale only while
+offline. Changing the caching strategy requires bumping `VERSION` in `sw.js`.

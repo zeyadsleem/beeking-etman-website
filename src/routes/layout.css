@@ -242,6 +242,16 @@ html:lang(en) body {
     color: transparent;
   }
 
+  /* Brand imagery is raster (logo + wax seal), so a CSS filter pulls their
+     golds/browns onto the honey-amber-cocoa palette instead of re-exporting. */
+  .brand-logo {
+    filter: hue-rotate(-10deg) saturate(1.15) brightness(1.02);
+  }
+
+  .brand-seal {
+    filter: sepia(0.12) saturate(0.88) hue-rotate(-6deg) brightness(1.04);
+  }
+
   /* ---------- buttons ---------- */
 
   .btn-primary {
@@ -329,11 +339,6 @@ html:lang(en) body {
   .empty-state {
     @apply mt-10 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-cocoa-200 bg-parchment text-center;
     padding: clamp(1.5rem, 5vw, 3.5rem);
-  }
-
-  /* Physical wax-seal presence for the brand stamp imagery. */
-  .seal {
-    filter: drop-shadow(0 6px 10px rgb(120 53 15 / 0.28));
   }
 
   /* Thin gold separator echoing the brand wordmark gradient. */

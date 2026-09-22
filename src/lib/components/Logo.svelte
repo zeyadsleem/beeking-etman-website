@@ -6,5 +6,5 @@
   src="/images/logo.png"
   {alt}
   draggable="false"
-  class={`select-none object-contain ${klass}`}
+  class={`select-none object-contain brand-logo ${klass}`}
 />
