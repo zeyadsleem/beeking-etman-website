@@ -7,7 +7,7 @@ test("guest browses, picks a variant, checks out", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await waitForApp(page);
 
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("خير المناحل");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("مملكة النحل");
 
   await page.getByRole("link", { name: "متجر العسل" }).first().click();
   await expect(page).toHaveURL(/\/honey/);

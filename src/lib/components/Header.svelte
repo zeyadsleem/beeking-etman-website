@@ -133,7 +133,7 @@
 
 <svelte:window ontouchstart={onTouchStart} ontouchend={onTouchEnd} ontouchcancel={onTouchCancel} />
 
-<header class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper">
+<header class:cinematic={page.url.pathname === "/"} class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper">
   <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
     <div class="flex min-w-0 items-center gap-4 lg:gap-5">
       <a href="/" class="flex shrink-0 items-center transition-opacity hover:opacity-90" aria-label={t(lang, "brand.tagline")}>
@@ -308,3 +308,11 @@
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
+
+<style>
+.cinematic{background:#141611;border-color:#34372b;color:#e3decc}
+.cinematic :global(nav a){color:#ccc8b9}
+.cinematic :global(nav a[aria-current="page"]){color:#dbc38c;border-color:#dbc38c}
+.cinematic :global(button.rounded-full),.cinematic :global(a.rounded-full){background:#22251c;border-color:#555943;color:#e3decc}
+.cinematic :global(.btn-primary){background:#d3b87b;color:#171a11;border-color:#d3b87b}
+</style>

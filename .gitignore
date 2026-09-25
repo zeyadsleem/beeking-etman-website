@@ -57,3 +57,6 @@ d1-seed.sql
 
 # Worktrees
 .worktrees
+
+# Local design review captures
+.impeccable/review/

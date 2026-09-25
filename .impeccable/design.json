@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-25T16:54:37.911981+00:00",
+  "title": "Design System: Beeking Etman",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "warm-sm",
+        "value": "0 1px 2px rgb(28 25 20 / 0.06)",
+        "purpose": "Shared panels and resting primary buttons."
+      },
+      {
+        "name": "warm",
+        "value": "0 8px 24px -12px rgb(28 25 20 / 0.14)",
+        "purpose": "Primary-button hover."
+      }
+    ],
+    "motion": [
+      {
+        "name": "studio-camera",
+        "value": "ScrollTrigger scrub: 0.65; ease: none",
+        "purpose": "Native scrolling drives front, side, cap detail, label detail and return camera views; pause holds the current view and reduced motion fixes the opening view."
+      },
+      {
+        "name": "chapter-copy",
+        "value": "opacity 0.45s, transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1)",
+        "purpose": "Crossfades studio copy phases; disabled under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "studio-tablet-max",
+        "value": "1023px"
+      },
+      {
+        "name": "studio-mobile-max",
+        "value": "650px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary button from the shared storefront styles.",
+      "html": "<button class=\"ds-button-primary\">Shop honey</button>",
+      "css": ".ds-button-primary{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;font-weight:600;min-height:44px;border-radius:9999px;padding:12px 24px;background:var(--color-ink-950,#14120f);color:var(--color-parchment,#fff);border:0;cursor:pointer;transition:transform .3s,background .3s,box-shadow .3s}.ds-button-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px -12px rgb(28 25 20 / .14)}.ds-button-primary:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none}.ds-button-primary:hover{transform:none}}"
+    },
+    {
+      "name": "Outline button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Outline button from the shared storefront styles.",
+      "html": "<button class=\"ds-button-outline\">Shop honey</button>",
+      "css": ".ds-button-outline{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;font-weight:600;min-height:44px;border-radius:9999px;padding:10px 24px;background:rgb(255 255 255 / .4);color:var(--color-cocoa-800,#3a352d);border:1px solid var(--color-cocoa-500,#7d7566);cursor:pointer;transition:transform .3s,background .3s,box-shadow .3s}.ds-button-outline:hover{background:rgb(255 255 255 / .6);border-color:var(--color-cocoa-900,#2a2620)}.ds-button-outline:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-button-outline{transition:none}.ds-button-outline:hover{transform:none}}"
+    },
+    {
+      "name": "Ghost button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Ghost button from the shared storefront styles.",
+      "html": "<button class=\"ds-button-ghost\">Shop honey</button>",
+      "css": ".ds-button-ghost{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;font-weight:600;min-height:44px;border-radius:9999px;padding:8px 16px;background:transparent;color:var(--color-honey-700,#b45309);border:0;cursor:pointer;transition:transform .3s,background .3s,box-shadow .3s}.ds-button-ghost:hover{background:var(--color-honey-50,#fffbeb)}.ds-button-ghost:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-button-ghost{transition:none}.ds-button-ghost:hover{transform:none}}"
+    },
+    {
+      "name": "Text field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Text field from the shared storefront styles.",
+      "html": "<label for=\"ds-search\">Search products</label><input id=\"ds-search\" class=\"ds-field\" placeholder=\"Honey, equipment…\" />",
+      "css": ".ds-field{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;display:block;width:100%;min-height:44px;font-size:16px;border:1px solid var(--color-cocoa-200);border-radius:12px;padding:10px 16px;background:var(--color-parchment,#fff);color:var(--color-cocoa-900,#2a2620)}.ds-field:focus{border-color:var(--color-honey-600,#d97706);box-shadow:0 0 0 2px rgb(217 119 6 / .2);outline:none}.ds-field::placeholder{color:var(--color-cocoa-600,#625b4e)}"
+    },
+    {
+      "name": "Filter chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filter chip from the shared storefront styles.",
+      "html": "<button class=\"ds-chip\">Honey</button>",
+      "css": ".ds-chip{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;padding:6px 16px;min-height:44px;border:1px solid var(--color-cocoa-200);border-radius:9999px;background:var(--color-parchment,#fff);color:var(--color-cocoa-700,#4d473d);cursor:pointer}.ds-chip:hover{border-color:var(--color-cocoa-400,#9c9486)}.ds-chip:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}"
+    },
+    {
+      "name": "Paper panel",
+      "kind": "card",
+      "refersTo": "paper-panel",
+      "description": "Paper panel from the shared storefront styles.",
+      "html": "<div class=\"ds-panel\">Product details</div>",
+      "css": ".ds-panel{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;border:1px solid var(--color-cocoa-100,#f0eeea);border-radius:16px;background:var(--color-parchment,#fff);box-shadow:0 1px 2px rgb(28 25 20 / .06);color:var(--color-cocoa-900,#2a2620)}"
+    },
+    {
+      "name": "Studio shopping action",
+      "kind": "button",
+      "refersTo": "studio-action",
+      "description": "Gold honey-store link in the cinematic homepage introduction.",
+      "html": "<a class=\"ds-studio-action\" href=\"/honey\">Shop honey</a>",
+      "css": ".ds-studio-action{display:inline-flex;align-items:center;justify-content:space-between;gap:2rem;min-height:48px;padding:.8rem 1.4rem;background:#d3b87b;color:#1b1d14;font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-weight:700;font-size:.9rem;border-radius:3px;text-decoration:none;transition:background .2s}.ds-studio-action:hover{background:#e8d4a3}.ds-studio-action:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-studio-action{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A cinematic product study",
+    "overview": "The landing introduces Etman through a centered, realistic honey jar against dark olive, with giant gold-toned ETMAN lettering behind it. Native scrolling moves the camera through front, side, cap and label details before returning to the opening view. This replaces the playful illustrative 3D direction rejected by the user; it records the implemented reference-led treatment, not a standing dark-theme preference for the whole store.\n\nCommerce retains its warm paper, cream and cocoa palette, real catalog photography and readable bilingual typography. The studio scene is a procedural product interpretation with the existing Sidr photograph mapped onto its label, not a scanned or downloaded product model.",
+    "keyCharacteristics": [
+      "Centered product with oversized typography behind it.",
+      "Dark olive and muted gold for the landing studio and homepage header.",
+      "Physical glass, dark honey and a white ridged cap under studio lighting.",
+      "Warm shared commerce surfaces with Arabic RTL and English LTR behavior."
+    ],
+    "rules": [],
+    "dos": [
+      "Do preserve the existing name, logo, product photos and Arabic RTL / English LTR behavior.",
+      "Do keep shopping links and product information usable before animation loads.",
+      "Do use reduced-motion behavior, visible focus and 44px storefront controls.",
+      "Do keep the cinematic palette scoped to the homepage introduction and header."
+    ],
+    "donts": [
+      "Don't reintroduce the rejected playful dipper, droplets or separate animated story treatment.",
+      "Don't present the procedural jar as a scan or exact packaging photograph.",
+      "Don't require an animation to finish before shopping or replace native scrolling.",
+      "Don't invent product benefits, testimonials, certifications or delivery promises."
+    ]
+  }
+}
