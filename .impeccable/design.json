@@ -1,41 +1,116 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-25T16:54:37.911981+00:00",
+  "generatedAt": "2026-09-26T00:58:31.207848+00:00",
   "title": "Design System: Beeking Etman",
   "extensions": {
+    "themeScoping": [
+      {
+        "name": "default-world",
+        "value": "@theme { } on :root — light paper",
+        "purpose": "Default token values. Still governs every /admin route and every component rendered outside the customer-facing branch."
+      },
+      {
+        "name": "storefront-world",
+        "value": "html:has(.storefront-shell) { color-scheme: dark; } — dark olive + gold",
+        "purpose": "The homepage studio hero's world promoted to the whole customer-facing palette. Re-points the same token names, so every component flips colour without a markup change. Sets color-scheme: dark and the root scrollbar pairing (cocoa-300 on paper, thin)."
+      },
+      {
+        "name": "scoping-class",
+        "value": ".storefront-shell — src/routes/+layout.svelte, non-admin branch only",
+        "purpose": "isAdminRoute is true only for /admin and /admin/*, and the admin arm renders a wrapper with no storefront-shell class, so admin never matches the :has() selector."
+      },
+      {
+        "name": "theme-block-mode",
+        "value": "@theme, deliberately not @theme inline",
+        "purpose": "Load-bearing. Without inline, generated utilities reference their token by name (bg-parchment compiles to var(--color-parchment)), so the storefront block can re-point one set of token names. With inline the hex would be baked into the utility and a second parallel vocabulary would be required."
+      },
+      {
+        "name": "dark-scope-overrides",
+        "value": ".storefront-shell { .btn-primary, .btn-outline, :is(.badge-out,.badge-warn), ::selection, .brand-logo, .brand-seal }",
+        "purpose": "Only the values a var() cannot re-point: the gold-on-ink primary action, the color-mix outline ground, badge label colour, the selection pair, and brightness lifts for the raster logo and wax seal. Focus, eyebrow, ghost and chip-active need no override because honey-600/700 re-point on their own."
+      },
+      {
+        "name": "photo-mat",
+        "value": "bg-sand-100, identical in both themes, not re-pointed",
+        "purpose": "The storefront's only light surface. Catalog photography was shot on a warm sand studio ground, so the same plate in both worlds is what makes honey colour comparable. Photographs are mix-blend-multiply into it; a product with no photo gets ProductArt's dark dashed well instead."
+      }
+    ],
     "shadows": [
       {
         "name": "warm-sm",
-        "value": "0 1px 2px rgb(28 25 20 / 0.06)",
-        "purpose": "Shared panels and resting primary buttons."
+        "value": "light: 0 1px 2px rgb(28 25 20 / 0.06) — storefront: 0 1px 2px rgb(0 0 0 / 0.4)",
+        "purpose": "Shared panels and resting primary buttons. Warm shadows read as depth on paper; on the dark comb they have to be near-black to register at all."
       },
       {
         "name": "warm",
-        "value": "0 8px 24px -12px rgb(28 25 20 / 0.14)",
-        "purpose": "Primary-button hover."
+        "value": "light: 0 8px 24px -12px rgb(28 25 20 / 0.14) — storefront: 0 10px 28px -14px rgb(0 0 0 / 0.65)",
+        "purpose": "Primary-button hover and card hover. The storefront override is applied on .storefront-shell .btn-primary:hover, because the base lift is invisible on the comb."
+      },
+      {
+        "name": "warm-lg",
+        "value": "light: 0 20px 48px -20px rgb(28 25 20 / 0.18) — storefront: 0 24px 52px -24px rgb(0 0 0 / 0.75)",
+        "purpose": "Dialogs, the cart drawer, the mobile nav drawer, select content and the scroll-to-top button."
       }
     ],
     "motion": [
       {
         "name": "studio-camera",
         "value": "ScrollTrigger scrub: 0.65; ease: none",
-        "purpose": "Native scrolling drives front, side, cap detail, label detail and return camera views; pause holds the current view and reduced motion fixes the opening view."
+        "purpose": "Native scrolling drives front, side, cap detail, label detail and return camera views; pause holds the current view and reduced motion fixes the opening view. No wheel interception and no scroll replacement."
       },
       {
         "name": "chapter-copy",
         "value": "opacity 0.45s, transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1)",
-        "purpose": "Crossfades studio copy phases; disabled under reduced motion."
+        "purpose": "Crossfades the five studio copy phases; disabled under reduced motion."
+      },
+      {
+        "name": "view-transition",
+        "value": "::view-transition-new(root) fade-in 0.2s ease; .product-img group 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Language switch and route changes cross-fade; the shared product-<id> name morphs the card thumbnail into the detail image. Snapshots keep their default fade so an unmatched outgoing image does not freeze."
+      },
+      {
+        "name": "brand-signatures",
+        "value": "wordmark-sheen 7s ease-in-out infinite; honey-pulse 3.2s; honey-drop-bob 4s; brand-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "The brand mark's quiet motion. Continuous animation runs only on the initial full page load: html.has-nav, added in beforeNavigate, disables animate-fade-up and animate-float to avoid a flicker on every client-side navigation."
+      },
+      {
+        "name": "feedback",
+        "value": "shimmer 1.5s; added-check 0.3s ease forwards; pop-in 0.35s cubic-bezier(0.22, 1, 0.36, 1); spin 0.6s linear infinite; fade-up 0.7s",
+        "purpose": "Skeletons, cart confirmation, badge pop, spinner and section entrance."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce collapses every animation, transition and scroll-behavior to 0.01ms / auto",
+        "purpose": "Global kill switch. The hero also collapses its 360svh scroll area into a static introduction of the same viewport height and hides the viewpoint buttons, scroll prompt and motion toggle."
       }
     ],
     "breakpoints": [
       {
-        "name": "studio-tablet-max",
-        "value": "1023px"
+        "name": "hero-desktop-break",
+        "value": "1023px max (--hero-header: 73px above, 69px below)"
       },
       {
         "name": "studio-mobile-max",
-        "value": "650px"
+        "value": "650px (280svh stage, 26vw wordmark, 1.6rem chapter heading)"
+      },
+      {
+        "name": "home-grid-break",
+        "value": "900px (6-column category grid to 3), 600px (product grid to 2, category grid to 2)"
+      },
+      {
+        "name": "nav-break",
+        "value": "1024px (desktop nav and search swap to the mobile drawer; the drawer auto-closes above it)"
       }
+    ],
+    "radius": [
+      { "name": "studio-action", "value": "3px" },
+      { "name": "skeleton-text", "value": "0.25rem" },
+      { "name": "skeleton-heading", "value": "0.375rem" },
+      { "name": "inset-plate", "value": "0.5rem" },
+      { "name": "field", "value": "0.75rem" },
+      { "name": "panel", "value": "1rem" },
+      { "name": "feature", "value": "1.5rem" },
+      { "name": "pill", "value": "9999px" }
     ]
   },
   "components": [
@@ -43,79 +118,103 @@
       "name": "Primary button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Primary button from the shared storefront styles.",
+      "description": "Primary button from the shared storefront styles. Ink-on-parchment on the light world; honey-600 on ink-950 with no resting shadow on the dark storefront world.",
       "html": "<button class=\"ds-button-primary\">Shop honey</button>",
-      "css": ".ds-button-primary{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;font-weight:600;min-height:44px;border-radius:9999px;padding:12px 24px;background:var(--color-ink-950,#14120f);color:var(--color-parchment,#fff);border:0;cursor:pointer;transition:transform .3s,background .3s,box-shadow .3s}.ds-button-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px -12px rgb(28 25 20 / .14)}.ds-button-primary:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none}.ds-button-primary:hover{transform:none}}"
+      "css": ".ds-button-primary{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;font-weight:600;min-height:44px;border-radius:9999px;padding:12px 24px;background:var(--color-ink-950);color:var(--color-parchment);border:0;cursor:pointer;transition:transform .3s,background .3s,box-shadow .3s}.ds-button-primary:hover{transform:translateY(-2px);box-shadow:var(--shadow-warm)}.ds-button-primary:focus-visible{outline:2px solid var(--color-honey-600);outline-offset:2px}html:has(.storefront-shell) .ds-button-primary{background:var(--color-honey-600);color:var(--color-ink-950);box-shadow:none}html:has(.storefront-shell) .ds-button-primary:hover{background:var(--color-honey-700);box-shadow:var(--shadow-warm)}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none}.ds-button-primary:hover{transform:none}}"
     },
     {
       "name": "Outline button",
       "kind": "button",
       "refersTo": "button-outline",
-      "description": "Outline button from the shared storefront styles.",
+      "description": "Outline button from the shared storefront styles. bg-parchment/40 on the light world; a color-mix of cocoa-200 on the dark comb, because parchment at low alpha reads as a hole there.",
       "html": "<button class=\"ds-button-outline\">Shop honey</button>",
-      "css": ".ds-button-outline{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;font-weight:600;min-height:44px;border-radius:9999px;padding:10px 24px;background:rgb(255 255 255 / .4);color:var(--color-cocoa-800,#3a352d);border:1px solid var(--color-cocoa-500,#7d7566);cursor:pointer;transition:transform .3s,background .3s,box-shadow .3s}.ds-button-outline:hover{background:rgb(255 255 255 / .6);border-color:var(--color-cocoa-900,#2a2620)}.ds-button-outline:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-button-outline{transition:none}.ds-button-outline:hover{transform:none}}"
+      "css": ".ds-button-outline{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;font-weight:600;min-height:44px;border-radius:9999px;padding:10px 24px;background:rgb(255 255 255 / .4);color:var(--color-cocoa-800);border:1px solid var(--color-cocoa-500);cursor:pointer;transition:transform .3s,background .3s,box-shadow .3s}.ds-button-outline:hover{background:rgb(255 255 255 / .6);border-color:var(--color-cocoa-900)}.ds-button-outline:focus-visible{outline:2px solid var(--color-honey-600);outline-offset:2px}html:has(.storefront-shell) .ds-button-outline{background:color-mix(in oklab,var(--color-cocoa-200) 55%,transparent)}html:has(.storefront-shell) .ds-button-outline:hover{background:color-mix(in oklab,var(--color-cocoa-300) 70%,transparent)}@media(prefers-reduced-motion:reduce){.ds-button-outline{transition:none}.ds-button-outline:hover{transform:none}}"
     },
     {
       "name": "Ghost button",
       "kind": "button",
       "refersTo": "button-ghost",
-      "description": "Ghost button from the shared storefront styles.",
+      "description": "Ghost button from the shared storefront styles. Needs no dark-scope override: honey-700 and honey-50 both re-point.",
       "html": "<button class=\"ds-button-ghost\">Shop honey</button>",
-      "css": ".ds-button-ghost{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;font-weight:600;min-height:44px;border-radius:9999px;padding:8px 16px;background:transparent;color:var(--color-honey-700,#b45309);border:0;cursor:pointer;transition:transform .3s,background .3s,box-shadow .3s}.ds-button-ghost:hover{background:var(--color-honey-50,#fffbeb)}.ds-button-ghost:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-button-ghost{transition:none}.ds-button-ghost:hover{transform:none}}"
+      "css": ".ds-button-ghost{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;font-weight:600;min-height:44px;border-radius:9999px;padding:8px 16px;background:transparent;color:var(--color-honey-700);border:0;cursor:pointer;transition:background .3s,color .3s}.ds-button-ghost:hover{background:var(--color-honey-50)}.ds-button-ghost:focus-visible{outline:2px solid var(--color-honey-600);outline-offset:2px}"
     },
     {
       "name": "Text field",
       "kind": "input",
       "refersTo": "field",
-      "description": "Text field from the shared storefront styles.",
+      "description": "Text field from the shared storefront styles. bg-parchment re-points from #ffffff to the raised olive #1f2318; border, placeholder and the honey focus ring all follow the scope.",
       "html": "<label for=\"ds-search\">Search products</label><input id=\"ds-search\" class=\"ds-field\" placeholder=\"Honey, equipment…\" />",
-      "css": ".ds-field{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;display:block;width:100%;min-height:44px;font-size:16px;border:1px solid var(--color-cocoa-200);border-radius:12px;padding:10px 16px;background:var(--color-parchment,#fff);color:var(--color-cocoa-900,#2a2620)}.ds-field:focus{border-color:var(--color-honey-600,#d97706);box-shadow:0 0 0 2px rgb(217 119 6 / .2);outline:none}.ds-field::placeholder{color:var(--color-cocoa-600,#625b4e)}"
+      "css": ".ds-field{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);display:block;width:100%;min-height:44px;font-size:16px;border:1px solid var(--color-cocoa-200);border-radius:12px;padding:10px 16px;background:var(--color-parchment);color:var(--color-cocoa-900);caret-color:var(--color-honey-800)}.ds-field:focus{border-color:var(--color-honey-600);box-shadow:0 0 0 2px rgb(217 119 6 / .2);outline:none}.ds-field[aria-invalid=true]{border-color:var(--color-clay-700)}.ds-field::placeholder{color:var(--color-cocoa-600)}.ds-field:disabled{background:var(--color-cocoa-100)}"
     },
     {
       "name": "Filter chip",
       "kind": "chip",
       "refersTo": "chip",
-      "description": "Filter chip from the shared storefront styles.",
-      "html": "<button class=\"ds-chip\">Honey</button>",
-      "css": ".ds-chip{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;padding:6px 16px;min-height:44px;border:1px solid var(--color-cocoa-200);border-radius:9999px;background:var(--color-parchment,#fff);color:var(--color-cocoa-700,#4d473d);cursor:pointer}.ds-chip:hover{border-color:var(--color-cocoa-400,#9c9486)}.ds-chip:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}"
+      "description": "Filter chip and its active state. chip-active is a utility applied as data-[state=on]; it is gold-on-ink in both worlds because honey-600 and ink-950 both re-point.",
+      "html": "<button class=\"ds-chip ds-chip-active\">Honey</button>",
+      "css": ".ds-chip{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;padding:6px 16px;min-height:44px;border:1px solid var(--color-cocoa-200);border-radius:9999px;background:var(--color-parchment);color:var(--color-cocoa-700);cursor:pointer}.ds-chip:hover{border-color:var(--color-cocoa-400)}.ds-chip:focus-visible{outline:2px solid var(--color-honey-600);outline-offset:2px}.ds-chip-active{border-color:var(--color-honey-600);background:var(--color-honey-600);color:var(--color-ink-950)}.ds-chip-active:hover{border-color:var(--color-honey-700)}"
     },
     {
       "name": "Paper panel",
       "kind": "card",
       "refersTo": "paper-panel",
-      "description": "Paper panel from the shared storefront styles.",
+      "description": "Paper panel from the shared storefront styles. Defined in layout.css but not currently referenced in markup.",
       "html": "<div class=\"ds-panel\">Product details</div>",
-      "css": ".ds-panel{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;border:1px solid var(--color-cocoa-100,#f0eeea);border-radius:16px;background:var(--color-parchment,#fff);box-shadow:0 1px 2px rgb(28 25 20 / .06);color:var(--color-cocoa-900,#2a2620)}"
+      "css": ".ds-panel{font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-size:14px;border:1px solid var(--color-cocoa-100);border-radius:16px;background:var(--color-parchment);box-shadow:var(--shadow-warm-sm);color:var(--color-cocoa-900)}"
+    },
+    {
+      "name": "Photo mat",
+      "kind": "card",
+      "refersTo": "photo-mat",
+      "description": "The storefront's only light surface. bg-sand-100 is identical in both worlds and is never re-pointed, because the catalog photography was shot on that warm sand studio ground. The image is multiplied into it. A product with no photo gets ProductArt's dark dashed well instead of an empty bright plate.",
+      "html": "<div class=\"ds-photo-mat\"><img src=\"sidr.jpg\" alt=\"Sidr honey\" /></div><div class=\"ds-photo-art\"><span>Product photo not yet available</span></div>",
+      "css": ".ds-photo-mat{position:relative;overflow:hidden;border-radius:16px;border:1px solid var(--color-cocoa-200);background:var(--color-sand-100)}.ds-photo-mat img{width:100%;height:100%;object-fit:contain;padding:12px;mix-blend-mode:multiply}.ds-photo-art{display:flex;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;border:1px dashed var(--color-cocoa-300);background:var(--color-cocoa-100);color:var(--color-cocoa-500);font-size:12px}"
     },
     {
       "name": "Studio shopping action",
       "kind": "button",
       "refersTo": "studio-action",
-      "description": "Gold honey-store link in the cinematic homepage introduction.",
+      "description": "The gold honey-store link in the cinematic homepage introduction, and the source of the storefront palette: honey-600 on ink-950 at a 3px radius, the one deliberately non-pill rectangle in the system.",
       "html": "<a class=\"ds-studio-action\" href=\"/honey\">Shop honey</a>",
-      "css": ".ds-studio-action{display:inline-flex;align-items:center;justify-content:space-between;gap:2rem;min-height:48px;padding:.8rem 1.4rem;background:#d3b87b;color:#1b1d14;font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-weight:700;font-size:.9rem;border-radius:3px;text-decoration:none;transition:background .2s}.ds-studio-action:hover{background:#e8d4a3}.ds-studio-action:focus-visible{outline:2px solid var(--color-honey-600,#d97706);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-studio-action{transition:none}}"
+      "css": ".ds-studio-action{display:inline-flex;align-items:center;justify-content:space-between;gap:2rem;min-height:48px;padding:.8rem 1.4rem;background:var(--color-honey-600);color:var(--color-ink-950);font-family:var(--font-sans-en,\"Manrope Variable\",sans-serif);font-weight:700;font-size:.9rem;border-radius:3px;text-decoration:none;transition:background .2s}.ds-studio-action:hover{background:var(--color-honey-700)}.ds-studio-action:focus-visible{outline:2px solid var(--color-honey-600);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-studio-action{transition:none}}"
     }
   ],
   "narrative": {
-    "northStar": "A cinematic product study",
-    "overview": "The landing introduces Etman through a centered, realistic honey jar against dark olive, with giant gold-toned ETMAN lettering behind it. Native scrolling moves the camera through front, side, cap and label details before returning to the opening view. This replaces the playful illustrative 3D direction rejected by the user; it records the implemented reference-led treatment, not a standing dark-theme preference for the whole store.\n\nCommerce retains its warm paper, cream and cocoa palette, real catalog photography and readable bilingual typography. The studio scene is a procedural product interpretation with the existing Sidr photograph mapped onto its label, not a scanned or downloaded product model.",
+    "northStar": "A dark comb: deep olive ground, honey-gold for every action, ivory type, and real catalog photography on warm sand plates",
+    "overview": "The system has two color worlds on one token set. The light paper palette declared in the @theme block on :root is the default and still governs every /admin route. The homepage studio hero's dark olive and gold world was promoted from a homepage-local treatment to the whole customer-facing palette; it is declared in html:has(.storefront-shell), which re-points the same token names so every component flips colour without a markup change. cocoa-50 becomes the storefront's darkest ground and cocoa-900 becomes ivory body text. src/routes/+layout.svelte applies storefront-shell on the customer-facing branch only, so admin never matches the :has() selector. The @theme block is deliberately not inline: utilities must resolve through var() so one set of token names can serve both scopes. The sand photography family is the storefront's only light surface and is identical in both themes, so a product photo always sits on the same plate and honey colour reads true. Physical depth stays in the studio scene: lathed glass, a dark honey volume, a ridged white cap, a soft shadow floor and a transparent 0x141611 clear colour behind the page.",
     "keyCharacteristics": [
-      "Centered product with oversized typography behind it.",
-      "Dark olive and muted gold for the landing studio and homepage header.",
-      "Physical glass, dark honey and a white ridged cap under studio lighting.",
-      "Warm shared commerce surfaces with Arabic RTL and English LTR behavior."
+      "One token vocabulary, two scoped values per token, one sand family that never changes.",
+      "Dark olive ground with raised olive steps and 1px cocoa borders; ivory body text whose muted steps are tinted in the same yellow-green family, never neutral gray.",
+      "Honey-600 carries every primary action, active state, focus ring, underline and skip link; gold on ink-950.",
+      "Catalog photography is multiplied into a warm sand plate; a product with no photo gets a dark dashed well instead.",
+      "Rounded glass, a dark honey volume and a white ridged cap under studio lighting, lit from within by a pinned hero stage.",
+      "Readable bilingual typography with Arabic RTL and English LTR from the same components.",
+      "44px storefront controls, visible focus, native scrolling and a global reduced-motion kill switch."
     ],
-    "rules": [],
+    "rules": [
+      "Build surfaces from the existing token names (bg-parchment, text-cocoa-900, border-cocoa-200, text-honey-600) so they resolve in both worlds without a new rule.",
+      "Add a .storefront-shell-prefixed override only for a value a var() cannot re-point, and record it in DESIGN.md.",
+      "Put catalog photography on .photo-mat and multiply it in; it is the single place to change if the client later wants photographs blended into the ground.",
+      "Keep the light paper palette on /admin. It is a deliberate second world, not a leftover."
+    ],
     "dos": [
       "Do preserve the existing name, logo, product photos and Arabic RTL / English LTR behavior.",
-      "Do keep shopping links and product information usable before animation loads.",
+      "Do build new surfaces from the existing token names so they resolve correctly in both worlds without a new rule.",
+      "Do keep the dark olive and honey-gold world as the storefront's palette everywhere a customer can see it, including the header, catalog, cart, checkout and account.",
+      "Do keep the light paper palette on /admin; it is a deliberate second world, not a leftover.",
+      "Do put catalog photography on .photo-mat and multiply it in.",
+      "Do give a product with no photo the dark dashed well (ProductArt), never an empty bright plate.",
+      "Do keep shopping links and product information usable before the scene loads.",
       "Do use reduced-motion behavior, visible focus and 44px storefront controls.",
-      "Do keep the cinematic palette scoped to the homepage introduction and header."
+      "Do keep @theme non-inline. Inlining the values breaks per-scope re-pointing.",
+      "Do add a .storefront-shell-prefixed override only for values a var() cannot express, and record it."
     ],
     "donts": [
       "Don't reintroduce the rejected playful dipper, droplets or separate animated story treatment.",
       "Don't present the procedural jar as a scan or exact packaging photograph.",
       "Don't require an animation to finish before shopping or replace native scrolling.",
+      "Don't put a hard-coded hex in a component that should re-point with the theme.",
+      "Don't use sand for anything other than photographic plates, or use mix-blend-multiply outside the photographic surfaces already listed.",
       "Don't invent product benefits, testimonials, certifications or delivery promises."
     ]
   }

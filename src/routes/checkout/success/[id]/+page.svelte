@@ -24,7 +24,7 @@
   <div class="relative overflow-hidden rounded-3xl border border-honey-100 bg-gradient-to-br from-paper via-cream to-cream-deep px-6 py-10 text-center">
     <div class="relative">
       <div class="mx-auto grid h-20 w-20 place-items-center rounded-full border border-honey-200 bg-honey-50">
-        <div class="grid h-12 w-12 place-items-center rounded-full bg-honey-600 text-2xl text-white">✓</div>
+        <div class="grid h-12 w-12 place-items-center rounded-full bg-honey-600 text-2xl text-ink-950">✓</div>
       </div>
       <h1 class="headline mt-5 text-4xl leading-tight text-cocoa-900">{t(lang, "success.heading")}</h1>
       <p class="mt-3 text-lg text-cocoa-600">

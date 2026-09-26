@@ -22,7 +22,7 @@
 
 <Dialog.Root bind:open={cartState.drawerOpen}>
   <Dialog.Portal>
-    <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
+    <Dialog.Overlay class="fixed inset-0 z-40 bg-ink-950/60 backdrop-blur-sm" />
     <Dialog.Content
       dir={getDir(lang)}
       class="fixed inset-y-0 end-0 z-50 flex w-[88vw] max-w-[24rem] flex-col border-s border-cocoa-100 bg-parchment shadow-warm-lg focus:outline-none sm:w-96 sm:max-w-none lg:w-[27rem]"

@@ -42,19 +42,22 @@
   }
 </script>
 
-<section class="group flex flex-col overflow-hidden rounded-2xl border border-cocoa-100 bg-parchment transition-all duration-300 hover:-translate-y-0.5 hover:border-cocoa-200 hover:shadow-warm">
-  <a href={href} class="relative block overflow-hidden bg-white" onclick={beginImageTransition}>
+<section class="group flex flex-col overflow-hidden rounded-2xl border border-cocoa-200 bg-parchment transition-all duration-300 hover:-translate-y-0.5 hover:border-cocoa-300 hover:shadow-warm">
+  <a href={href} class="relative block overflow-hidden" onclick={beginImageTransition}>
     <AspectRatio.Root ratio={4 / 3} class="overflow-hidden">
       {#if isPlaceholderImage(imageSrc)}
         <ProductArt {lang} department={product.department} categorySlug={product.categorySlug} />
       {:else}
-        <img
-          bind:this={imageEl}
-          src={imageSrc}
-          alt={product.name}
-          loading="lazy"
-          class="h-full w-full object-contain p-3 transition duration-500 group-hover:scale-105"
-        />
+        <div class="photo-mat h-full w-full">
+          <img
+            bind:this={imageEl}
+            src={imageSrc}
+            alt={product.name}
+            loading="lazy"
+            fetchpriority="low"
+            class="h-full w-full object-contain p-3 mix-blend-multiply transition duration-500 group-hover:scale-105"
+          />
+        </div>
       {/if}
     </AspectRatio.Root>
     {#if stock === 0}
@@ -92,7 +95,7 @@
       {:else}
         <button
           type="button"
-          class="btn-primary w-full shrink-0 px-4 py-2 {added ? '!bg-olive-600 !text-white' : ''}"
+          class="btn-primary w-full shrink-0 px-4 py-2 {added ? '!bg-ink-950 !text-honey-600' : ''}"
           disabled={!product.variants[0] || product.variants[0].stock <= 0}
           onclick={handleAdd}
           data-testid="add-to-cart"

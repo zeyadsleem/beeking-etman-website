@@ -41,7 +41,10 @@
   src: url("/fonts/newsreader-latin-wght-normal.woff2") format("woff2-variations");
 }
 
-@theme inline {
+/* Not `inline`: the utilities must resolve through var() so the storefront
+   theme below can re-point the scales for customer-facing routes while admin
+   keeps the light paper palette. */
+@theme {
   --font-sans: "Cairo Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --font-sans-en: "Manrope Variable", "Cairo Variable", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Amiri", "Cairo Variable", serif;
@@ -113,6 +116,16 @@
   --color-cream: #f6f1e6;
   --color-cream-deep: #efe7d6;
 
+  /* Sand: the warm studio ground the catalog photography was shot on. It is
+     the storefront's only light family and it does not change between themes
+     — a product photo always sits on the same plate, so honey colour reads
+     true on a light page and on a dark one. */
+  --color-sand-50: #f7f4ea;
+  --color-sand-100: #efe9db;
+  --color-sand-200: #e0d8c4;
+  --color-sand-300: #c9bfa6;
+  --color-sand-400: #a49a80;
+
   /* ---------- shadcn-svelte semantic tokens ----------
      Mapped onto the brand cocoa/honey/clay palette so shadcn-style
      components (bg-background, text-foreground, bg-primary, ...) render
@@ -144,6 +157,122 @@
   --shadow-warm-sm: 0 1px 2px rgb(28 25 20 / 0.06);
   --shadow-warm: 0 8px 24px -12px rgb(28 25 20 / 0.14);
   --shadow-warm-lg: 0 20px 48px -20px rgb(28 25 20 / 0.18);
+}
+
+/* ---------- storefront theme: the dark comb ----------
+   The studio hero's olive-and-gold world is the storefront's whole palette,
+   not a homepage treatment. The scales below re-point the same token names, so
+   cocoa-50 becomes the page's darkest ground and cocoa-900 becomes ivory text
+   and every component flips without touching its markup. Admin routes never
+   match the :has() and keep the light paper palette above. */
+html:has(.storefront-shell) {
+  color-scheme: dark;
+
+  --color-paper: #171a11;
+  --color-paper-deep: #101208;
+  --color-parchment: #1f2318;
+
+  --color-cocoa-50: #1c1f15;
+  --color-cocoa-100: #262a1e;
+  --color-cocoa-200: #32372a;
+  --color-cocoa-300: #434936;
+  --color-cocoa-400: #616750;
+  --color-cocoa-500: #8a8776;
+  --color-cocoa-600: #a7a28c;
+  --color-cocoa-700: #c5bfa8;
+  --color-cocoa-800: #ded7c1;
+  --color-cocoa-900: #ede9da;
+  --color-cocoa-950: #f7f4ea;
+
+  --color-honey-50: #2b2513;
+  --color-honey-100: #332c16;
+  --color-honey-200: #453a1d;
+  --color-honey-300: #6d5c31;
+  --color-honey-400: #9a8148;
+  --color-honey-500: #c2a463;
+  --color-honey-600: #d3b87b;
+  --color-honey-700: #e2cd9d;
+  --color-honey-800: #efe3c6;
+  --color-honey-900: #f6efdd;
+  --color-honey-950: #fbf8ee;
+
+  --color-clay-50: #2b1710;
+  --color-clay-100: #3a1e15;
+  --color-clay-200: #5c2a1c;
+  --color-clay-300: #8f3f27;
+  --color-clay-400: #bd5636;
+  --color-clay-500: #d76a44;
+  --color-clay-600: #e08a63;
+  --color-clay-700: #eda98a;
+  --color-clay-800: #f3c6b3;
+  --color-clay-900: #f8ded3;
+
+  --color-ink-950: #101208;
+  --color-ink-900: #171a11;
+  --color-ink-800: #20231a;
+
+  --color-olive-50: #171a11;
+  --color-olive-100: #1f2317;
+  --color-olive-200: #2b3021;
+  --color-olive-300: #3d442c;
+  --color-olive-400: #5c6539;
+  --color-olive-500: #7e894a;
+  --color-olive-600: #a3b062;
+  --color-olive-700: #c2cd8c;
+  --color-olive-800: #d8e0ae;
+  --color-olive-900: #eaf0cd;
+
+  --color-cream: #22261b;
+  --color-cream-deep: #2a2f22;
+
+  /* Warm shadows read as depth on a light page; on the dark comb they have to
+     be near-black to register at all. */
+  --shadow-warm-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-warm: 0 10px 28px -14px rgb(0 0 0 / 0.65);
+  --shadow-warm-lg: 0 24px 52px -24px rgb(0 0 0 / 0.75);
+
+  scrollbar-color: var(--color-cocoa-300) var(--color-paper);
+  scrollbar-width: thin;
+}
+
+/* Controls that invert on the dark comb: the gold action, gold focus, and the
+   light-on-dark pairs the paper theme got for free. */
+.storefront-shell .btn-primary {
+  background-color: var(--color-honey-600);
+  color: var(--color-ink-950);
+  box-shadow: none;
+}
+
+.storefront-shell .btn-primary:hover {
+  background-color: var(--color-honey-700);
+  box-shadow: var(--shadow-warm);
+}
+
+.storefront-shell :is(.badge-out, .badge-warn) {
+  color: var(--color-ink-950);
+}
+
+.storefront-shell .btn-outline {
+  background-color: color-mix(in oklab, var(--color-cocoa-200) 55%, transparent);
+}
+
+.storefront-shell .btn-outline:hover {
+  background-color: color-mix(in oklab, var(--color-cocoa-300) 70%, transparent);
+}
+
+.storefront-shell ::selection {
+  background: var(--color-honey-600);
+  color: var(--color-ink-950);
+}
+
+/* The gold mark keeps its amber ink; it only needs to lift off the dark comb,
+   and the wax seal's brown darks need the same lift. */
+.storefront-shell .brand-logo {
+  filter: hue-rotate(-10deg) saturate(1.15) brightness(1.1);
+}
+
+.storefront-shell .brand-seal {
+  filter: sepia(0.12) saturate(0.88) hue-rotate(-6deg) brightness(1.15);
 }
 
 html {
@@ -324,6 +453,15 @@ html:lang(en) body {
     @apply rounded-2xl border border-cocoa-100 bg-parchment shadow-warm-sm;
   }
 
+  /* Catalog photography sits on a warm sand plate — the same studio ground the
+     product shots were taken on, so honey colour reads true against both the
+     light page and the dark comb. It is the storefront's only light surface,
+     and the single place to change if the client later wants the photographs
+     blended into the ground instead. */
+  .photo-mat {
+    @apply bg-sand-100;
+  }
+
   /* Artisanal paper grain — a faint, seeded noise over warm parchment so
      large flat surfaces feel like handmade stock rather than digital fills. */
   .paper-grain {
@@ -357,11 +495,11 @@ html:lang(en) body {
 /* ---------- keyboard focus ---------- */
 
 @utility chip-active {
-  border-color: var(--color-ink-950);
-  background-color: var(--color-ink-950);
-  color: var(--color-parchment);
+  border-color: var(--color-honey-600);
+  background-color: var(--color-honey-600);
+  color: var(--color-ink-950);
   &:hover {
-    border-color: var(--color-ink-950);
+    border-color: var(--color-honey-700);
   }
 }
 
@@ -710,8 +848,8 @@ html[lang="ar"] .eyebrow {
   z-index: 100;
   padding: 0.75rem 1.25rem;
   border-radius: 0.75rem;
-  background: var(--color-ink-950);
-  color: var(--color-parchment);
+  background: var(--color-honey-600);
+  color: var(--color-ink-950);
   transform: translateY(-200%);
 }
 

@@ -133,7 +133,7 @@
 
 <svelte:window ontouchstart={onTouchStart} ontouchend={onTouchEnd} ontouchcancel={onTouchCancel} />
 
-<header class:cinematic={page.url.pathname === "/"} class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper">
+<header class="sticky top-0 z-30 border-b border-cocoa-200 bg-paper">
   <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
     <div class="flex min-w-0 items-center gap-4 lg:gap-5">
       <a href="/" class="flex shrink-0 items-center transition-opacity hover:opacity-90" aria-label={t(lang, "brand.tagline")}>
@@ -226,7 +226,7 @@
 
 <Dialog.Root bind:open={mobileOpen}>
   <Dialog.Portal>
-    <Dialog.Overlay class="fixed inset-0 z-40 bg-cocoa-950/40 backdrop-blur-sm" />
+    <Dialog.Overlay class="fixed inset-0 z-40 bg-ink-950/60 backdrop-blur-sm" />
     <Dialog.Content
       dir={getDir(lang)}
       aria-describedby={undefined}
@@ -274,7 +274,7 @@
             href={item.href}
             onclick={closeMobile}
             aria-current={active ? "page" : undefined}
-            class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800 {active ? "bg-honey-50 font-bold text-honey-700" : ""}"
+            class="rounded-xl px-4 py-3 text-sm font-semibold text-cocoa-800 transition-colors hover:bg-honey-50 hover:text-honey-800 {active ? "bg-cocoa-100 font-bold text-honey-600" : ""}"
           >{t(lang, item.labelKey)}</a>
         {/each}
         </nav>
@@ -308,11 +308,3 @@
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
-
-<style>
-.cinematic{background:#141611;border-color:#34372b;color:#e3decc}
-.cinematic :global(nav a){color:#ccc8b9}
-.cinematic :global(nav a[aria-current="page"]){color:#dbc38c;border-color:#dbc38c}
-.cinematic :global(button.rounded-full),.cinematic :global(a.rounded-full){background:#22251c;border-color:#555943;color:#e3decc}
-.cinematic :global(.btn-primary){background:#d3b87b;color:#171a11;border-color:#d3b87b}
-</style>

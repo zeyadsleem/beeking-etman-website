@@ -132,7 +132,7 @@
 
 {#if data.products.length === 0}
   <div class="mt-14 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-cocoa-200 bg-parchment p-14 text-center">
-    <HoneycombIcon size={52} stroke="#dcd8d0" />
+    <HoneycombIcon size={52} class="text-cocoa-500" />
     <p class="text-lg font-semibold text-cocoa-600">{t(lang, "products.empty")}</p>
     <Button variant="outline" type="button" onclick={() => goto(deptPath)} class="mt-1 text-sm">{t(lang, "products.showAll")}</Button>
   </div>

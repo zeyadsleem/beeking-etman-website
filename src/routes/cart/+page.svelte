@@ -31,7 +31,7 @@
 
   {#if cartState.items.length === 0}
     <div class="empty-state">
-      <HoneycombIcon size={56} stroke="#dcd8d0" />
+      <HoneycombIcon size={56} class="text-cocoa-500" />
       <p class="mt-4 text-lg font-semibold text-cocoa-600">{t(lang, "cart.emptyPage")}</p>
       <Button variant="primary" href="/products" class="mt-5">{t(lang, "cart.browse")}</Button>
     </div>

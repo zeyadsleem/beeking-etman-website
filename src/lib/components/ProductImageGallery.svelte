@@ -108,7 +108,7 @@
 
 
     <div
-      class="relative overflow-hidden rounded-2xl bg-white border border-cocoa-100"
+      class="photo-mat relative overflow-hidden rounded-2xl border border-cocoa-200"
       onclick={onGalleryClick}
       onpointerdown={onSwipeStart}
       onpointermove={onSwipeMove}
@@ -126,14 +126,14 @@
               src={images[activeIndex]}
               alt={productName}
               style="view-transition-name: {viewTransitionName}; view-transition-class: product-img;"
-              class="h-full w-full object-contain p-3"
+              class="h-full w-full object-contain p-3 mix-blend-multiply"
             />
           </div>
         {/key}
       </AspectRatio.Root>
 
       {#if images.length > 1}
-        <span class="absolute bottom-3 end-3 rounded-full bg-ink-950/70 px-3 py-1 text-xs font-semibold text-parchment backdrop-blur-sm">
+        <span class="absolute bottom-3 end-3 rounded-full bg-ink-950/75 px-3 py-1 text-xs font-semibold text-sand-100 backdrop-blur-sm">
           {t(lang, "gallery.counter", { current: activeIndex + 1, total: images.length })}
         </span>
       {/if}
@@ -151,13 +151,13 @@
             role="tab"
             aria-selected={index === activeIndex}
             aria-label={t(lang, "gallery.thumbnailAria", { name: productName, index: index + 1 })}
-            class="w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-white border border-cocoa-100 transition-all duration-200 {index === activeIndex
+            class="photo-mat w-20 shrink-0 overflow-hidden rounded-xl border-2 border-cocoa-200 transition-all duration-200 {index === activeIndex
               ? 'border-honey-600 ring-2 ring-honey-600/25'
               : 'border-cocoa-200 opacity-75 hover:border-cocoa-400 hover:opacity-100'}"
             onclick={() => (activeIndex = index)}
           >
             <AspectRatio.Root ratio={1}>
-              <img src={image} alt="" loading="lazy" class="h-full w-full object-contain p-3" />
+              <img src={image} alt="" loading="lazy" class="h-full w-full object-contain p-3 mix-blend-multiply" />
             </AspectRatio.Root>
           </button>
         {/each}
@@ -185,7 +185,7 @@
     >
       <button
         type="button"
-        class="absolute end-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-parchment/10 text-parchment transition-colors duration-200 hover:bg-parchment/20"
+        class="absolute end-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-sand-100/10 text-sand-100 transition-colors duration-200 hover:bg-sand-100/20"
         aria-label={t(lang, "gallery.close")}
         onclick={() => (lightboxOpen = false)}
       >
@@ -197,7 +197,7 @@
       {#if images.length > 1}
         <button
           type="button"
-          class="absolute start-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-parchment/10 text-parchment transition-colors duration-200 hover:bg-parchment/20"
+          class="absolute start-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-sand-100/10 text-sand-100 transition-colors duration-200 hover:bg-sand-100/20"
           aria-label={t(lang, "gallery.prev")}
           onclick={goPrev}
         >
@@ -207,7 +207,7 @@
         </button>
         <button
           type="button"
-          class="absolute end-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-parchment/10 text-parchment transition-colors duration-200 hover:bg-parchment/20"
+          class="absolute end-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-sand-100/10 text-sand-100 transition-colors duration-200 hover:bg-sand-100/20"
           aria-label={t(lang, "gallery.next")}
           onclick={goNext}
         >
@@ -218,7 +218,7 @@
       {/if}
 
       <figure class="px-4">
-        <div class="overflow-hidden rounded-2xl bg-parchment/5">
+        <div class="overflow-hidden rounded-2xl bg-sand-100/10">
           <img
             src={images[activeIndex]}
             alt={productName}
@@ -226,7 +226,7 @@
           />
         </div>
         {#if images.length > 1}
-          <figcaption class="mt-3 text-center text-sm font-semibold text-parchment/80">
+          <figcaption class="mt-3 text-center text-sm font-semibold text-sand-100/80">
             {t(lang, "gallery.counter", { current: activeIndex + 1, total: images.length })}
           </figcaption>
         {/if}

@@ -5,7 +5,6 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 export async function createHoneyStudio(
   container: HTMLElement,
   getProgress: () => number,
-  isDisposed: () => boolean,
   onUnavailable: () => void,
 ) {
   const renderer = new THREE.WebGLRenderer({
@@ -15,6 +14,10 @@ export async function createHoneyStudio(
   });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.setClearColor(0x141611, 0);
+  // The glass is a transmissive material, so every frame renders a second
+  // transmission target. Half resolution is invisible through the jar and
+  // keeps the viewport inside a software renderer's budget.
+  renderer.transmissionResolutionScale = 0.5;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.82;
   renderer.shadowMap.enabled = true;
@@ -34,6 +37,9 @@ export async function createHoneyStudio(
   let observer: IntersectionObserver | undefined;
   let resize: ResizeObserver | undefined;
   let destroyed = false;
+  let visible = true;
+  let dirty = true;
+  let previous = -1;
   const destroy = () => {
     if (destroyed) return;
     destroyed = true;
@@ -156,27 +162,8 @@ export async function createHoneyStudio(
       ridges.setMatrixAt(i, ridgeTransform.matrix);
     }
     jar.add(ridges);
-    const labelBacking = new THREE.MeshStandardMaterial({
-      color: 0xa49468,
-      roughness: 0.52,
-      metalness: 0.15,
-    });
-    mesh(new THREE.CylinderGeometry(0.877, 0.877, 1.15, 96, 1, true), labelBacking, -0.39);
-    const label = await new THREE.TextureLoader().loadAsync(
-      "/images/Beeking Etman/برطمان السدر المصرى.jpg",
-    );
-    textures.push(label);
-    if (isDisposed()) {
-      destroy();
-      return { destroy };
-    }
-    label.colorSpace = THREE.SRGBColorSpace;
-    // UV window isolates the photographed label; source bytes remain unchanged.
-    label.repeat.set(485 / 768, 338 / 1024);
-    label.offset.set(130 / 768, 1 - (480 + 338) / 1024);
-    label.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     const printedLabel = new THREE.MeshStandardMaterial({
-      map: label,
+      color: 0xa49468,
       roughness: 0.62,
       metalness: 0.04,
     });
@@ -185,6 +172,26 @@ export async function createHoneyStudio(
       printedLabel,
       -0.39,
     );
+    // The photographed label is the last thing to arrive, never a gate: the
+    // studio renders on the plain backing colour and the print fades in when
+    // the texture lands. Awaiting it here used to hold the first frame — and
+    // the main thread — for as long as the image took.
+    void new THREE.TextureLoader()
+      .loadAsync("/images/Beeking Etman/برطمان السدر المصرى.jpg")
+      .then((label) => {
+        textures.push(label);
+        if (destroyed) return;
+        label.colorSpace = THREE.SRGBColorSpace;
+        // UV window isolates the photographed label; source bytes remain unchanged.
+        label.repeat.set(485 / 768, 338 / 1024);
+        label.offset.set(130 / 768, 1 - (480 + 338) / 1024);
+        label.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        printedLabel.map = label;
+        printedLabel.color.set(0xffffff);
+        printedLabel.needsUpdate = true;
+        dirty = true;
+      })
+      .catch(() => {});
 
     const key = new THREE.SpotLight(0xfff1d8, 80, 18, 0.65, 0.8, 2);
     key.position.set(-3.5, 5, 5);
@@ -216,9 +223,6 @@ export async function createHoneyStudio(
       { at: 0.78, position: [-0.9, 0.15, 3.65], target: [0, -0.3, 0], turn: -0.08 },
       { at: 1, position: [0, 0.75, 8.1], target: [0, 0.05, 0], turn: -0.1 },
     ];
-    let visible = true;
-    let dirty = true;
-    let previous = -1;
     const target = new THREE.Vector3();
     observer = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;

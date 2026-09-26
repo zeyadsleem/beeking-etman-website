@@ -153,7 +153,7 @@
     <ol class="space-y-8">
       {#each timeline as item (item.year)}
         <li class="relative flex gap-5">
-          <span class="rounded-full relative z-10 grid h-12 w-12 shrink-0 place-items-center bg-gradient-to-br from-honey-400 to-honey-700 text-[11px] font-bold text-cocoa-950">
+          <span class="rounded-full relative z-10 grid h-12 w-12 shrink-0 place-items-center bg-gradient-to-br from-honey-400 to-honey-700 text-[11px] font-bold text-ink-950">
             {item.year}
           </span>
           <div class="flex-1 rounded-2xl border border-honey-100 bg-parchment p-5 shadow-warm-sm">

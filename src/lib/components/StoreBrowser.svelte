@@ -131,7 +131,7 @@
 
 {#if data.products.length === 0}
   <div class="empty-state">
-    <HoneycombIcon size={52} stroke="#dcd8d0" />
+    <HoneycombIcon size={52} class="text-cocoa-500" />
     <p class="text-lg font-semibold text-cocoa-600">{t(lang, "products.empty")}</p>
     <Button variant="outline" type="button" onclick={() => selectCategory(null)} class="mt-1 text-sm">{t(lang, "products.showAll")}</Button>
   </div>
