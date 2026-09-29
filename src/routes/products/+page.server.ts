@@ -28,10 +28,12 @@ export const load: PageServerLoad = async (event) => {
   const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
 
   const rawDept = url.searchParams.get("dept");
-  const department: Department = isDepartment(rawDept) ? rawDept : "honey";
+  // Header search spans the whole store. A department is selected only when
+  // the visitor explicitly chooses one (or opens the unfiltered catalog).
+  const department: Department | "all" = isDepartment(rawDept) ? rawDept : rawQ ? "all" : "honey";
 
   const [categories, departmentCounts] = await Promise.all([
-    getCategories(db, lang, department),
+    getCategories(db, lang, department === "all" ? undefined : department),
     getDepartmentCounts(db),
   ]);
   if (!categories.length) error(500, t(lang, "products.unavailable"));
@@ -47,7 +49,11 @@ export const load: PageServerLoad = async (event) => {
       autoCategory = true;
     }
   }
-  const categoryIds = await resolveCategoryIds(db, department, categorySlug);
+  const categoryIds = await resolveCategoryIds(
+    db,
+    department === "all" ? undefined : department,
+    categorySlug,
+  );
   if (categorySlug && !categoryIds?.length) error(404, t(lang, "products.categoryNotFound"));
 
   const result = await listProductsPage(
@@ -55,7 +61,7 @@ export const load: PageServerLoad = async (event) => {
     {
       query: autoCategory ? "" : rawQ,
       categoryIds: categoryIds ?? [],
-      department,
+      department: department === "all" ? undefined : department,
       sort,
       page,
       pageSize: PRODUCTS_PAGE_SIZE,

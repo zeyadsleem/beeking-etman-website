@@ -132,7 +132,7 @@
 <section class="mx-auto mt-20 max-w-7xl px-4 lg:px-6">
   <div class="grid items-center gap-10 lg:grid-cols-2">
     <div class="aspect-[4/3] overflow-hidden rounded-3xl border border-honey-100 bg-cream shadow-warm">
-      <img src="/images/Beeking Etman/برواز البرسيم.png" alt={t(lang, "about.visionTitle")} class="h-full w-full object-cover" />
+      <img src="/images/editorial/honeycomb-study.png" alt={lang === "ar" ? "قرص عسل وشغالات النحل" : "Honeycomb with worker bees"} class="h-full w-full object-cover" loading="lazy" />
     </div>
     <div>
       <p class="eyebrow">{t(lang, "about.visionEyebrow")}</p>

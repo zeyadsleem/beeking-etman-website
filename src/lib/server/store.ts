@@ -265,7 +265,7 @@ export async function getCategories(
  */
 export async function resolveCategoryIds(
   db: LibSQLDatabase<typeof schema>,
-  department: Department,
+  department: Department | undefined,
   slug: string,
 ): Promise<string[] | null> {
   if (!slug) return [];
@@ -277,7 +277,12 @@ export async function resolveCategoryIds(
     .where(
       and(
         eq(schema.category.slug, slug),
-        or(eq(schema.category.department, department), sql`${schema.category.department} IS NULL`),
+        department
+          ? or(
+              eq(schema.category.department, department),
+              sql`${schema.category.department} IS NULL`,
+            )
+          : undefined,
       ),
     )
     .get();
@@ -460,7 +465,7 @@ export async function getSearchSuggestions(
   categories: { id: string; name: string; slug: string }[];
 }> {
   const trimmed = truncateQueryToByteLimit(query.trim());
-  const q = `%${trimmed}%`;
+  const q = `%${normalizeArabic(trimmed)}%`;
   const [ids, categoryRows] = await Promise.all([
     searchProductIds(db, trimmed, 6),
     db.select().from(schema.category).where(categoryNameCondition(q)).limit(3),
