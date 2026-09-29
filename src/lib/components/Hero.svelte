@@ -111,15 +111,15 @@
   @media(max-height:720px){.cinema-stage{min-height:0}.studio-copy{top:35%}.studio-bottom{bottom:.5rem}.studio-actions{bottom:17%}}
   @media(max-width:650px) and (max-height:720px){.studio-copy{top:11%}.chapter-copy h2{font-size:1.25rem}.chapter-copy p{font-size:.72rem;line-height:1.6}.product-stage{top:32%;bottom:27%}.studio-actions{bottom:15%}.scroll-prompt{font-size:.55rem}}
   @media(prefers-reduced-motion:reduce){.cinema{height:calc(100svh - var(--hero-header));min-height:640px}.cinema-stage{position:relative;top:0}.chapter-copy,.studio-poster{transition:none}.camera-chapters,.scroll-prompt,.motion-toggle{visibility:hidden}}
-  :global(html[data-theme="light"]) .cinema{background:#f6f1e6;color:#2a2620}
-  :global(html[data-theme="light"]) .cinema-word{color:#bf9b52}
+  :global(html[data-theme="light"]) .cinema{background:var(--color-paper);color:var(--color-cocoa-900)}
+  :global(html[data-theme="light"]) .cinema-word{color:var(--color-honey-400)}
   :global(html[data-theme="light"]) .stage-heading,
   :global(html[data-theme="light"]) .scroll-prompt,
   :global(html[data-theme="light"]) .scene-note{color:#51483a}
-  :global(html[data-theme="light"]) .chapter-copy h2{color:#2a2620}
-  :global(html[data-theme="light"]) .chapter-copy p{color:#4d4539}
-  :global(html[data-theme="light"]) .shop-honey{background:#303923;color:#fffdf5}
-  :global(html[data-theme="light"]) .shop-honey:hover{background:#465331}
+  :global(html[data-theme="light"]) .chapter-copy h2{color:var(--color-cocoa-900)}
+  :global(html[data-theme="light"]) .chapter-copy p{color:var(--color-cocoa-600)}
+  :global(html[data-theme="light"]) .shop-honey{background:var(--color-olive-900);color:#fffdf5}
+  :global(html[data-theme="light"]) .shop-honey:hover{background:var(--color-olive-700)}
   :global(html[data-theme="light"]) .shop-equipment{color:#332f26;border-color:#716856}
   @media(max-width:650px){.chapter-copy p{font-size:.95rem}}
   @media(max-width:650px) and (max-height:720px){.chapter-copy p{font-size:.875rem}}

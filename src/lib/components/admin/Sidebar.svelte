@@ -45,7 +45,7 @@
     onclick={onNavigate}
     class="flex items-center gap-2.5 px-5 py-5 hover:bg-parchment/5"
   >
-    <Logo alt={t(lang, "admin.shell.adminArea")} class="h-8 w-8 shrink-0" />
+    <Logo alt={t(lang, "admin.shell.adminArea")} onDark class="h-8 w-8 shrink-0" />
     <div class="leading-tight">
       <p class="text-sm font-bold tracking-wide text-honey-300">{t(lang, "admin.shell.adminArea")}</p>
       <p class="text-[11px] text-parchment/50">{t(lang, "admin.shell.overview")}</p>

@@ -52,7 +52,7 @@
         <Dialog.Title class="sr-only">{t(lang, "admin.shell.menu")}</Dialog.Title>
         <div class="flex items-center justify-between px-4 py-3">
           <div class="flex items-center gap-2.5">
-            <Logo alt={t(lang, "admin.shell.adminArea")} class="h-6 w-6 shrink-0" />
+            <Logo alt={t(lang, "admin.shell.adminArea")} onDark class="h-6 w-6 shrink-0" />
             <span class="text-xs font-semibold uppercase tracking-wider text-parchment/50">
               {t(lang, "admin.shell.overview")}
             </span>

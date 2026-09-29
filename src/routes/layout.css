@@ -50,44 +50,44 @@
   --font-display: "Amiri", "Cairo Variable", serif;
   --font-display-en: "Newsreader Variable", "Manrope Variable", serif;
 
-  --color-paper: #faf9f6;
-  --color-paper-deep: #f3f0e9;
-  --color-parchment: #ffffff;
+  --color-paper: #f6f1e6;
+  --color-paper-deep: #eae2d1;
+  --color-parchment: #fffaf0;
 
-  --color-cocoa-50: #faf9f7;
-  --color-cocoa-100: #f0eeea;
-  --color-cocoa-200: #dcd8d0;
-  --color-cocoa-300: #bfb9ad;
-  --color-cocoa-400: #9c9486;
-  --color-cocoa-500: #7d7566;
-  --color-cocoa-600: #625b4e;
-  --color-cocoa-700: #4d473d;
-  --color-cocoa-800: #3a352d;
+  --color-cocoa-50: #f7f1e5;
+  --color-cocoa-100: #eee5d5;
+  --color-cocoa-200: #d8cdb9;
+  --color-cocoa-300: #b8ab95;
+  --color-cocoa-400: #938674;
+  --color-cocoa-500: #706656;
+  --color-cocoa-600: #4d4539;
+  --color-cocoa-700: #40392e;
+  --color-cocoa-800: #332e26;
   --color-cocoa-900: #2a2620;
   --color-cocoa-950: #1c1914;
 
-  --color-honey-50: #fffbeb;
-  --color-honey-100: #fef3c7;
-  --color-honey-200: #fde68a;
-  --color-honey-300: #fcd34d;
-  --color-honey-400: #fbbf24;
-  --color-honey-500: #f59e0b;
-  --color-honey-600: #d97706;
-  --color-honey-700: #b45309;
-  --color-honey-800: #92400e;
-  --color-honey-900: #78350f;
-  --color-honey-950: #451a03;
+  --color-honey-50: #fbf6e9;
+  --color-honey-100: #f3e8cb;
+  --color-honey-200: #e7d3a2;
+  --color-honey-300: #d4b678;
+  --color-honey-400: #bf9b52;
+  --color-honey-500: #a78039;
+  --color-honey-600: #89662a;
+  --color-honey-700: #70521f;
+  --color-honey-800: #553d18;
+  --color-honey-900: #3c2b13;
+  --color-honey-950: #291c0c;
 
-  --color-olive-50: #f7f7ed;
-  --color-olive-100: #edebd1;
-  --color-olive-200: #dad6a6;
-  --color-olive-300: #c2bb74;
-  --color-olive-400: #aaa04c;
-  --color-olive-500: #8d8433;
-  --color-olive-600: #6f6727;
-  --color-olive-700: #554e20;
-  --color-olive-800: #413c1b;
-  --color-olive-900: #33301a;
+  --color-olive-50: #f2f3e9;
+  --color-olive-100: #e3e7d0;
+  --color-olive-200: #cbd2ab;
+  --color-olive-300: #abb887;
+  --color-olive-400: #899767;
+  --color-olive-500: #6e7b4e;
+  --color-olive-600: #55623d;
+  --color-olive-700: #465331;
+  --color-olive-800: #39452a;
+  --color-olive-900: #303923;
 
   --color-clay-50: #fdf3ef;
   --color-clay-100: #fbe3da;
@@ -100,21 +100,21 @@
   --color-clay-800: #7a2f1d;
   --color-clay-900: #64291b;
 
-  --color-ink-950: #14120f;
-  --color-ink-900: #1d1a16;
-  --color-ink-800: #26231e;
+  --color-ink-950: #303923;
+  --color-ink-900: #39432a;
+  --color-ink-800: #465331;
 
   /* Rich caramel/amber stops for the brand wordmark and honey accent tone —
      a deeper, glossier gold than the honey scale gives on its own. */
-  --color-amber-300: #fcd34d;
-  --color-amber-400: #f5b72c;
-  --color-amber-500: #e89b13;
-  --color-amber-600: #c97a06;
-  --color-amber-700: #9c5b04;
+  --color-amber-300: #e7cf9a;
+  --color-amber-400: #d1ae69;
+  --color-amber-500: #bf9b52;
+  --color-amber-600: #9d7836;
+  --color-amber-700: #70521f;
 
   /* Warm ivory surfaces with a touch more depth than pure paper. */
-  --color-cream: #f6f1e6;
-  --color-cream-deep: #efe7d6;
+  --color-cream: #eee6d6;
+  --color-cream-deep: #e5dbc8;
 
   /* Sand: the warm studio ground the catalog photography was shot on. It is
      the storefront's only light family and it does not change between themes
@@ -265,12 +265,7 @@ html:not([data-theme="light"]) .storefront-shell ::selection {
   color: var(--color-ink-950);
 }
 
-/* The gold mark keeps its amber ink; it only needs to lift off the dark comb,
-   and the wax seal's brown darks need the same lift. */
-html:not([data-theme="light"]) .storefront-shell .brand-logo {
-  filter: hue-rotate(-10deg) saturate(1.15) brightness(1.1);
-}
-
+/* The wax seal remains a separate image treatment. Logo colors live in Logo.svelte. */
 html:not([data-theme="light"]) .storefront-shell .brand-seal {
   filter: sepia(0.12) saturate(0.88) hue-rotate(-6deg) brightness(1.15);
 }
@@ -371,12 +366,7 @@ html:lang(en) body {
     color: transparent;
   }
 
-  /* Brand imagery is raster (logo + wax seal), so a CSS filter pulls their
-     golds/browns onto the honey-amber-cocoa palette instead of re-exporting. */
-  .brand-logo {
-    filter: hue-rotate(-10deg) saturate(1.15) brightness(1.02);
-  }
-
+  /* The logo's theme filters live in Logo.svelte so every placement shares one treatment. */
   .brand-seal {
     filter: sepia(0.12) saturate(0.88) hue-rotate(-6deg) brightness(1.04);
   }
