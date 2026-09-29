@@ -98,6 +98,45 @@ test("reduced motion has no long pinned journey", async ({ page }) => {
   await expect(page.locator(".shop-honey")).toHaveAttribute("href", "/honey");
 });
 
+test("light hero has readable text and a light static scene", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("beeking-theme", "light"));
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/");
+    await expect(page.locator(".cinema")).toHaveClass(/unavailable/);
+    await expect(page.locator(".studio-poster")).toBeVisible();
+    await expect(page.locator(".honey-canvas")).toHaveCount(0);
+
+    const contrast = await page.evaluate(() => {
+      const hero = document.querySelector<HTMLElement>(".cinema")!;
+      const background = getComputedStyle(hero).backgroundColor;
+      const luminance = (color: string) => {
+        const channels = color
+          .match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number);
+        const [r, g, b] = channels.map((channel) => {
+          const value = channel / 255;
+          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const ratio = (foreground: string) => {
+        const values = [luminance(background), luminance(foreground)].sort((a, b) => b - a);
+        return (values[0] + 0.05) / (values[1] + 0.05);
+      };
+      return {
+        background,
+        heading: ratio(getComputedStyle(hero.querySelector(".chapter-copy.active h2")!).color),
+        description: ratio(getComputedStyle(hero.querySelector(".chapter-copy.active p")!).color),
+      };
+    });
+    expect(contrast.background).not.toBe("rgb(20, 18, 15)");
+    expect(contrast.heading).toBeGreaterThanOrEqual(4.5);
+    expect(contrast.description).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
 test("scene load failure preserves shopping and collapses the journey", async ({ page }) => {
   await page.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;
