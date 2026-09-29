@@ -33,6 +33,14 @@
   font-weight: 700;
   src: url("/fonts/amiri-arabic-700-normal.woff2") format("woff2");
 }
+/* The oversized hero word would visibly jump when a fallback face is swapped. */
+@font-face {
+  font-family: "Amiri Hero";
+  font-style: normal;
+  font-display: block;
+  font-weight: 700;
+  src: url("/fonts/amiri-arabic-700-normal.woff2") format("woff2");
+}
 @font-face {
   font-family: "Newsreader Variable";
   font-style: normal;
