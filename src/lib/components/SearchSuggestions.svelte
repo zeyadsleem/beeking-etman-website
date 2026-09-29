@@ -68,9 +68,10 @@
   }
 
   async function fetchSuggestions(q: string) {
-    controller = new AbortController();
+    const request = new AbortController();
+    controller = request;
     try {
-      const data = await searchClient.suggestions({ q }, { signal: controller.signal });
+      const data = await searchClient.suggestions({ q }, { signal: request.signal });
       if (query.trim() !== q) return;
       items = data.products.map((p) => ({
         value: productPath(p),
@@ -81,7 +82,7 @@
     } catch (err) {
       if ((err as Error).name !== "AbortError") items = [];
     } finally {
-      loading = false;
+      if (controller === request) loading = false;
     }
   }
 
@@ -101,6 +102,8 @@
 
   function submit() {
     const q = query.trim();
+    clearTimeout(debounce);
+    controller?.abort();
     const resultCount = items.length;
     query = "";
     items = [];
@@ -113,10 +116,10 @@
     if (event.key !== "Enter" || event.isComposing) return;
     // If an item is highlighted, bits-ui selects it (navigating via onValueChange).
     // Otherwise the listbox is idle — submit the typed query instead.
-    const willSelect = highlighted !== null;
-    setTimeout(() => {
-      if (!willSelect) submit();
-    }, 0);
+    if (highlighted === null) {
+      event.preventDefault();
+      submit();
+    }
   }
 </script>
 

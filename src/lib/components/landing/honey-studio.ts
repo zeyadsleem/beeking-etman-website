@@ -6,6 +6,7 @@ export async function createHoneyStudio(
   container: HTMLElement,
   getProgress: () => number,
   onUnavailable: () => void,
+  onFirstFrame: () => void,
 ) {
   const renderer = new THREE.WebGLRenderer({
     alpha: true,
@@ -40,6 +41,7 @@ export async function createHoneyStudio(
   let visible = true;
   let dirty = true;
   let previous = -1;
+  let firstFrame = false;
   const destroy = () => {
     if (destroyed) return;
     destroyed = true;
@@ -268,6 +270,10 @@ export async function createHoneyStudio(
       jar.rotation.y = THREE.MathUtils.lerp(a.turn, b.turn, mix);
       camera.lookAt(target);
       renderer.render(scene, camera);
+      if (!firstFrame) {
+        firstFrame = true;
+        onFirstFrame();
+      }
     };
     draw();
     return { destroy };

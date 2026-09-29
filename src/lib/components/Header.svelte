@@ -4,6 +4,7 @@
   import { Dialog } from "bits-ui";
   import { onMount } from "svelte";
   import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
+  import { Moon, Sun } from "@lucide/svelte";
   import { cartCount, openDrawer } from "$lib/cart-store.svelte";
   import { edgeForDir, isEdgeSwipe } from "$lib/edge-swipe";
   import { getDir, t, type Lang } from "$lib/i18n/messages";
@@ -35,11 +36,13 @@
   } = $props();
 
   let count = $state(0);
+  let theme = $state<"dark" | "light">("dark");
   let mobileOpen = $state(false);
   let touchStart: { x: number; y: number } | null = $state(null);
   const LG_BREAKPOINT = 1024;
 
   onMount(() => {
+    theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
     const desktop = window.matchMedia(`(min-width: ${LG_BREAKPOINT}px)`);
     const closeOnDesktop = (): void => {
       if (desktop.matches) mobileOpen = false;
@@ -89,6 +92,12 @@
 
   function closeMobile() {
     mobileOpen = false;
+  }
+
+  function switchTheme() {
+    theme = theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("beeking-theme", theme); } catch { /* private browsing */ }
   }
 
   function onMobileSearch(query: string) {
@@ -154,7 +163,7 @@
 
     <div class="ms-auto flex items-center gap-2">
       {#if showHeaderSearch}
-        <div class="header-search max-lg:hidden">
+        <div class="header-search hidden lg:block lg:w-52 xl:w-72 2xl:w-80">
           <HeaderSearch
             {lang}
             initial={q}
@@ -163,6 +172,12 @@
           />
         </div>
       {/if}
+
+      <button type="button" onclick={switchTheme} class={`${ICON_BUTTON} max-lg:hidden`}
+        aria-label={theme === "dark" ? (lang === "ar" ? "تفعيل الوضع الفاتح" : "Switch to light mode") : (lang === "ar" ? "تفعيل الوضع الداكن" : "Switch to dark mode")}
+        title={theme === "dark" ? (lang === "ar" ? "الوضع الفاتح" : "Light mode") : (lang === "ar" ? "الوضع الداكن" : "Dark mode")}>
+        {#if theme === "dark"}<Sun size={19} />{:else}<Moon size={19} />{/if}
+      </button>
 
       <button
         type="button"
@@ -302,6 +317,10 @@
           <button type="button" onclick={switchLanguageFromMenu} class={SIDEBAR_ITEM}>
             <GlobeIcon size={18} />
             <span>{t(lang, "lang.switchTo")}</span>
+          </button>
+          <button type="button" onclick={switchTheme} class={SIDEBAR_ITEM}>
+            {#if theme === "dark"}<Sun size={18} />{:else}<Moon size={18} />{/if}
+            <span>{theme === "dark" ? (lang === "ar" ? "الوضع الفاتح" : "Light mode") : (lang === "ar" ? "الوضع الداكن" : "Dark mode")}</span>
           </button>
         </div>
       </div>

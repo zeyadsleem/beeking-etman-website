@@ -5,7 +5,13 @@ import { unlinkSync, existsSync } from "node:fs";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "$lib/server/db/schema";
-import { getProductWithVariants, listProducts, resolveCartItems } from "./store";
+import {
+  getProductWithVariants,
+  getSearchSuggestions,
+  listProducts,
+  listProductsPage,
+  resolveCartItems,
+} from "./store";
 import { clampLimit, findCategoryByQuery, truncateQueryToByteLimit } from "./store";
 import { ftsNormalizeSqlExpr } from "./arabic";
 
@@ -221,6 +227,39 @@ describe("store queries with variants", () => {
     const rows = await listProducts(db, { query: "Sidr" }, "en");
     expect(rows).toHaveLength(1);
     expect(rows[0].name).toBe("Egyptian Sidr Honey");
+  });
+
+  it("returns equipment for an unrestricted store search and suggestion", async () => {
+    const { db } = await buildDb();
+    const [category] = await db
+      .insert(schema.category)
+      .values({
+        name: "أدوات النحال",
+        nameEn: "Apiary tools",
+        slug: "apiary-tools",
+        department: "equipment",
+      })
+      .returning();
+    await db.insert(schema.product).values({
+      name: "مدخن نحل استانلس",
+      nameEn: "Stainless bee smoker",
+      slug: "bee-smoker",
+      description: "مدخن",
+      descriptionEn: "Smoker",
+      price: 25000,
+      stock: 4,
+      image: "",
+      categoryId: category.id,
+      department: "equipment",
+      createdAt: Date.now(),
+    });
+    const results = await listProductsPage(db, { query: "مدخن" });
+    expect(results.products.map((product) => product.slug)).toEqual(["bee-smoker"]);
+    const suggestions = await getSearchSuggestions(db, "مدخن");
+    expect(suggestions.products.map((product) => product.slug)).toEqual(["bee-smoker"]);
+    expect((await getSearchSuggestions(db, "أدوات")).categories.map((cat) => cat.slug)).toContain(
+      "apiary-tools",
+    );
   });
 
   it("resolveCartItems joins variant info and clamps to stock", async () => {

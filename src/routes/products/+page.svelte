@@ -16,12 +16,13 @@
 
   const lang = $derived(data.lang);
   const DEPT_COUNTS = $derived(data.departmentCounts);
-  const DEPT_LABELS = $derived<Record<Department, { key: string; badge?: number }>>({
+  const DEPT_LABELS = $derived<Record<Department | "all", { key: string; badge?: number }>>({
+    all: { key: "products.allCategories" },
     honey: { key: "dept.honey", badge: DEPT_COUNTS?.honey },
     equipment: { key: "dept.equipment", badge: DEPT_COUNTS?.equipment },
   });
 
-  function navigate({ sort, category, page, q, dept }: { sort?: SortOrder; category?: string | null; page?: number; q?: string; dept?: Department }) {
+  function navigate({ sort, category, page, q, dept }: { sort?: SortOrder; category?: string | null; page?: number; q?: string; dept?: Department | "all" }) {
     const params = new URLSearchParams();
     if (q !== undefined) {
       if (q) params.set("q", q);
@@ -35,7 +36,7 @@
     const nextPage = page ?? data.page;
     if (nextPage > 1) params.set("page", String(nextPage));
     const nextDept = dept ?? data.filters.dept;
-    if (nextDept && nextDept !== "honey") params.set("dept", nextDept);
+    if (nextDept && nextDept !== "honey" && nextDept !== "all") params.set("dept", nextDept);
     void goto(`/products${params.size ? `?${params}` : ""}`);
   }
 
@@ -43,7 +44,7 @@
     navigate({ category: slug, q: "", page: 1 });
   }
 
-  function selectDepartment(dept: Department) {
+  function selectDepartment(dept: Department | "all") {
     navigate({ dept, category: null, q: "", page: 1 });
   }
 
@@ -52,7 +53,7 @@
   }
 
   function searchProducts(query: string) {
-    navigate({ q: query, page: 1 });
+    navigate({ q: query, category: null, dept: "all", page: 1 });
   }
 </script>
 
@@ -77,6 +78,7 @@
   eyebrow={t(lang, "brand.name")}
   title={t(lang, "products.title")}
   subtitle={t(lang, "products.subtitle")}
+  image={data.filters.dept === "equipment" ? "/images/editorial/beekeeper-tools.png" : "/images/editorial/clover-field.png"}
   class="mt-5"
 />
 
@@ -87,10 +89,10 @@
   onValueChange={(v) => {
     if (v) selectDepartment(v as Department);
   }}
-  class="mt-6 flex gap-2"
+  class="mt-6 flex flex-wrap gap-2"
   aria-label={t(lang, "dept.honey")}
 >
-  {#each (["honey", "equipment"] as const) as dept (dept)}
+  {#each (["all", "honey", "equipment"] as const) as dept (dept)}
     <ToggleGroup.Item value={dept} class="chip data-[state=on]:chip-active flex items-center gap-1.5">
       {t(lang, DEPT_LABELS[dept].key)}
       {#if DEPT_LABELS[dept].badge != null && DEPT_LABELS[dept].badge! > 0}

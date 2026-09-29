@@ -14,9 +14,9 @@
       if (disposed) return;
       void import("./honey-studio").then(async ({ createHoneyStudio }) => {
         if (disposed) return;
-        const scene = await createHoneyStudio(container, () => progress, () => { if (!disposed) onUnavailable?.(); });
+        const scene = await createHoneyStudio(container, () => progress, () => { if (!disposed) onUnavailable?.(); }, () => { if (!disposed) onReady?.(); });
         if (disposed) scene.destroy();
-        else { destroy = scene.destroy; onReady?.(); }
+        else { destroy = scene.destroy; }
       }).catch(() => { destroy(); if (!disposed) onUnavailable?.(); });
     };
     // Scene setup costs real GPU time (environment prefilter, label texture,

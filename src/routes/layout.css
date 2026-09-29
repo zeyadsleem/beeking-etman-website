@@ -165,7 +165,7 @@
    cocoa-50 becomes the page's darkest ground and cocoa-900 becomes ivory text
    and every component flips without touching its markup. Admin routes never
    match the :has() and keep the light paper palette above. */
-html:has(.storefront-shell) {
+html:has(.storefront-shell):not([data-theme="light"]) {
   color-scheme: dark;
 
   --color-paper: #171a11;
@@ -237,41 +237,41 @@ html:has(.storefront-shell) {
 
 /* Controls that invert on the dark comb: the gold action, gold focus, and the
    light-on-dark pairs the paper theme got for free. */
-.storefront-shell .btn-primary {
+html:not([data-theme="light"]) .storefront-shell .btn-primary {
   background-color: var(--color-honey-600);
   color: var(--color-ink-950);
   box-shadow: none;
 }
 
-.storefront-shell .btn-primary:hover {
+html:not([data-theme="light"]) .storefront-shell .btn-primary:hover {
   background-color: var(--color-honey-700);
   box-shadow: var(--shadow-warm);
 }
 
-.storefront-shell :is(.badge-out, .badge-warn) {
+html:not([data-theme="light"]) .storefront-shell :is(.badge-out, .badge-warn) {
   color: var(--color-ink-950);
 }
 
-.storefront-shell .btn-outline {
+html:not([data-theme="light"]) .storefront-shell .btn-outline {
   background-color: color-mix(in oklab, var(--color-cocoa-200) 55%, transparent);
 }
 
-.storefront-shell .btn-outline:hover {
+html:not([data-theme="light"]) .storefront-shell .btn-outline:hover {
   background-color: color-mix(in oklab, var(--color-cocoa-300) 70%, transparent);
 }
 
-.storefront-shell ::selection {
+html:not([data-theme="light"]) .storefront-shell ::selection {
   background: var(--color-honey-600);
   color: var(--color-ink-950);
 }
 
 /* The gold mark keeps its amber ink; it only needs to lift off the dark comb,
    and the wax seal's brown darks need the same lift. */
-.storefront-shell .brand-logo {
+html:not([data-theme="light"]) .storefront-shell .brand-logo {
   filter: hue-rotate(-10deg) saturate(1.15) brightness(1.1);
 }
 
-.storefront-shell .brand-seal {
+html:not([data-theme="light"]) .storefront-shell .brand-seal {
   filter: sepia(0.12) saturate(0.88) hue-rotate(-6deg) brightness(1.15);
 }
 
