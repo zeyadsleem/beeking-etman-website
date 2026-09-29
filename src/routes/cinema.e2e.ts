@@ -32,6 +32,17 @@ for (const viewport of [
 
     await page.setViewportSize(viewport);
     await page.goto("/");
+    if (viewport.width <= 650) {
+      // Narrow screens use the product poster directly to avoid software WebGL
+      // startup and keep the shopping links available without a pinned journey.
+      await expect(page.locator(".cinema")).toHaveClass(/unavailable/);
+      await expect(page.locator(".studio-poster")).toBeVisible();
+      await expect(page.locator(".camera-chapters")).toBeHidden();
+      await expect(page.locator(".shop-honey")).toBeVisible();
+      await page.getByRole("link", { name: "انتقل للمتجر", exact: true }).click();
+      await expect(page.locator("#categories")).toBeInViewport();
+      return;
+    }
     await expect(page.locator(".studio-poster")).toHaveClass(/loaded/, { timeout: 60000 });
     await expect(page.locator("canvas")).toBeVisible();
     await expect(page.locator(".chapter-copy.active")).toHaveCSS("opacity", "1");

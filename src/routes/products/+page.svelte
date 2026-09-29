@@ -89,7 +89,7 @@
   onValueChange={(v) => {
     if (v) selectDepartment(v as Department);
   }}
-  class="mt-6 flex gap-2"
+  class="mt-6 flex flex-wrap gap-2"
   aria-label={t(lang, "dept.honey")}
 >
   {#each (["all", "honey", "equipment"] as const) as dept (dept)}
