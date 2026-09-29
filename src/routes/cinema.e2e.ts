@@ -98,6 +98,18 @@ test("reduced motion has no long pinned journey", async ({ page }) => {
   await expect(page.locator(".shop-honey")).toHaveAttribute("href", "/honey");
 });
 
+test("hero wordmark follows the selected language", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("beeking-theme", "light"));
+  await page.goto("/");
+  await expect(page.locator(".cinema-word [aria-hidden='true']")).toHaveText("عتمان");
+  await expect(page.locator(".cinema-word")).toHaveCSS("font-family", /Amiri/);
+
+  await page.request.post("/api/lang?lang=en");
+  await page.reload();
+  await expect(page.locator(".cinema-word [aria-hidden='true']")).toHaveText("ETMAN");
+  await expect(page.locator(".cinema-word")).toHaveCSS("font-family", /Manrope/);
+});
+
 test("light hero has readable text and a light static scene", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("beeking-theme", "light"));
   for (const width of [1440, 390]) {
